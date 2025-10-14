@@ -13,11 +13,7 @@ import { homedir } from 'node:os';
  * @returns {{valid: boolean, resolvedPath?: string, error?: string}}
  */
 export function validateAndResolvePath(path, options = {}) {
-	const {
-		baseDir = null,
-		mustExist = false,
-		allowHome = true
-	} = options;
+	const { baseDir = null, mustExist = false, allowHome = true } = options;
 
 	// Check for null/undefined
 	if (!path || typeof path !== 'string') {

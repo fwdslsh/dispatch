@@ -8,7 +8,7 @@ import sqlite3 from 'sqlite3';
  * for `.project-item` elements. This is intentionally small and guarded
  * so it won't affect normal runtimes.
  */
-export async function load({ env }) {
+export async function load() {
 	if (!process.env.E2E_TEST_MODE) {
 		return { status: 404 };
 	}

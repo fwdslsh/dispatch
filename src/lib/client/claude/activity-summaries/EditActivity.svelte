@@ -1,6 +1,4 @@
 <script>
-	
-
 	let { event } = $props();
 
 	let editInfo = $derived(parseEditEvent(event));
@@ -43,12 +41,6 @@
 			return '.../' + parts.slice(-3).join('/');
 		}
 		return path;
-	}
-
-	function truncateString(str, maxLength = 100) {
-		if (!str) return '';
-		if (str.length <= maxLength) return str;
-		return str.substring(0, maxLength) + '...';
 	}
 
 	function getDiffPreview(oldStr, newStr) {

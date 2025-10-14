@@ -150,28 +150,35 @@ async function analyzeBundleSize() {
 			return null;
 		}
 
-		// Analyze client bundles
-		const entries = await fs.readdir(clientDir, { withFileTypes: true, recursive: true });
-
+		// Analyze client bundles recursively
 		let totalSize = 0;
 		let jsSize = 0;
 		let cssSize = 0;
 		let fileCount = 0;
 
-		for (const entry of entries) {
-			if (entry.isFile()) {
-				const filePath = path.join(entry.path, entry.name);
-				const stats = await fs.stat(filePath);
-				totalSize += stats.size;
-				fileCount++;
+		async function analyzeDirectory(dir) {
+			const entries = await fs.readdir(dir, { withFileTypes: true });
 
-				if (entry.name.endsWith('.js')) {
-					jsSize += stats.size;
-				} else if (entry.name.endsWith('.css')) {
-					cssSize += stats.size;
+			for (const entry of entries) {
+				const fullPath = path.join(dir, entry.name);
+
+				if (entry.isDirectory()) {
+					await analyzeDirectory(fullPath);
+				} else if (entry.isFile()) {
+					const stats = await fs.stat(fullPath);
+					totalSize += stats.size;
+					fileCount++;
+
+					if (entry.name.endsWith('.js')) {
+						jsSize += stats.size;
+					} else if (entry.name.endsWith('.css')) {
+						cssSize += stats.size;
+					}
 				}
 			}
 		}
+
+		await analyzeDirectory(clientDir);
 
 		console.log(`   Total bundle size: ${(totalSize / 1024).toFixed(2)} KB`);
 		console.log(`   JavaScript size: ${(jsSize / 1024).toFixed(2)} KB`);

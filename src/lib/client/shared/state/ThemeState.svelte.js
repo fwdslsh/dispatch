@@ -6,6 +6,8 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { settingsService } from '../services/SettingsService.svelte.js';
+import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 const log = createLogger('theme-state');
 
@@ -28,14 +30,15 @@ const log = createLogger('theme-state');
 
 export class ThemeState {
 	/**
-	 * @param {Object} config - Configuration object
-	 * @param {string} config.apiBaseUrl - Base URL for API requests
-	 * @param {string} config.authTokenKey - Key for auth token in localStorage
+	 * @param {{ apiBaseUrl?: string, authTokenKey?: string }} config - Configuration object
 	 */
 	constructor(config = {}) {
-		this.config = config;
-		this.baseUrl = config.apiBaseUrl || '';
-		this.authTokenKey = 'dispatch-auth-token';
+		this.config = {
+			apiBaseUrl: config.apiBaseUrl || '/api',
+			authTokenKey: config.authTokenKey || 'dispatch-auth-token'
+		};
+		this.baseUrl = this.config.apiBaseUrl;
+		this.authTokenKey = this.config.authTokenKey;
 
 		// Core theme data
 		this.themes = $state([]);
@@ -68,33 +71,40 @@ export class ThemeState {
 	// =================================================================
 
 	/**
-	 * Get authorization headers
+	 * Get headers for API requests
+	 * Authentication via session cookies (no Authorization header)
 	 * @returns {Object} Headers object
 	 */
 	getHeaders() {
-		const headers = {
-			'Content-Type': 'application/json'
-		};
-
-		if (typeof localStorage !== 'undefined') {
-			const token = localStorage.getItem(this.authTokenKey);
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
-		}
-
-		return headers;
+		return { 'Content-Type': 'application/json' };
 	}
 
 	/**
-	 * Get auth key from localStorage
-	 * @returns {string|null}
+	 * Check if the user is authenticated via session cookie
+	 * @returns {Promise<boolean>}
 	 */
-	getAuthKey() {
-		if (typeof localStorage !== 'undefined') {
-			return localStorage.getItem(this.authTokenKey);
+	async isAuthenticated() {
+		try {
+			const res = await fetch('/api/auth/keys', { method: 'GET', credentials: 'include' });
+			return res.ok;
+		} catch {
+			return false;
 		}
-		return null;
+	}
+
+	/**
+	 * Ensure user is authenticated, otherwise redirect to login
+	 * @throws {Error} When unauthenticated (after initiating redirect)
+	 */
+	async ensureAuthenticated() {
+		const authed = await this.isAuthenticated();
+		if (!authed) {
+			if (typeof window !== 'undefined') {
+				const redirect = '/settings';
+				window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+			}
+			throw new Error('Authentication required');
+		}
 	}
 
 	/**
@@ -138,15 +148,12 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required to load themes');
-			}
-
-			const url = `${this.baseUrl}/api/themes`;
+			// Authentication via session cookie (server validates)
+			const url = `${this.baseUrl}/themes`;
 			const response = await fetch(url, {
 				method: 'GET',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 			const data = await this.handleResponse(response);
 
@@ -171,27 +178,26 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required to load active theme');
-			}
-
-			const params = new URLSearchParams();
+			// Authentication via session cookie (server validates)
+			const params = new SvelteURLSearchParams();
 			if (workspaceId) {
 				params.append('workspaceId', workspaceId);
 			}
 
-			const url = `${this.baseUrl}/api/themes/active${params.toString() ? '?' + params.toString() : ''}`;
+			const url = `${this.baseUrl}/themes/active${params.toString() ? '?' + params.toString() : ''}`;
 			const response = await fetch(url, {
 				method: 'GET',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 			const data = await this.handleResponse(response);
 
-			this.activeThemeId = data.id;
-			log.info('Active theme loaded', { themeId: data.id, source: data.source });
+			// API returns {theme: {...}} structure
+			const theme = data.theme || data;
+			this.activeThemeId = theme.id;
+			log.info('Active theme loaded', { themeId: theme.id, source: theme.source });
 
-			return data;
+			return theme;
 		} catch (err) {
 			this.error = err.message || 'Failed to load active theme';
 			log.error('Failed to load active theme', err);
@@ -215,10 +221,9 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required to upload theme');
-			}
+			// Require authentication for upload operations
+			await this.ensureAuthenticated();
+			// Authentication via session cookie (server validates)
 
 			// Validate file size (5MB limit)
 			const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -229,11 +234,11 @@ export class ThemeState {
 			// Create FormData for file upload
 			const formData = new FormData();
 			formData.append('theme', file);
-			formData.append('authKey', authKey);
 
-			const url = `${this.baseUrl}/api/themes`;
+			const url = `${this.baseUrl}/themes`;
 			const response = await fetch(url, {
 				method: 'POST',
+				credentials: 'include',
 				body: formData
 			});
 
@@ -271,25 +276,13 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required to activate theme');
-			}
+			// Require authentication for settings update
+			await this.ensureAuthenticated();
 
-			// Update global theme preference
-			const url = `${this.baseUrl}/api/preferences`;
-			const response = await fetch(url, {
-				method: 'PUT',
-				headers: this.getHeaders(),
-				body: JSON.stringify({
-					category: 'themes',
-					preferences: {
-						globalDefault: themeId
-					}
-				})
+			// Use unified SettingsService to align with other settings writes
+			await settingsService.updateCategorySettings('themes', {
+				globalDefault: `${themeId}.json`
 			});
-
-			await this.handleResponse(response);
 
 			this.activeThemeId = themeId;
 			log.info('Theme activated successfully', { themeId });
@@ -318,17 +311,16 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required to set workspace theme');
-			}
+			// Require authentication for workspace update
+			await this.ensureAuthenticated();
 
-			const url = `${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`;
+			const url = `${this.baseUrl}/workspaces/${encodeURIComponent(workspaceId)}`;
 			const response = await fetch(url, {
 				method: 'PUT',
 				headers: this.getHeaders(),
+				credentials: 'include',
 				body: JSON.stringify({
-					theme_override: themeId
+					theme_override: themeId ? `${themeId}.json` : null
 				})
 			});
 
@@ -369,15 +361,12 @@ export class ThemeState {
 	 */
 	async canDeleteTheme(themeId) {
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required');
-			}
-
-			const url = `${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}/can-delete`;
+			// Authentication via session cookie (server validates)
+			const url = `${this.baseUrl}/themes/${encodeURIComponent(themeId)}/can-delete`;
 			const response = await fetch(url, {
 				method: 'GET',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 			return await this.handleResponse(response);
 		} catch (err) {
@@ -396,10 +385,8 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			const authKey = this.getAuthKey();
-			if (!authKey) {
-				throw new Error('Authentication required to delete theme');
-			}
+			// Require authentication for deletion
+			await this.ensureAuthenticated();
 
 			// Check if theme can be deleted
 			const canDelete = await this.canDeleteTheme(themeId);
@@ -407,10 +394,11 @@ export class ThemeState {
 				throw new Error(canDelete.reason || 'Theme cannot be deleted');
 			}
 
-			const url = `${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}`;
+			const url = `${this.baseUrl}/themes/${encodeURIComponent(themeId)}`;
 			const response = await fetch(url, {
 				method: 'DELETE',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 
 			await this.handleResponse(response);

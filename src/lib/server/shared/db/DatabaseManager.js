@@ -298,7 +298,7 @@ export class DatabaseManager {
 		if (row && row.meta_json) {
 			try {
 				row.meta = JSON.parse(row.meta_json);
-			} catch (e) {
+			} catch (_e) {
 				row.meta = {};
 			}
 		}
@@ -319,7 +319,7 @@ export class DatabaseManager {
 			if (row.meta_json) {
 				try {
 					row.meta = JSON.parse(row.meta_json);
-				} catch (e) {
+				} catch (_e) {
 					row.meta = {};
 				}
 			}
@@ -341,6 +341,12 @@ export class DatabaseManager {
 
 	/**
 	 * Append event to session event log (serialized write operation)
+	 * @param {string} runId - Run session ID
+	 * @param {number} seq - Sequence number
+	 * @param {string} channel - Event channel
+	 * @param {string} type - Event type
+	 * @param {any} payload - Event payload
+	 * @returns {Promise<void>}
 	 */
 	async appendSessionEvent(runId, seq, channel, type, payload) {
 		// Queue this write operation to prevent concurrent writes
@@ -356,8 +362,6 @@ export class DatabaseManager {
 					`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
 					[runId, seq, channel, type, buf, ts]
 				);
-
-				return { runId, seq, channel, type, payload, ts };
 			})
 			.catch((err) => {
 				throw err;
@@ -382,9 +386,8 @@ export class DatabaseManager {
 				try {
 					const text = new TextDecoder().decode(row.payload);
 					row.payload = JSON.parse(text);
-				} catch (e) {
-					// Keep as raw buffer if not JSON
-					row.payload = row.payload;
+				} catch (_e) {
+					// Keep as raw buffer if not JSON - no assignment needed
 				}
 			}
 			return row;
@@ -535,7 +538,7 @@ export class DatabaseManager {
 			if (row.data) {
 				try {
 					row.data = JSON.parse(row.data);
-				} catch (e) {
+				} catch (_e) {
 					// Keep as string if parsing fails
 				}
 			}
@@ -576,7 +579,7 @@ export class DatabaseManager {
 		return rows.map((row) => {
 			try {
 				row.settings = JSON.parse(row.settings_json);
-			} catch (e) {
+			} catch (_e) {
 				row.settings = {};
 			}
 			delete row.settings_json; // Remove raw JSON from response
@@ -683,7 +686,7 @@ export class DatabaseManager {
 	/**
 	 * Get user preferences for a category
 	 * @param {string} category - Preference category
-	 * @returns {object} Preferences object
+	 * @returns {Promise<object>} Preferences object
 	 */
 	async getUserPreferences(category) {
 		const userId = 'default'; // Single-user system
@@ -696,7 +699,7 @@ export class DatabaseManager {
 
 	/**
 	 * Get all user preferences grouped by category
-	 * @returns {object} All preferences grouped by category
+	 * @returns {Promise<object>} All preferences grouped by category
 	 */
 	async getAllUserPreferences() {
 		const userId = 'default'; // Single-user system
@@ -716,7 +719,7 @@ export class DatabaseManager {
 	 * Update user preferences for a category
 	 * @param {string} category - Preference category
 	 * @param {object} preferences - Preferences to update
-	 * @returns {object} Updated preferences
+	 * @returns {Promise<object>} Updated preferences
 	 */
 	async updateUserPreferences(category, preferences) {
 		const userId = 'default'; // Single-user system

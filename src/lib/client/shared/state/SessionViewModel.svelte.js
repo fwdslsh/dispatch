@@ -14,6 +14,7 @@
 import { createLogger } from '../utils/logger.js';
 import { SESSION_TYPE } from '../../../shared/session-types.js';
 import { getClientId } from '../utils/uuid.js';
+import { SvelteMap, SvelteDate } from 'svelte/reactivity';
 
 const log = createLogger('session:viewmodel');
 
@@ -49,7 +50,7 @@ export class SessionViewModel {
 		});
 
 		// Session lifecycle tracking
-		this.sessionOperations = $state(new Map()); // id -> operation state
+		this.sessionOperations = $state(new SvelteMap()); // id -> operation state
 
 		// Derived business logic state from AppState
 		this.sessions = $derived(this.appStateManager.sessions.sessions);
@@ -373,8 +374,8 @@ export class SessionViewModel {
 			isActive: true,
 			inLayout: false,
 			title: `New ${type} session`,
-			createdAt: new Date().toISOString(),
-			lastActivity: new Date().toISOString(),
+			createdAt: new SvelteDate().toISOString(),
+			lastActivity: new SvelteDate().toISOString(),
 			activityState: 'idle'
 		};
 
@@ -395,7 +396,7 @@ export class SessionViewModel {
 	 * @param {boolean} sessionData.shouldResume - Whether this is a resume operation
 	 */
 	async handleSessionSelected(sessionData) {
-		const { id, type, workspacePath, shouldResume } = sessionData;
+		const { id, type: _type, workspacePath, shouldResume } = sessionData;
 
 		try {
 			if (shouldResume) {
@@ -586,8 +587,8 @@ export class SessionViewModel {
 			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
 			tileId: session.tileId ?? session.layout?.tileId ?? null,
 			title: session.title || `${session.type || session.sessionType} session`,
-			createdAt: session.createdAt || new Date().toISOString(),
-			lastActivity: session.lastActivity || new Date().toISOString(),
+			createdAt: session.createdAt || new SvelteDate().toISOString(),
+			lastActivity: session.lastActivity || new SvelteDate().toISOString(),
 			activityState: session.activityState || 'idle'
 		};
 	}
@@ -634,7 +635,7 @@ export class SessionViewModel {
 	getState() {
 		return {
 			operationState: { ...this.operationState },
-			sessionOperations: new Map(this.sessionOperations),
+			sessionOperations: new SvelteMap(this.sessionOperations),
 			sessionCount: this.sessionCount,
 			hasActiveSessions: this.hasActiveSessions
 		};

@@ -38,7 +38,7 @@ const openStatusPanel = async (queries) => {
 	return within(expectPanel(statusHeading.closest('.git-panel'), 'status'));
 };
 
-const openBranchesPanel = async (queries) => {
+const _openBranchesPanel = async (queries) => {
 	const { findAllByTitle, findAllByText } = /** @type {any} */ (queries);
 	const branchLabels = await findAllByText('main');
 	if (!branchLabels.length) {
@@ -269,8 +269,7 @@ describe('GitOperations Component', () => {
 				currentPath: '/git/repo/path'
 			}
 		});
-		const { findAllByTitle, findAllByText, findByText, findByPlaceholderText } =
-			/** @type {any} */ (queries);
+		const { findAllByTitle, findAllByText, findByText } = /** @type {any} */ (queries);
 		const commitLabels = await findAllByText('main');
 		if (!commitLabels.length) {
 			throw new Error('Branch info not loaded');

@@ -10,7 +10,7 @@
 	import IconTerminal from '../shared/components/Icons/IconTerminal.svelte';
 
 	// Props
-	let { session, onClose = () => {}, index = 0, shell = 'bash' } = $props();
+	let { session, onClose = () => {}, index: _index = 0, shell = 'bash' } = $props();
 
 	// Session display info
 	const sessionId = $derived(session.id?.slice(0, 6) || 'unknown');
@@ -19,11 +19,6 @@
 	function handleClose(e) {
 		e.stopPropagation?.();
 		onClose(session.id);
-	}
-
-	function handleTerminalAction() {
-		// Example custom action for Terminal sessions
-		console.log('Terminal action:', { sessionId: session.id, shell });
 	}
 </script>
 

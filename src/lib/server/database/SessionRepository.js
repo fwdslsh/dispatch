@@ -9,7 +9,6 @@
 
 export class SessionRepository {
 	#db;
-	#stmts = {};
 
 	/**
 	 * @param {DatabaseManager} db - Database connection manager

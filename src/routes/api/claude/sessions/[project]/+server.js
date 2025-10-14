@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 import { error, json } from '@sveltejs/kit';
 
-export async function GET({ params, request, locals }) {
+export async function GET({ params, request: _request, locals: _locals }) {
 	const { project } = params;
 	const base = projectsRoot();
 	const dir = join(base, project);

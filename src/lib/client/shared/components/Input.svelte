@@ -20,11 +20,7 @@
 		// Validation states
 		error = '',
 		warning = '',
-		success = false,
 		required = false,
-
-		// Size and appearance
-		size = 'medium', // 'small' | 'medium' | 'large'
 
 		// Character limits
 		maxLength = undefined,
@@ -32,7 +28,6 @@
 		// Textarea specific
 		rows = 4,
 		cols = undefined,
-		resize = 'vertical', // 'none' | 'vertical' | 'horizontal' | 'both'
 
 		// State
 		disabled = false,

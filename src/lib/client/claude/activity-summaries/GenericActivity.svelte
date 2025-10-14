@@ -1,5 +1,4 @@
 <script>
-	
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 
 	let { event, type = 'Unknown', tool = '' } = $props();
@@ -180,7 +179,7 @@
 					<span class="activity-label">Details</span>
 				</div>
 				<ul class="property-list">
-					{#each eventInfo.properties as prop}
+					{#each eventInfo.properties as prop (prop.key)}
 						<li>
 							<span class="prop-key">{prop.key}:</span>
 							<span class="prop-value">{prop.value}</span>
@@ -199,7 +198,7 @@
 					<pre class="activity-code">{eventInfo.inputSummary}</pre>
 				{:else if eventInfo.inputSummary.preview}
 					<ul class="property-list">
-						{#each eventInfo.inputSummary.preview as item}
+						{#each eventInfo.inputSummary.preview as item (item)}
 							<li>{item}</li>
 						{/each}
 					</ul>
@@ -243,7 +242,7 @@
 					<pre class="activity-code">{eventInfo.resultSummary}</pre>
 				{:else if eventInfo.resultSummary.preview}
 					<ul class="property-list">
-						{#each eventInfo.resultSummary.preview as item}
+						{#each eventInfo.resultSummary.preview as item (item)}
 							<li>{item}</li>
 						{/each}
 					</ul>

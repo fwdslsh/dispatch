@@ -108,7 +108,7 @@ describe('User Preferences API', () => {
 		});
 
 		it('should validate theme preference values', async () => {
-			const invalidUpdate = {
+			const _invalidUpdate = {
 				themePreference: 'invalid-theme'
 			};
 
@@ -122,7 +122,7 @@ describe('User Preferences API', () => {
 		});
 
 		it('should validate workspace display mode', async () => {
-			const invalidUpdate = {
+			const _invalidUpdate = {
 				workspaceDisplayMode: 'invalid-mode'
 			};
 
@@ -135,7 +135,7 @@ describe('User Preferences API', () => {
 		});
 
 		it('should allow partial updates', async () => {
-			const partialUpdate = {
+			const _partialUpdate = {
 				themePreference: 'dark'
 				// Other preferences remain unchanged
 			};

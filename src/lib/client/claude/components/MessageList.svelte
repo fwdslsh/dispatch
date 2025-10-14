@@ -36,7 +36,6 @@
 	aria-label="Chat messages"
 	bind:this={messagesContainer}
 >
-
 	{#if viewModel.loading && viewModel.messages.length === 0}
 		<div class="loading-message">
 			<div class="loading-indicator">
@@ -99,9 +98,7 @@
 	{/each}
 
 	{#if viewModel.isWaitingForReply}
-		<div
-			class="message message--assistant typing-indicator"
-		>
+		<div class="message message--assistant typing-indicator">
 			<div class="message-wrapper">
 				<div class="message-avatar">
 					<div class="ai-avatar-small">
@@ -390,8 +387,6 @@
 		box-shadow: 0 8px 24px -8px var(--primary-glow);
 		animation: avatarPulse 3s ease-in-out infinite;
 	}
-
-	
 
 	.welcome-message h3 {
 		font-size: 1.5rem;

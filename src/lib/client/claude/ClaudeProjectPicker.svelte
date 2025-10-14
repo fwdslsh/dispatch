@@ -138,8 +138,11 @@
 				onkeydown={key}
 				aria-controls="cc-panel"
 			/>
-			<button type="button" class="browse-btn flex-center" onclick={toggle} aria-label="Browse projects"
-				><IconFolder size={18} /></button
+			<button
+				type="button"
+				class="browse-btn flex-center"
+				onclick={toggle}
+				aria-label="Browse projects"><IconFolder size={18} /></button
 			>
 		</div>
 	{/if}
@@ -153,7 +156,7 @@
 				{#if error}<span class="err">{error}</span>{/if}
 			</div>
 			<ul class="list" role="listbox">
-				{#each filtered as p, i}
+				{#each filtered as p, i (p.path || p.name || i)}
 					<li class={i === highlight ? 'is-active' : ''}>
 						<button type="button" onclick={() => choose(p)}>
 							<div class="name">{formatProjectName(p)}</div>

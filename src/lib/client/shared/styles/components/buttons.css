@@ -45,7 +45,9 @@
 	overflow: hidden;
 
 	/* Transitions - single declaration */
-	transition: all 0.15s ease, transform 0.06s ease;
+	transition:
+		all 0.15s ease,
+		transform 0.06s ease;
 }
 
 /* Unified Interactive States - Lower Specificity */
@@ -231,7 +233,6 @@
 	font-size: var(--font-size-1);
 }
 
-
 .btn--lg {
 	padding: var(--space-3) var(--space-5);
 	font-size: var(--font-size-3);
@@ -305,8 +306,12 @@
 }
 
 @keyframes terminalSpin {
-	0% { transform: rotate(0deg); }
-	100% { transform: rotate(360deg); }
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
 }
 
 /* ==========================================================================
@@ -323,7 +328,11 @@
 }
 
 .btn-group .btn.active {
-	background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 90%, cyan 10%));
+	background: linear-gradient(
+		135deg,
+		var(--primary),
+		color-mix(in oklab, var(--primary) 90%, cyan 10%)
+	);
 	color: var(--bg);
 	border-color: var(--primary);
 	box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 40%, transparent);

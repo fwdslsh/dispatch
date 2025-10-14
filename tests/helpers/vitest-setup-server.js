@@ -14,6 +14,7 @@ if (!process.env.NODE_ENV) {
 // and $effect (side-effect runner that re-runs when dependencies change).
 if (typeof global.$state === 'undefined') {
 	// Keep $state compatible with existing tests/components that expect a plain value
+	// @ts-ignore - Test shim doesn't need full $state API
 	global.$state = function (initial) {
 		return initial;
 	};
@@ -23,7 +24,8 @@ if (typeof global.$derived === 'undefined') {
 	// Simple dependency tracker: during evaluation we record accessed state boxes
 	const __evalStack = [];
 
-	function readBox(box) {
+	// Placeholder for future dependency tracking (currently unused but part of tracking infrastructure)
+	function _readBox(box) {
 		const ctx = __evalStack[__evalStack.length - 1];
 		if (ctx && box && typeof box._subscribe === 'function') {
 			ctx.deps.add(box);
@@ -34,9 +36,9 @@ if (typeof global.$derived === 'undefined') {
 	function $derived(fnOrVal) {
 		if (typeof fnOrVal !== 'function') return fnOrVal;
 
-		let last = undefined;
+		let _last = undefined;
 		let deps = new Set();
-		const subs = new Set();
+		const _subs = new Set();
 
 		const compute = () => {
 			const ctx = { deps: new Set() };
@@ -44,7 +46,7 @@ if (typeof global.$derived === 'undefined') {
 			try {
 				// allow fnOrVal to call state boxes directly
 				const v = fnOrVal();
-				last = v;
+				_last = v;
 				return v;
 			} finally {
 				__evalStack.pop();
@@ -84,13 +86,14 @@ if (typeof global.$derived === 'undefined') {
 	}
 
 	// Effects: run immediately and re-run when dependencies (state boxes) change
+	// @ts-ignore - Test shim doesn't need full $effect API
 	global.$effect = function (fn) {
 		let cleanup;
 		const run = () => {
 			if (cleanup) {
 				try {
 					cleanup();
-				} catch (e) {
+				} catch {
 					/* ignore cleanup errors in tests */
 				}
 				cleanup = undefined;
@@ -117,22 +120,29 @@ if (typeof global.$derived === 'undefined') {
 	};
 
 	// expose
+	// @ts-ignore - Test shim doesn't need full $derived API
 	global.$derived = $derived;
 
 	// convenience helpers so compiled code can call $derived.by(fn) or $derived.get(fn)
+	// @ts-ignore - Test shim extensions
 	global.$derived.by = (fn) => $derived(fn).by();
+	// @ts-ignore - Test shim extensions
 	global.$derived.get = (fn) => $derived(fn).get();
 }
 if (typeof global.$props === 'undefined') {
 	// Simple placeholder for $props() calls in compiled Svelte modules
+	// @ts-ignore - Test shim doesn't need full $props API
 	global.$props = () => ({});
 }
 
 // Mock database manager for tests
 vi.mock('./src/lib/server/db/DatabaseManager.js', async (importOriginal) => {
+	// @ts-ignore - Test mock doesn't need exact type match
 	const actual = await importOriginal();
+	// Cast to object for spread operation
+	const actualModule = /** @type {Record<string, any>} */ (actual);
 	return {
-		...actual,
+		...actualModule,
 		getDatabaseManager: vi.fn(() => ({
 			init: vi.fn(),
 			createWorkspace: vi.fn(),
@@ -172,7 +182,8 @@ global.__API_SERVICES = {
 
 // Minimal fetch mock for server-side tests (some client services call fetch)
 if (typeof global.fetch === 'undefined') {
-	global.fetch = async (url, opts) => {
+	// @ts-ignore - Test mock doesn't need full fetch API
+	global.fetch = async (url, _opts) => {
 		// simple handling for sessions endpoint
 		try {
 			const u = String(url || '');
@@ -183,7 +194,9 @@ if (typeof global.fetch === 'undefined') {
 					json: async () => []
 				};
 			}
-		} catch (e) {}
+		} catch {
+			// Ignore URL parsing errors
+		}
 		return { ok: false, status: 404, json: async () => ({}) };
 	};
 }

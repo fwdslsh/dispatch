@@ -17,7 +17,12 @@ const themeManager = new ThemeManager(parser);
  * @param {string|null} workspaceId - Optional workspace ID
  * @returns {Promise<Object>} Resolved theme with metadata and CSS variables
  */
-async function resolveActiveTheme(workspaceRepository, settingsRepository, themeManager, workspaceId) {
+async function resolveActiveTheme(
+	workspaceRepository,
+	settingsRepository,
+	themeManager,
+	workspaceId
+) {
 	// 1. Check workspace override if workspaceId provided
 	if (workspaceId) {
 		try {
@@ -59,11 +64,6 @@ async function resolveActiveTheme(workspaceRepository, settingsRepository, theme
 }
 
 export async function GET({ url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Invalid authentication key' }, { status: 401 });
-	}
-
 	// Get optional workspaceId from query params
 	const workspaceId = url.searchParams.get('workspaceId');
 
@@ -74,7 +74,12 @@ export async function GET({ url, locals }) {
 	await themeManager.initialize();
 
 	// Resolve active theme using hierarchy
-	const theme = await resolveActiveTheme(workspaceRepository, settingsRepository, themeManager, workspaceId);
+	const theme = await resolveActiveTheme(
+		workspaceRepository,
+		settingsRepository,
+		themeManager,
+		workspaceId
+	);
 
 	// Return resolved theme
 	return json({ theme });

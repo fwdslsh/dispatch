@@ -78,11 +78,11 @@ export class ClaudeProjectsReader {
 				.filter((line) => line.trim());
 
 			return lines
-				.map((line, index) => {
+				.map((line) => {
 					try {
 						return JSON.parse(line);
-					} catch (parseError) {
-						console.warn(`Failed to parse line ${index + 1} in ${filePath}:`, parseError.message);
+					} catch {
+						// Failed to parse line - skip invalid JSON entries
 						return null;
 					}
 				})

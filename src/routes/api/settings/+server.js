@@ -5,6 +5,7 @@
  */
 
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/shared/utils/logger.js';
 
 /**
  * GET /api/settings
@@ -18,8 +19,14 @@ import { json } from '@sveltejs/kit';
  */
 export async function GET({ url, locals }) {
 	try {
-		// Auth already validated by hooks middleware
+		logger.info('SETTINGS_API', `GET /api/settings hit`, {
+			user: locals.auth?.userId || null,
+			authenticated: Boolean(locals.auth?.authenticated),
+			category: url.searchParams.get('category') || null
+		});
+		// Auth must be handled in hooks only
 		if (!locals.auth?.authenticated) {
+			logger.info('SETTINGS_API', 'Unauthenticated on GET /api/settings');
 			return json({ error: 'Authentication required' }, { status: 401 });
 		}
 

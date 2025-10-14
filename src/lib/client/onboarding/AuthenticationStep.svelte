@@ -11,15 +11,15 @@
 	// Props (Svelte 5 $props() syntax)
 	let { onComplete = () => {}, onSkip = () => {} } = $props();
 
-	// Get services from context
+	// Get services from context (currently unused but may be needed for future features)
 	const serviceContainer = getContext('services');
-	const apiClient = serviceContainer?.get('apiClient');
+	const _apiClient = serviceContainer?.get('apiClient');
 
 	// Local state
-	let terminalKey = '';
-	let isValidating = false;
-	let error = null;
-	let isAuthenticated = false;
+	let terminalKey = $state('');
+	let isValidating = $state(false);
+	let error = $state(null);
+	let isAuthenticated = $state(false);
 
 	// Handle authentication
 	async function handleAuthenticate() {
@@ -32,28 +32,28 @@
 		error = null;
 
 		try {
-			// Check if API client is available
-			if (!apiClient) {
-				throw new Error('API client not available');
-			}
+			// Use SvelteKit form action for login
+			// This will create a session and set the session cookie automatically
+			const formData = new FormData();
+			formData.append('key', terminalKey);
 
-			// Validate terminal key with auth API
-			const response = await fetch('/api/auth/check', {
+			const response = await fetch('/login', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ key: terminalKey })
+				body: formData,
+				credentials: 'include', // Include cookies in request/response
+				redirect: 'manual' // Handle redirect manually
 			});
 
-			const result = await response.json();
-
-			if (result.success) {
-				localStorage.setItem('dispatch-auth-token', terminalKey);
+			// Check if login was successful
+			if (response.type === 'opaqueredirect' || response.status === 303 || response.ok) {
+				// Session cookie has been set by server
 				isAuthenticated = true;
 
 				// Mark step complete and proceed
 				onComplete({ terminalKey });
 			} else {
-				error = result.error || 'Invalid terminal key';
+				const data = await response.json().catch(() => ({}));
+				error = data?.error || 'Invalid terminal key';
 			}
 		} catch (err) {
 			error = err.message || 'Authentication failed';
@@ -231,40 +231,6 @@
 		margin-top: 2rem;
 	}
 
-	.btn {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: var(--radius-sm);
-		font-size: var(--font-size-2);
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s;
-		min-width: 120px;
-	}
-
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		background-color: #3b82f6;
-		color: white;
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background-color: #2563eb;
-	}
-
-	.btn-secondary {
-		background-color: #e5e7eb;
-		color: #374151;
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background-color: #d1d5db;
-	}
-
 	.success-state {
 		background: white;
 		border-radius: var(--radius-md);
@@ -338,10 +304,6 @@
 
 		.form-actions {
 			flex-direction: column;
-		}
-
-		.btn {
-			width: 100%;
 		}
 	}
 </style>

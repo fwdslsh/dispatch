@@ -1,5 +1,5 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { io } from 'socket.io-client';
 	import Shell from '$lib/client/shared/components/Shell.svelte';
 
@@ -20,12 +20,7 @@
 			}
 		};
 	});
-	// Helper to get Authorization header from localStorage
-	function getAuthHeaders() {
-		const key =
-			typeof localStorage !== 'undefined' ? localStorage.getItem('dispatch-auth-token') : null;
-		return key ? { Authorization: `Bearer ${key}` } : {};
-	}
+	// Authentication handled via session cookies (no Authorization header needed)
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
 		// Use current origin for socket connection to support remote access
@@ -52,7 +47,7 @@
 
 	async function loadActiveSockets() {
 		try {
-			const response = await fetch('/api/admin/sockets', { headers: getAuthHeaders() });
+			const response = await fetch('/api/admin/sockets', { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				activeSockets = data.sockets || [];
@@ -69,7 +64,7 @@
 			if (import.meta.env && import.meta.env.DEV) {
 				logsUrl += '?key=test';
 			}
-			const response = await fetch(logsUrl, { headers: getAuthHeaders() });
+			const response = await fetch(logsUrl, { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				serverLogs = data.logs || [];
@@ -81,7 +76,7 @@
 
 	async function loadSocketHistories() {
 		try {
-			const response = await fetch('/api/admin/history', { headers: getAuthHeaders() });
+			const response = await fetch('/api/admin/history', { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				socketHistories = data.histories || [];
@@ -93,7 +88,7 @@
 
 	async function loadSocketHistory(socketId) {
 		try {
-			const response = await fetch(`/api/admin/history/${socketId}`, { headers: getAuthHeaders() });
+			const response = await fetch(`/api/admin/history/${socketId}`, { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				selectedHistory = data.history;
@@ -116,9 +111,9 @@
 			const response = await fetch(`/api/admin/sockets/${socketId}/disconnect`, {
 				method: 'POST',
 				headers: {
-					...getAuthHeaders(),
 					'Content-Type': 'application/json'
-				}
+				},
+				credentials: 'include'
 			});
 
 			if (response.ok) {
@@ -142,14 +137,6 @@
 		const minutes = Math.floor(diff / 60000);
 		const seconds = Math.floor((diff % 60000) / 1000);
 		return `${minutes}m ${seconds}s`;
-	}
-
-	function formatFileSize(bytes) {
-		if (bytes === 0) return '0 B';
-		const k = 1024;
-		const sizes = ['B', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 	}
 
 	function getEventTypeClass(eventType) {
@@ -246,7 +233,7 @@
 							</div>
 						{:else}
 							<div class="term-grid">
-								{#each activeSockets as socket}
+								{#each activeSockets as socket (socket.id)}
 									<div class="card aug socket-card" data-augmented-ui="tl-clip br-clip both">
 										<div class="socket-header">
 											<h3 class="session-indicator">Socket {socket.id}</h3>
@@ -296,7 +283,7 @@
 							</div>
 						{:else}
 							<div class="events-list">
-								{#each socketEvents as event}
+								{#each socketEvents as event, index (index)}
 									<div
 										class="panel aug event-card {getEventTypeClass(event.type)}"
 										data-augmented-ui="tl-clip br-clip both"
@@ -332,7 +319,7 @@
 						{:else}
 							<div class="logs-container panel aug" data-augmented-ui="tl-clip br-clip both">
 								<div class="logs-list">
-									{#each serverLogs as log}
+									{#each serverLogs as log, index (index)}
 										<div class="log-entry log-{log.level}">
 											<span class="log-timestamp muted">{formatTimestamp(log.timestamp)}</span>
 											<span class="log-level badge {log.level}">[{log.level.toUpperCase()}]</span>
@@ -407,7 +394,7 @@
 										<p class="empty-state">No events recorded</p>
 									{:else}
 										<div class="events-timeline">
-											{#each selectedHistory.events as event}
+											{#each selectedHistory.events as event, index (index)}
 												<div class="timeline-event {getEventTypeClass(event.type)}">
 													<div class="event-header cluster">
 														<span class="badge">{event.type}</span>
@@ -444,7 +431,7 @@
 								</div>
 							{:else}
 								<div class="term-grid">
-									{#each socketHistories as history}
+									{#each socketHistories as history (history.socketId)}
 										<div
 											class="card aug history-card {history.isActive ? 'active' : ''}"
 											data-augmented-ui="tl-clip br-clip both"

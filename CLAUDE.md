@@ -54,10 +54,7 @@ npm run dev:test         # Automated testing server (port 7173, no SSL, known ke
 npm run test             # All unit tests
 npm run test:unit        # Vitest unit tests
 npm run test:e2e         # Playwright E2E tests
-npm run test:e2e:headed  # E2E with browser UI
 npm run test:unit        # Vitest unit tests
-npm run test:original    # Run tests with original session management
-npm run test:simplified  # Run tests with simplified sessions
 
 # Building & Production
 npm run build            # Production build
@@ -75,6 +72,8 @@ npm run docker:start    # Start without rebuild
 npm run docker:stop     # Stop containers
 ```
 
+**IMPORTANT** ALWAYS commit pending changes before running `npm run format` and then make a commit once it is done with a message of "code formatting" to make reviewing diffs easier
+
 ### Automated UI Testing
 
 When testing the UI with automated tools (DevTools MCP, Playwright, etc.), use the dedicated test server to avoid SSL certificate issues:
@@ -90,19 +89,27 @@ This starts the server on `http://localhost:7173` with:
 - **Dedicated Port**: 7173 to avoid conflicts with regular dev server
 - **Isolated Storage**: Uses temporary directories in `/tmp` (fresh state, no interference with dev)
 
-**Quick Authentication Setup**:
+**Quick Authentication Setup** (using cookie-based sessions):
 
 ```javascript
-// Pre-inject auth into localStorage (recommended for automation)
-await page.evaluate(() => {
-	localStorage.setItem('dispatch-auth-token', 'test-automation-key-12345');
-	localStorage.setItem('authSessionId', 'test-session-' + Date.now());
-	localStorage.setItem(
-		'authExpiresAt',
-		new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-	);
+// Option 1: Complete onboarding flow (generates API key + sets cookie)
+import { completeOnboarding } from './e2e/helpers/onboarding-helpers.js';
+
+const apiKey = await completeOnboarding(page, {
+	workspaceName: 'test-workspace',
+	clickContinue: true // Auto-login after onboarding
 });
-await page.goto('http://localhost:7173');
+// Page is now authenticated with session cookie
+
+// Option 2: Use pre-seeded database with API key
+import { resetToOnboarded } from './e2e/helpers/index.js';
+
+const { apiKey } = await resetToOnboarded();
+await page.goto('http://localhost:7173/login');
+await page.fill('[name="key"]', apiKey.key);
+await page.click('button[type="submit"]');
+await page.waitForURL('**/workspace');
+// Page is now authenticated with session cookie
 ```
 
 ## Frontend MVVM Architecture (Svelte 5)
@@ -124,6 +131,8 @@ src/lib/client/
 │   │   ├── SessionState.svelte.js        # Session data state
 │   │   ├── WorkspaceState.svelte.js      # Workspace management
 │   │   ├── UIState.svelte.js             # UI state management
+│   │   ├── AuthViewModel.svelte.js       # Authentication state & operations
+│   │   ├── ApiKeyState.svelte.js         # API key management
 │   │   └── AppState.svelte.js            # Global app state
 │   └── components/       # Shared UI components (Views)
 ├── terminal/             # Terminal session components
@@ -164,6 +173,15 @@ For detailed architectural patterns and implementation guides, see:
 
 📖 **See [Testing Quick Start Guide](docs/testing-quickstart.md)** for comprehensive testing setup, database seeding, and E2E test helpers.
 
+**Important Note**
+Production code should NEVER know about tests. Tests should adapt to production, not vice versa. Test-specific
+endpoints, environment variables, and conditional code paths are anti-patterns that:
+
+- Create security vulnerabilities
+- Increase maintenance burden
+- Make production behave differently than tests
+- Violate separation of concerns
+
 **Quick Commands:**
 
 ```bash
@@ -175,19 +193,56 @@ npm run dev:test              # Test server on port 7173 (no SSL, known key)
 
 **Key Resources:**
 
-- Automated setup: `./scripts/setup-test-instance.sh --auto-onboard`
-- E2E helpers: `e2e/core-helpers.js`
-- Known test key: `test-automation-key-12345`
+- E2E Helpers Documentation: `e2e/helpers/README.md`
+- Onboarding Test Helpers: `e2e/helpers/onboarding-helpers.js`
+- Database Reset Helpers: `e2e/helpers/reset-database.js`
+- Onboarding Test Plans: `e2e/ONBOARDING_TEST_PLAN.md`, `e2e/ONBOARDING_QUICK_REFERENCE.md`
+
+**E2E Testing Patterns:**
+
+```javascript
+// Pattern 1: Fresh Install Tests (Onboarding Flow)
+import { resetToFreshInstall } from './e2e/helpers/index.js';
+
+test.beforeEach(async () => {
+	await resetToFreshInstall();
+});
+
+// Pattern 2: Authenticated Tests
+import { resetToOnboarded } from './e2e/helpers/index.js';
+
+test.beforeEach(async ({ page }) => {
+	const { apiKey } = await resetToOnboarded();
+	// Auto-login with API key
+	await page.goto('/login');
+	await page.fill('[name="key"]', apiKey.key);
+	await page.click('button[type="submit"]');
+});
+
+// Pattern 3: Complete Onboarding Flow
+import { completeOnboarding } from './e2e/helpers/onboarding-helpers.js';
+
+test('onboarding test', async ({ page }) => {
+	const apiKey = await completeOnboarding(page, {
+		workspaceName: 'my-project',
+		clickContinue: true
+	});
+	// Now authenticated and ready to test
+});
+```
 
 ## Database Schema (SQLite)
 
 Event-sourced architecture with key tables:
 
-- SQLite db located at  `.testing-home/dispatch/data/workspace.db`
+- SQLite db located at `.testing-home/dispatch/data/workspace.db`
 - `sessions` - Run sessions with runId, kind, status, metadata
 - `session_events` - Event log with sequence numbers for replay
 - `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
+- `auth_sessions` - Browser session cookies with expiration and provider tracking
+- `api_keys` - Hashed API keys with labels and last-used timestamps
+- `users` - User accounts (default: single 'default' user)
 
 **See [Database Schema Reference](docs/reference/database-schema.md)** for complete schema documentation, field details, indexes, and common query patterns.
 
@@ -263,6 +318,91 @@ sqlite3 .testing-home/dispatch/data/workspace.db "PRAGMA table_info('sessions');
 5. Register session module in `src/lib/client/shared/session-modules/index.js`
 6. Session events automatically handled via unified protocol
 
+### Authentication
+
+Dispatch implements dual authentication supporting both session cookies and API keys:
+
+**Authentication Flow**:
+
+- **Browser Sessions**: httpOnly, Secure (production), SameSite=Lax cookies managed by SvelteKit
+- **Programmatic Access**: API keys via Authorization: Bearer {key} header
+- **Unified Support**: All routes accept EITHER cookies OR API keys (never both required)
+
+**Cookie Session Management** (`src/lib/server/auth/`):
+
+- `SessionManager.server.js` - Session CRUD with bcrypt-hashed IDs (cost 12)
+- `CookieService.server.js` - Cookie generation, validation, and refresh
+- `ApiKeyManager.server.js` - API key generation, validation, and management
+- Sessions: 30-day expiration with 24-hour rolling refresh window
+- Automatic session rotation on login/logout/sensitive changes
+
+**Authentication Middleware** (`src/hooks.server.js`):
+
+- Cookie validation via `CookieService.validateSessionCookie()`
+- API key validation via `ApiKeyManager.verifyApiKey()`
+- Dual auth: Checks cookies first, falls back to Authorization header
+- Attaches `event.locals.user` and `event.locals.sessionId` on success
+
+**Socket.IO Dual Auth** (`src/lib/server/shared/socket-setup.js`):
+
+- Accepts cookies via `socket.request.headers.cookie`
+- Accepts API keys via `socket.handshake.auth.apiKey`
+- Validates both methods through same auth services
+- Emits `session:expired` event when session becomes invalid
+
+**SvelteKit Form Actions Pattern** (`src/routes/auth/+page.server.js`):
+
+- Login: `?/login` action with API key validation
+- Logout: `?/logout` action with session destruction
+- CSRF protection via SvelteKit's built-in token validation
+- Origin header validation for cookie-based requests
+
+**Client-Side MVVM Integration**:
+
+- `AuthViewModel.svelte.js` - Authentication state and operations
+- `ApiKeyState.svelte.js` - API key management (list, create, disable, delete)
+- `ServiceContainer` provides shared auth service instances
+- Reactive state with Svelte 5 $state runes
+
+**API Key Security**:
+
+- Generated keys: 32-byte base64url (URL-safe, no special chars)
+- Storage: bcrypt hashed with cost factor 12 (never plaintext)
+- Display: Shown exactly once on creation with warning
+- Validation: Constant-time comparison via bcrypt.compare()
+- Metadata: Tracks creation date, last used timestamp, custom labels
+
+**Session Lifecycle**:
+
+- Creation: On successful login (API key or OAuth)
+- Persistence: Stored in SQLite `auth_sessions` table
+- Expiration: 30 days from creation
+- Refresh: Automatic when within 24h of expiry
+- Cleanup: Expired sessions removed by background job
+- Multi-client: Same session shared across browser tabs
+
+**OAuth Integration** (optional):
+
+- **Provider Support**: GitHub and Google OAuth providers
+- **Configuration UI**: `/settings/oauth` - Enable/disable providers, configure client credentials
+- **Unified Session Creation**: OAuth login creates same session cookie as API key login
+- **Provider Tracking**: Sessions track authentication provider (`api_key`, `oauth_github`, `oauth_google`)
+- **Secure Credential Storage**: Client secrets encrypted at rest, never sent to browser
+- **Fallback Support**: When OAuth provider unavailable, system offers API key login fallback
+- **Provider Lifecycle**: Disabling provider prevents new logins but preserves existing sessions
+- **Settings Routes**: `/api/settings/oauth` for CRUD operations
+- **Components**: `OAuthSettings.svelte` - Provider configuration UI
+
+**First-Run Onboarding** (`/routes/onboarding/+page.svelte`):
+
+- **Multi-step wizard**: Workspace setup → Theme selection → Settings configuration
+- **Auto-generates first API key** on fresh installation
+- **Displays key once** with "copy now" warning (security best practice)
+- **Immediately creates browser session cookie** for seamless login
+- **Stores onboarding completion** in settings to prevent re-display
+- **Comprehensive E2E tests**: See `e2e/ONBOARDING_TEST_PLAN.md` for 30+ test scenarios
+- **Route protection**: Server-side `+page.server.js` redirects if already onboarded
+
 ### Debugging
 
 - Admin console at `/console` for live session monitoring
@@ -334,8 +474,9 @@ await fetch('/api/sessions', {
 - `/api/claude` - Claude Code authentication and projects
 - `/api/themes` - Theme management
 - `/api/admin` - Admin monitoring endpoints
+- `/api/auth` - Authentication status and API key management
 
-**Authentication:** All protected routes require `TERMINAL_KEY` via Authorization header or authKey query parameter.
+**Authentication:** All protected routes accept EITHER session cookies OR API keys via Authorization: Bearer header. Browser clients automatically use cookies via SvelteKit. Programmatic clients (scripts, CLI) use API keys.
 
 ### Socket.IO Events
 

@@ -1,5 +1,3 @@
-<svelte:options runes={true} />
-
 <script>
 	import WindowManager from '$lib/client/shared/components/window-manager/WindowManager.svelte';
 

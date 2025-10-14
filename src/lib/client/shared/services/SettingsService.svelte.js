@@ -4,7 +4,7 @@
  * Consolidates previous SettingsService.js and SettingsService.svelte.js
  */
 
-import { STORAGE_CONFIG } from '$lib/shared/constants.js';
+import { SvelteDate } from 'svelte/reactivity';
 
 export class SettingsService {
 	constructor(config = {}) {
@@ -28,28 +28,19 @@ export class SettingsService {
 	}
 
 	/**
-	 * Get auth key from localStorage
-	 */
-	getAuthKey() {
-		if (typeof localStorage === 'undefined') return null;
-		return localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-	}
-
-	/**
 	 * Make authenticated API request
+	 * Authentication handled via session cookies (credentials: 'include')
 	 * @param {string} url - API endpoint URL
 	 * @param {Object} options - Fetch options
 	 * @returns {Promise<Object>} Response data
 	 */
 	async makeRequest(url, options = {}) {
-		const authKey = this.getAuthKey();
-
 		const defaultOptions = {
 			headers: {
 				'Content-Type': 'application/json',
-				...(authKey && { Authorization: `Bearer ${authKey}` }),
 				...options.headers
-			}
+			},
+			credentials: 'include' // Send session cookie automatically
 		};
 
 		const finalOptions = { ...defaultOptions, ...options };
@@ -84,7 +75,7 @@ export class SettingsService {
 
 			// Store the categorized settings directly
 			this.settings = data;
-			this.lastSync = new Date().toISOString();
+			this.lastSync = new SvelteDate().toISOString();
 			this.isLoaded = true;
 
 			if (this.config.debug) {
@@ -242,10 +233,11 @@ export class SettingsService {
 
 	/**
 	 * Check if service is configured
-	 * @returns {boolean} Whether service has auth key
+	 * With cookie-based auth, service is always configured if user is authenticated
+	 * @returns {boolean} Always true (auth handled via cookies)
 	 */
 	isConfigured() {
-		return Boolean(this.getAuthKey());
+		return true; // Auth validation happens server-side via session cookies
 	}
 
 	/**

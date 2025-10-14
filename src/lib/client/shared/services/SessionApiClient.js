@@ -6,6 +6,7 @@
  */
 
 import { SESSION_TYPE } from '../../../shared/session-types.js';
+import { SvelteDate } from 'svelte/reactivity';
 
 /**
  * @typedef {Object} Session
@@ -46,22 +47,14 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Get authorization header if auth token exists
+	 * Get standard headers for API requests
+	 * Authentication is handled via session cookies (credentials: 'include')
 	 * @returns {Object} Headers object
 	 */
 	getHeaders() {
-		const headers = {
+		return {
 			'content-type': 'application/json'
 		};
-
-		if (typeof localStorage !== 'undefined') {
-			const token = localStorage.getItem(this.config.authTokenKey);
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
-		}
-
-		return headers;
 	}
 
 	/**
@@ -122,7 +115,8 @@ export class SessionApiClient {
 			console.log('[SessionApiClient] Fetching URL:', url);
 
 			const response = await fetch(url, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			const data = await this.handleResponse(response);
@@ -211,6 +205,7 @@ export class SessionApiClient {
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
 				method: 'POST',
 				headers: this.getHeaders(),
+				credentials: 'include', // Send session cookie
 				body: JSON.stringify(body)
 			});
 
@@ -252,8 +247,8 @@ export class SessionApiClient {
 				inLayout: false,
 				resumed: raw?.resumed ?? (resume && !!sessionId) ?? false,
 				title: raw?.title || getSessionTitle(type),
-				createdAt: raw?.createdAt || new Date().toISOString(),
-				lastActivity: raw?.lastActivity || new Date().toISOString(),
+				createdAt: raw?.createdAt || new SvelteDate().toISOString(),
+				lastActivity: raw?.lastActivity || new SvelteDate().toISOString(),
 				activityState: raw?.activityState || 'launching',
 				_raw: raw
 			};
@@ -296,6 +291,7 @@ export class SessionApiClient {
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
 				method: 'PUT',
 				headers: this.getHeaders(),
+				credentials: 'include', // Send session cookie
 				body: JSON.stringify(body)
 			});
 
@@ -321,7 +317,8 @@ export class SessionApiClient {
 
 			const response = await fetch(`${this.baseUrl}/api/sessions?${params}`, {
 				method: 'DELETE',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			return await this.handleResponse(response);
@@ -387,7 +384,8 @@ export class SessionApiClient {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
 				method: 'GET',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -437,7 +435,8 @@ export class SessionApiClient {
 			const params = new URLSearchParams({ runId: sessionId }); // Server expects runId parameter
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout?${params}`, {
 				method: 'DELETE',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -456,7 +455,8 @@ export class SessionApiClient {
 	async getHistory(sessionId) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/sessions/${sessionId}/history`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			if (response.status === 404) {
@@ -481,7 +481,8 @@ export class SessionApiClient {
 	async getClaudeSessions(project) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/claude/sessions/${project}`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			if (response.status === 404) {
@@ -506,7 +507,8 @@ export class SessionApiClient {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/claude/auth`, {
 				method: 'POST',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			if (response.status === 401) {
@@ -582,41 +584,6 @@ export class SessionApiClient {
 		}
 	}
 
-	/**
-	 * Complete onboarding setup in a single atomic operation
-	 * @param {Object} options - Onboarding options
-	 * @param {string} options.terminalKey - Terminal key (required, min 8 characters)
-	 * @param {string} [options.workspaceName] - Optional workspace name
-	 * @param {string} [options.workspacePath] - Optional workspace path
-	 * @param {Object} [options.preferences] - Optional user preferences
-	 * @returns {Promise<{success: boolean, onboarding: {isComplete: boolean, completedAt: string, firstWorkspaceId: string|null}, workspace: {id: string, name: string, path: string}|null}>}
-	 */
-	async submitOnboarding({ terminalKey, workspaceName, workspacePath, preferences }) {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					terminalKey,
-					workspaceName,
-					workspacePath,
-					preferences
-				})
-			});
-
-			const data = await this.handleResponse(response);
-
-			return data;
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to submit onboarding:', error);
-			}
-			throw error;
-		}
-	}
-
 	// ===== RETENTION POLICY API (via Preferences) =====
 
 	/**
@@ -629,7 +596,8 @@ export class SessionApiClient {
 			params.append('category', 'maintenance');
 
 			const response = await fetch(`${this.baseUrl}/api/preferences?${params}`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			const data = await this.handleResponse(response);
@@ -639,7 +607,7 @@ export class SessionApiClient {
 				sessionRetentionDays: data.sessionRetentionDays || 30,
 				logRetentionDays: data.logRetentionDays || 7,
 				autoCleanupEnabled: data.autoCleanupEnabled ?? true,
-				updatedAt: data.updatedAt || new Date().toISOString()
+				updatedAt: data.updatedAt || new SvelteDate().toISOString()
 			};
 		} catch (error) {
 			if (this.config.debug) {
@@ -680,12 +648,12 @@ export class SessionApiClient {
 
 	/**
 	 * Preview retention policy changes via maintenance API
-	 * @param {object} policy - Policy to preview
-	 * @param {number} policy.sessionRetentionDays - Session retention period
-	 * @param {number} policy.logRetentionDays - Log retention period
+	 * @param {object} _policy - Policy to preview (unused, API infers from current settings)
+	 * @param {number} _policy.sessionRetentionDays - Session retention period
+	 * @param {number} _policy.logRetentionDays - Log retention period
 	 * @returns {Promise<{summary: string, sessionsToDelete: number, logsToDelete: number, sessionRetentionDays: number, logRetentionDays: number}>}
 	 */
-	async previewRetentionChanges(policy) {
+	async previewRetentionChanges(_policy) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/maintenance`, {
 				method: 'POST',
@@ -817,7 +785,8 @@ export class SessionApiClient {
 	async getWorkspaces() {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			const data = await this.handleResponse(response);
@@ -905,20 +874,6 @@ export class SessionApiClient {
 	}
 
 	// ===== HELPER METHODS =====
-
-	/**
-	 * Get authentication key from localStorage or environment
-	 * @returns {string|null} - Auth key
-	 */
-	getAuthKey() {
-		if (typeof localStorage !== 'undefined') {
-			return (
-				localStorage.getItem('dispatch-auth-token') ||
-				localStorage.getItem(this.config.authTokenKey)
-			);
-		}
-		return null;
-	}
 
 	/**
 	 * Dispose of resources (for cleanup)

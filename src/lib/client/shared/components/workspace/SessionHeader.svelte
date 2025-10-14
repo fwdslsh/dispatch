@@ -9,11 +9,11 @@
 	import IconX from '../Icons/IconX.svelte';
 
 	// Props
-	let { session, onClose = () => {}, index = 0 } = $props();
+	let { session, onClose = () => {}, index: _index = 0 } = $props();
 
 	// Session display info
 	const sessionId = $derived(session.id?.slice(0, 6) || 'unknown');
-	const sessionType = $derived(
+	const _sessionType = $derived(
 		(session.type || session.sessionType) === 'claude' ? 'Claude' : 'Terminal'
 	);
 	const statusDotClass = $derived(`status-dot ${session.type || session.sessionType}`);

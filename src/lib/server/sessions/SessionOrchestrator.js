@@ -4,8 +4,11 @@
  * Implements patterns from RunSessionManager: buffering, resume, stats
  */
 
+// eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { SessionRepository } from '../database/SessionRepository.js';
+// eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { AdapterRegistry } from './AdapterRegistry.js';
+// eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { EventRecorder } from './EventRecorder.js';
 import { logger } from '../shared/utils/logger.js';
 

@@ -2,7 +2,6 @@
 	import Modal from '$lib/client/shared/components/Modal.svelte';
 	import DirectoryBrowser from './directory-browser/DirectoryBrowser.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
-	import WorkspaceSelector from '$lib/client/shared/components/WorkspaceSelector.svelte';
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import TypeCard from '$lib/client/shared/components/TypeCard.svelte';
 	import IconBolt from './Icons/IconBolt.svelte';
@@ -22,10 +21,10 @@
 	// State
 	let sessionType = $state(initialType);
 	let workspacePath = $state('');
-	let showDirectoryBrowser = $state(false);
 	let loading = $state(false);
 	let error = $state(null);
 	let sessionApi = $state(null);
+	// eslint-disable-next-line svelte/prefer-writable-derived -- sessionSettings is reset in multiple effects, not derived from single source
 	let sessionSettings = $state({});
 
 	// Reset settings when session type changes
@@ -109,17 +108,6 @@
 	// Handle directory selection
 	function handleDirectorySelect(path) {
 		workspacePath = path;
-		showDirectoryBrowser = false;
-	}
-
-	// Format display path
-	function formatPath(path) {
-		if (!path) return 'Select directory...';
-		const parts = path.split('/');
-		if (parts.length > 3) {
-			return '.../' + parts.slice(-2).join('/');
-		}
-		return path;
 	}
 
 	// Load default workspace when modal opens
@@ -127,7 +115,6 @@
 		if (open) {
 			setDefaultWorkspace();
 			error = null;
-			showDirectoryBrowser = false;
 			sessionSettings = {};
 		}
 	});
@@ -147,85 +134,83 @@
 	closeOnBackdrop={true}
 	closeOnEscape={true}
 	showCloseButton={true}
-	augmented="tl-clip tr-clip bl-clip br-clip both"
+	augmented="tl-clip tr-clip br-clip both"
 	class="create-session-modal"
 >
-	{#snippet children()}
-		<div class="modal-content p-5 flex flex-col gap-4">
-			<!-- Session Type Selection -->
-			<FormSection label="Session Type">
-				{#snippet icon()}<IconPlus size={18} />{/snippet}
+	<div class="modal-content p-5 flex flex-col gap-4">
+		<!-- Session Type Selection -->
+		<FormSection label="Session Type">
+			{#snippet icon()}<IconPlus size={18} />{/snippet}
 
-				<div class="type-grid">
-					<TypeCard
-						title="Claude Code"
-						description="AI-powered coding assistant"
-						active={sessionType === SESSION_TYPE.CLAUDE}
-						disabled={loading}
-						onclick={() => (sessionType = SESSION_TYPE.CLAUDE)}
-						aria-label="Select Claude Code session type"
-						role="button"
-						tabindex="0"
-					>
-						{#snippet icon()}<IconRobot size={32} />{/snippet}
-					</TypeCard>
-					<TypeCard
-						title="Terminal"
-						description="Direct shell access"
-						active={sessionType === SESSION_TYPE.PTY}
-						disabled={loading}
-						onclick={() => (sessionType = SESSION_TYPE.PTY)}
-						aria-label="Select Terminal session type"
-						role="button"
-						tabindex="0"
-					>
-						{#snippet icon()}<IconTerminal2 size={32} />{/snippet}
-					</TypeCard>
-					<TypeCard
-						title="File Editor"
-						description="Browse, edit, and upload files"
-						active={sessionType === SESSION_TYPE.FILE_EDITOR}
-						disabled={loading}
-						onclick={() => (sessionType = SESSION_TYPE.FILE_EDITOR)}
-						aria-label="Select File Editor session type"
-						role="button"
-						tabindex="0"
-					>
-						{#snippet icon()}<IconEdit size={32} />{/snippet}
-					</TypeCard>
-				</div>
-			</FormSection>
+			<div class="type-grid">
+				<TypeCard
+					title="Claude Code"
+					description="AI-powered coding assistant"
+					active={sessionType === SESSION_TYPE.CLAUDE}
+					disabled={loading}
+					onclick={() => (sessionType = SESSION_TYPE.CLAUDE)}
+					aria-label="Select Claude Code session type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconRobot size={32} />{/snippet}
+				</TypeCard>
+				<TypeCard
+					title="Terminal"
+					description="Direct shell access"
+					active={sessionType === SESSION_TYPE.PTY}
+					disabled={loading}
+					onclick={() => (sessionType = SESSION_TYPE.PTY)}
+					aria-label="Select Terminal session type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconTerminal2 size={32} />{/snippet}
+				</TypeCard>
+				<TypeCard
+					title="File Editor"
+					description="Browse, edit, and upload files"
+					active={sessionType === SESSION_TYPE.FILE_EDITOR}
+					disabled={loading}
+					onclick={() => (sessionType = SESSION_TYPE.FILE_EDITOR)}
+					aria-label="Select File Editor session type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconEdit size={32} />{/snippet}
+				</TypeCard>
+			</div>
+		</FormSection>
 
-			<!-- Workspace Directory Selection -->
-			<FormSection label="Working Directory">
-				{#snippet icon()}<IconFolder size={18} />{/snippet}
+		<!-- Workspace Directory Selection -->
+		<FormSection label="Working Directory">
+			{#snippet icon()}<IconFolder size={18} />{/snippet}
 
-				<div class="directory-browser-container surface border-2 border-primary-dim p-4">
-					<DirectoryBrowser
-						bind:selected={workspacePath}
-						startPath={workspacePath || settingsService.get('global.defaultWorkspaceDirectory', '')}
-						onSelect={handleDirectorySelect}
-					/>
-				</div>
-			</FormSection>
+			<div class="directory-browser-container surface border-2 border-primary-dim p-4">
+				<DirectoryBrowser
+					bind:selected={workspacePath}
+					startPath={workspacePath || settingsService.get('global.defaultWorkspaceDirectory', '')}
+					onSelect={handleDirectorySelect}
+				/>
+			</div>
+		</FormSection>
 
-			<!-- Session Type Settings -->
-			{#if sessionType}
-				{@const currentModule = getClientSessionModule(sessionType)}
-				{#if currentModule?.settingsComponent}
-					{@const SettingsComponent = currentModule.settingsComponent}
-					<SettingsComponent bind:settings={sessionSettings} disabled={loading} />
-				{/if}
+		<!-- Session Type Settings -->
+		{#if sessionType}
+			{@const currentModule = getClientSessionModule(sessionType)}
+			{#if currentModule?.settingsComponent}
+				{@const SettingsComponent = currentModule.settingsComponent}
+				<SettingsComponent bind:settings={sessionSettings} disabled={loading} />
 			{/if}
+		{/if}
 
-			<!-- Error Display -->
-			{#if error}
-				<div class="error-message border border-err text-err p-3 font-mono text-sm text-center">
-					{error}
-				</div>
-			{/if}
-		</div>
-	{/snippet}
+		<!-- Error Display -->
+		{#if error}
+			<div class="error-message border border-err text-err p-3 font-mono text-sm text-center">
+				{error}
+			</div>
+		{/if}
+	</div>
 
 	{#snippet footer()}
 		<Button

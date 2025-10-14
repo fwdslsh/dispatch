@@ -14,6 +14,7 @@ The Claude session implementation demonstrates a solid understanding of MVVM pri
 **Overall Rating**: 6.5/10
 
 **Key Findings**:
+
 - ✅ Strong MVVM separation between ViewModel and View components
 - ✅ Effective use of Svelte 5 runes (`$state`, `$derived`)
 - ⚠️ Direct dependency on singleton service instead of dependency injection
@@ -56,6 +57,7 @@ src/lib/client/claude/
 ### Current Architecture Pattern
 
 The implementation follows the **runes-in-classes** pattern with:
+
 - **ViewModel**: `ClaudePaneViewModel.svelte.js` (550 lines) - manages state and business logic
 - **View Components**: `ClaudePane.svelte`, `MessageList.svelte`, `InputArea.svelte`
 - **Service Integration**: Direct import of `runSessionClient` singleton
@@ -77,6 +79,7 @@ const viewModel = new ClaudePaneViewModel(sessionId, claudeSessionId, shouldResu
 ```
 
 **Why This Is Good**:
+
 - UI components are purely presentational
 - Business logic is testable independently
 - Clear separation of concerns
@@ -87,13 +90,13 @@ const viewModel = new ClaudePaneViewModel(sessionId, claudeSessionId, shouldResu
 
 ```javascript
 status = $derived.by(() => {
-    if (this.connectionError) return 'connection-error';
-    if (this.authInProgress) return 'auth-in-progress';
-    if (this.authAwaitingCode) return 'awaiting-auth-code';
-    if (this.loading) return 'loading';
-    if (this.isCatchingUp) return 'catching-up';
-    if (this.isWaitingForReply) return 'thinking';
-    return 'idle';
+	if (this.connectionError) return 'connection-error';
+	if (this.authInProgress) return 'auth-in-progress';
+	if (this.authAwaitingCode) return 'awaiting-auth-code';
+	if (this.loading) return 'loading';
+	if (this.isCatchingUp) return 'catching-up';
+	if (this.isWaitingForReply) return 'thinking';
+	return 'idle';
 });
 
 hasActiveSession = $derived.by(() => this.isAttached && this.sessionId !== null);
@@ -101,6 +104,7 @@ canSubmit = $derived.by(() => this.input.trim().length > 0 && this.hasActiveSess
 ```
 
 **Why This Is Good**:
+
 - Complex status logic computed reactively
 - Prevents inconsistent state
 - Self-documenting status transitions
@@ -110,6 +114,7 @@ canSubmit = $derived.by(() => this.input.trim().length > 0 && this.hasActiveSess
 **Location**: `ClaudePaneViewModel.svelte.js` (lines 19-52)
 
 The ViewModel maintains well-organized state categories:
+
 - Core session props (sessionId, claudeSessionId)
 - Message state (messages, input)
 - Loading/status state (loading, isWaitingForReply, isCatchingUp)
@@ -118,6 +123,7 @@ The ViewModel maintains well-organized state categories:
 - UI state (isMobile, messagesContainer)
 
 **Why This Is Good**:
+
 - Clear categorization aids understanding
 - All reactive state uses `$state` rune correctly
 - Comprehensive coverage of business states
@@ -132,6 +138,7 @@ The ViewModel maintains well-organized state categories:
 ```
 
 **Why This Is Good**:
+
 - Sub-components receive ViewModel through props
 - Single source of truth for state
 - Enables reusability and isolated testing
@@ -146,6 +153,7 @@ The ViewModel maintains well-organized state categories:
 **Location**: `ClaudePaneViewModel.svelte.js` (line 17), `ClaudePane.svelte` (line 11)
 
 **Problem**:
+
 ```javascript
 // ClaudePaneViewModel.svelte.js
 import { runSessionClient } from '../../shared/services/RunSessionClient.js';
@@ -155,6 +163,7 @@ runSessionClient.sendInput(this.sessionId, userMessage); // line 179
 ```
 
 **Why This Is Bad**:
+
 - Violates Dependency Injection principle
 - Makes unit testing impossible without mocking modules
 - Tight coupling to singleton implementation
@@ -162,6 +171,7 @@ runSessionClient.sendInput(this.sessionId, userMessage); // line 179
 - Goes against documented ServiceContainer pattern
 
 **Impact**:
+
 - Cannot unit test ViewModel in isolation
 - Harder to detect bugs in business logic
 - Breaks testability promise of MVVM pattern
@@ -171,21 +181,21 @@ runSessionClient.sendInput(this.sessionId, userMessage); // line 179
 ```javascript
 // ClaudePaneViewModel.svelte.js
 export class ClaudePaneViewModel {
-    constructor(sessionId, claudeSessionId = null, shouldResume = false, runSessionService) {
-        this.sessionId = sessionId;
-        this.claudeSessionId = claudeSessionId;
-        this.shouldResume = shouldResume;
-        this.runSessionService = runSessionService; // Inject dependency
+	constructor(sessionId, claudeSessionId = null, shouldResume = false, runSessionService) {
+		this.sessionId = sessionId;
+		this.claudeSessionId = claudeSessionId;
+		this.shouldResume = shouldResume;
+		this.runSessionService = runSessionService; // Inject dependency
 
-        // ... state initialization
-    }
+		// ... state initialization
+	}
 
-    async submitInput(e) {
-        // ... validation
+	async submitInput(e) {
+		// ... validation
 
-        // Use injected service instead of singleton
-        this.runSessionService.sendInput(this.sessionId, userMessage);
-    }
+		// Use injected service instead of singleton
+		this.runSessionService.sendInput(this.sessionId, userMessage);
+	}
 }
 ```
 
@@ -194,14 +204,15 @@ export class ClaudePaneViewModel {
 import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 
 const viewModel = new ClaudePaneViewModel(
-    sessionId,
-    claudeSessionId,
-    shouldResume,
-    runSessionClient  // Inject the service
+	sessionId,
+	claudeSessionId,
+	shouldResume,
+	runSessionClient // Inject the service
 );
 ```
 
 **Benefits**:
+
 - Enables unit testing with mock services
 - Follows established ServiceContainer pattern
 - Allows service substitution for testing/debugging
@@ -220,31 +231,32 @@ The component performs business operations that should be in the ViewModel:
 ```javascript
 // ClaudePane.svelte (lines 43-81)
 async function loadPreviousMessages() {
-    const sessionIdToLoad = viewModel.claudeSessionId || sessionId;
-    if (!sessionIdToLoad) return;
+	const sessionIdToLoad = viewModel.claudeSessionId || sessionId;
+	if (!sessionIdToLoad) return;
 
-    console.log('[ClaudePane] Loading previous messages for session:', sessionIdToLoad);
-    viewModel.loading = true;
+	console.log('[ClaudePane] Loading previous messages for session:', sessionIdToLoad);
+	viewModel.loading = true;
 
-    try {
-        const response = await fetch(
-            `/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`
-        );
+	try {
+		const response = await fetch(
+			`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`
+		);
 
-        if (response.ok) {
-            const data = await response.json();
-            // ... process data
-            await viewModel.loadPreviousMessages(events);
-        }
-    } catch (error) {
-        console.error('[ClaudePane] Failed to load previous messages:', error);
-    } finally {
-        viewModel.loading = false;
-    }
+		if (response.ok) {
+			const data = await response.json();
+			// ... process data
+			await viewModel.loadPreviousMessages(events);
+		}
+	} catch (error) {
+		console.error('[ClaudePane] Failed to load previous messages:', error);
+	} finally {
+		viewModel.loading = false;
+	}
 }
 ```
 
 **Why This Is Bad**:
+
 - Business logic (API calls, data transformation) in View component
 - Direct state mutation (`viewModel.loading = true`)
 - Cannot unit test this logic
@@ -252,6 +264,7 @@ async function loadPreviousMessages() {
 - Duplicates error handling patterns
 
 **Impact**:
+
 - Business logic scattered across View and ViewModel
 - Harder to test and maintain
 - Inconsistent error handling
@@ -292,21 +305,22 @@ async loadSessionHistory(claudeSessionId, apiClient) {
 ```javascript
 // ClaudePane.svelte - Simplify to pure lifecycle management
 onMount(async () => {
-    try {
-        // ... authentication and attachment
+	try {
+		// ... authentication and attachment
 
-        // Load history if resuming
-        if (claudeSessionId || shouldResume) {
-            await viewModel.loadSessionHistory(claudeSessionId, apiClient);
-        }
-    } catch (error) {
-        console.error('[ClaudePane] Mount failed:', error);
-        viewModel.setConnectionError(`Failed to initialize: ${error.message}`);
-    }
+		// Load history if resuming
+		if (claudeSessionId || shouldResume) {
+			await viewModel.loadSessionHistory(claudeSessionId, apiClient);
+		}
+	} catch (error) {
+		console.error('[ClaudePane] Mount failed:', error);
+		viewModel.setConnectionError(`Failed to initialize: ${error.message}`);
+	}
 });
 ```
 
 **Benefits**:
+
 - All business logic in ViewModel (testable)
 - Component only manages lifecycle
 - Consistent error handling
@@ -325,42 +339,44 @@ Identical message extraction logic appears in two places:
 ```javascript
 // handleRunEvent() - lines 216-233
 if (payload.events && Array.isArray(payload.events)) {
-    for (const evt of payload.events) {
-        if (evt.message?.content) {
-            for (const block of evt.message.content) {
-                if (block.type === 'text' && block.text) {
-                    messageText += block.text;
-                }
-            }
-        }
-    }
+	for (const evt of payload.events) {
+		if (evt.message?.content) {
+			for (const block of evt.message.content) {
+				if (block.type === 'text' && block.text) {
+					messageText += block.text;
+				}
+			}
+		}
+	}
 } else {
-    messageText = payload.text || payload.content || '';
+	messageText = payload.text || payload.content || '';
 }
 
 // loadPreviousMessages() - lines 511-523
 if (payload.events && Array.isArray(payload.events)) {
-    for (const evt of payload.events) {
-        if (evt.message?.content) {
-            for (const block of evt.message.content) {
-                if (block.type === 'text' && block.text) {
-                    messageText += block.text;
-                }
-            }
-        }
-    }
+	for (const evt of payload.events) {
+		if (evt.message?.content) {
+			for (const block of evt.message.content) {
+				if (block.type === 'text' && block.text) {
+					messageText += block.text;
+				}
+			}
+		}
+	}
 } else {
-    messageText = payload.text || payload.content || '';
+	messageText = payload.text || payload.content || '';
 }
 ```
 
 **Why This Is Bad**:
+
 - Code duplication (DRY violation)
 - Changes must be made in two places
 - Increases maintenance burden
 - Prone to inconsistencies
 
 **Impact**:
+
 - Bug fixes need to be duplicated
 - Higher chance of regression bugs
 - Harder to modify extraction logic
@@ -432,6 +448,7 @@ if (channel === 'claude:message' && type === 'assistant') {
 ```
 
 **Benefits**:
+
 - Single source of truth for extraction logic
 - Easier to modify and extend
 - More testable (can test extraction independently)
@@ -473,6 +490,7 @@ handleRunEvent(event) {
 ```
 
 **Why This Is Bad**:
+
 - Two different formats handled in same method (400+ lines)
 - Unclear which format is canonical
 - Difficult to understand control flow
@@ -480,6 +498,7 @@ handleRunEvent(event) {
 - No clear migration path
 
 **Impact**:
+
 - Cognitive load for developers
 - Bugs when events don't match expected format
 - Harder to add new event types
@@ -643,6 +662,7 @@ addMessage(messageData) {
 ```
 
 **Benefits**:
+
 - Clear separation between modern and legacy formats
 - Each handler is focused and testable
 - Easier to deprecate legacy format
@@ -680,6 +700,7 @@ async submitInput(e) {
 ```
 
 **Why This Is Concerning**:
+
 - No maximum input length check
 - No XSS sanitization (though Markdown component should handle this)
 - No rate limiting for rapid submissions
@@ -693,46 +714,46 @@ const MAX_INPUT_LENGTH = 10000;
 const MIN_SUBMIT_INTERVAL_MS = 500;
 
 export class ClaudePaneViewModel {
-    lastSubmitTime = 0;
+	lastSubmitTime = 0;
 
-    async submitInput(e) {
-        if (e) e.preventDefault();
+	async submitInput(e) {
+		if (e) e.preventDefault();
 
-        // Comprehensive validation
-        const input = this.input.trim();
+		// Comprehensive validation
+		const input = this.input.trim();
 
-        if (!input) {
-            return; // Silent return for empty input
-        }
+		if (!input) {
+			return; // Silent return for empty input
+		}
 
-        if (input.length > MAX_INPUT_LENGTH) {
-            this.lastError = `Input too long (max ${MAX_INPUT_LENGTH} characters)`;
-            return;
-        }
+		if (input.length > MAX_INPUT_LENGTH) {
+			this.lastError = `Input too long (max ${MAX_INPUT_LENGTH} characters)`;
+			return;
+		}
 
-        if (!this.isAttached) {
-            this.lastError = 'Not connected to session';
-            return;
-        }
+		if (!this.isAttached) {
+			this.lastError = 'Not connected to session';
+			return;
+		}
 
-        if (!this.sessionId) {
-            this.lastError = 'Session not initialized';
-            return;
-        }
+		if (!this.sessionId) {
+			this.lastError = 'Session not initialized';
+			return;
+		}
 
-        // Rate limiting
-        const now = Date.now();
-        if (now - this.lastSubmitTime < MIN_SUBMIT_INTERVAL_MS) {
-            console.warn('[ClaudePaneViewModel] Rate limiting submission');
-            return;
-        }
-        this.lastSubmitTime = now;
+		// Rate limiting
+		const now = Date.now();
+		if (now - this.lastSubmitTime < MIN_SUBMIT_INTERVAL_MS) {
+			console.warn('[ClaudePaneViewModel] Rate limiting submission');
+			return;
+		}
+		this.lastSubmitTime = now;
 
-        // Clear any previous errors
-        this.lastError = null;
+		// Clear any previous errors
+		this.lastError = null;
 
-        // ... rest of submission logic
-    }
+		// ... rest of submission logic
+	}
 }
 ```
 
@@ -769,12 +790,14 @@ setMobile(isMobile) {
 ```
 
 **Why This Is Concerning**:
+
 - ViewModel should not manage DOM references
 - Breaks testability (requires mock DOM)
 - Mobile detection is UI concern
 - Scroll management is View responsibility
 
 **Impact**:
+
 - Cannot unit test ViewModel without DOM mocks
 - Violates separation of concerns
 - Harder to reuse ViewModel in different UI contexts
@@ -829,17 +852,18 @@ Move these concerns to the View components:
 ```
 
 Remove from ViewModel:
+
 ```javascript
 // ClaudePaneViewModel.svelte.js - Remove UI concerns
 export class ClaudePaneViewModel {
-    // Remove: isMobile, messagesContainer, scrollToBottom(),
-    //         setMessagesContainer(), setMobile()
-
-    // Keep only business logic and data state
+	// Remove: isMobile, messagesContainer, scrollToBottom(),
+	//         setMessagesContainer(), setMobile()
+	// Keep only business logic and data state
 }
 ```
 
 **Benefits**:
+
 - ViewModel is pure business logic (no DOM)
 - Fully testable without browser environment
 - Better separation of concerns
@@ -869,6 +893,7 @@ switch (type) {
 ```
 
 **Why This Is Concerning**:
+
 - No centralized definition of valid event types
 - Typos cause silent failures
 - Hard to discover available event types
@@ -882,43 +907,44 @@ switch (type) {
  * Claude event channels
  */
 export const CLAUDE_CHANNEL = {
-    MESSAGE: 'claude:message',
-    ERROR: 'claude:error',
-    AUTH: 'claude:auth'
+	MESSAGE: 'claude:message',
+	ERROR: 'claude:error',
+	AUTH: 'claude:auth'
 };
 
 export const SYSTEM_CHANNEL = {
-    INPUT: 'system:input',
-    OUTPUT: 'system:output'
+	INPUT: 'system:input',
+	OUTPUT: 'system:output'
 };
 
 /**
  * Claude message types
  */
 export const CLAUDE_MESSAGE_TYPE = {
-    ASSISTANT: 'assistant',
-    SYSTEM: 'system',
-    RESULT: 'result',
-    USER: 'user'
+	ASSISTANT: 'assistant',
+	SYSTEM: 'system',
+	RESULT: 'result',
+	USER: 'user'
 };
 
 /**
  * Legacy event types (deprecated)
  */
 export const CLAUDE_LEGACY_EVENT = {
-    MESSAGE: 'claude:message',
-    AUTH_START: 'claude:auth_start',
-    AUTH_AWAITING_CODE: 'claude:auth_awaiting_code',
-    AUTH_SUCCESS: 'claude:auth_success',
-    AUTH_ERROR: 'claude:auth_error',
-    TOOL_USE: 'claude:tool_use',
-    TOOL_RESULT: 'claude:tool_result',
-    THINKING: 'claude:thinking',
-    ERROR: 'claude:error'
+	MESSAGE: 'claude:message',
+	AUTH_START: 'claude:auth_start',
+	AUTH_AWAITING_CODE: 'claude:auth_awaiting_code',
+	AUTH_SUCCESS: 'claude:auth_success',
+	AUTH_ERROR: 'claude:auth_error',
+	TOOL_USE: 'claude:tool_use',
+	TOOL_RESULT: 'claude:tool_result',
+	THINKING: 'claude:thinking',
+	ERROR: 'claude:error'
 };
 ```
 
 Usage:
+
 ```javascript
 // ClaudePaneViewModel.svelte.js
 import { CLAUDE_CHANNEL, SYSTEM_CHANNEL, CLAUDE_MESSAGE_TYPE } from '../constants.js';
@@ -941,6 +967,7 @@ handleChannelEvent(channel, type, payload) {
 ```
 
 **Benefits**:
+
 - Type-safe event handling
 - Autocomplete for event types
 - Single source of truth
@@ -963,6 +990,7 @@ Components don't implement error boundaries for runtime errors:
 ```
 
 **Why This Is Concerning**:
+
 - Component errors crash entire app
 - No graceful degradation
 - Poor user experience on errors
@@ -973,36 +1001,41 @@ Components don't implement error boundaries for runtime errors:
 ```svelte
 <!-- ClaudePane.svelte -->
 <script>
-    import ErrorBoundary from '$lib/client/shared/components/ErrorBoundary.svelte';
+	import ErrorBoundary from '$lib/client/shared/components/ErrorBoundary.svelte';
 
-    let componentError = $state(null);
+	let componentError = $state(null);
 
-    function handleError(error) {
-        console.error('[ClaudePane] Component error:', error);
-        componentError = error;
-        // Optionally report to error tracking service
-    }
+	function handleError(error) {
+		console.error('[ClaudePane] Component error:', error);
+		componentError = error;
+		// Optionally report to error tracking service
+	}
 </script>
 
 {#if componentError}
-    <div class="error-state">
-        <h3>Something went wrong</h3>
-        <p>{componentError.message}</p>
-        <button onclick={() => { componentError = null; viewModel.clearMessages(); }}>
-            Reset
-        </button>
-    </div>
+	<div class="error-state">
+		<h3>Something went wrong</h3>
+		<p>{componentError.message}</p>
+		<button
+			onclick={() => {
+				componentError = null;
+				viewModel.clearMessages();
+			}}
+		>
+			Reset
+		</button>
+	</div>
 {:else}
-    <ErrorBoundary onError={handleError}>
-        <div class="claude-pane">
-            <div class="chat-header">
-                <!-- header content -->
-            </div>
+	<ErrorBoundary onError={handleError}>
+		<div class="claude-pane">
+			<div class="chat-header">
+				<!-- header content -->
+			</div>
 
-            <MessageList {viewModel} />
-            <InputArea {viewModel} />
-        </div>
-    </ErrorBoundary>
+			<MessageList {viewModel} />
+			<InputArea {viewModel} />
+		</div>
+	</ErrorBoundary>
 {/if}
 ```
 
@@ -1099,14 +1132,14 @@ let { viewModel } = $props();
 
 // Validate props
 if (!viewModel) {
-    throw new Error('MessageList requires viewModel prop');
+	throw new Error('MessageList requires viewModel prop');
 }
 
 // Or use default with warning
 $effect(() => {
-    if (!viewModel?.messages) {
-        console.warn('[MessageList] Invalid viewModel provided');
-    }
+	if (!viewModel?.messages) {
+		console.warn('[MessageList] Invalid viewModel provided');
+	}
 });
 ```
 
@@ -1173,6 +1206,7 @@ $effect(() => {
 ## Testing Recommendations
 
 ### Current State
+
 - No unit tests found for `ClaudePaneViewModel`
 - Integration tests exist but don't cover ViewModel isolation
 
@@ -1184,110 +1218,105 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClaudePaneViewModel } from './ClaudePaneViewModel.svelte.js';
 
 describe('ClaudePaneViewModel', () => {
-    let viewModel;
-    let mockRunSessionService;
+	let viewModel;
+	let mockRunSessionService;
 
-    beforeEach(() => {
-        mockRunSessionService = {
-            sendInput: vi.fn(),
-            getStatus: vi.fn(() => ({ connected: true }))
-        };
+	beforeEach(() => {
+		mockRunSessionService = {
+			sendInput: vi.fn(),
+			getStatus: vi.fn(() => ({ connected: true }))
+		};
 
-        viewModel = new ClaudePaneViewModel(
-            'test-session-id',
-            null,
-            false,
-            mockRunSessionService
-        );
-    });
+		viewModel = new ClaudePaneViewModel('test-session-id', null, false, mockRunSessionService);
+	});
 
-    describe('submitInput', () => {
-        it('should send user input when valid', async () => {
-            viewModel.isAttached = true;
-            viewModel.input = 'Hello Claude';
+	describe('submitInput', () => {
+		it('should send user input when valid', async () => {
+			viewModel.isAttached = true;
+			viewModel.input = 'Hello Claude';
 
-            await viewModel.submitInput();
+			await viewModel.submitInput();
 
-            expect(mockRunSessionService.sendInput).toHaveBeenCalledWith(
-                'test-session-id',
-                'Hello Claude'
-            );
-            expect(viewModel.messages).toHaveLength(1);
-            expect(viewModel.messages[0].role).toBe('user');
-        });
+			expect(mockRunSessionService.sendInput).toHaveBeenCalledWith(
+				'test-session-id',
+				'Hello Claude'
+			);
+			expect(viewModel.messages).toHaveLength(1);
+			expect(viewModel.messages[0].role).toBe('user');
+		});
 
-        it('should not send empty input', async () => {
-            viewModel.isAttached = true;
-            viewModel.input = '   ';
+		it('should not send empty input', async () => {
+			viewModel.isAttached = true;
+			viewModel.input = '   ';
 
-            await viewModel.submitInput();
+			await viewModel.submitInput();
 
-            expect(mockRunSessionService.sendInput).not.toHaveBeenCalled();
-        });
+			expect(mockRunSessionService.sendInput).not.toHaveBeenCalled();
+		});
 
-        it('should handle rate limiting', async () => {
-            viewModel.isAttached = true;
-            viewModel.input = 'Message 1';
+		it('should handle rate limiting', async () => {
+			viewModel.isAttached = true;
+			viewModel.input = 'Message 1';
 
-            await viewModel.submitInput();
+			await viewModel.submitInput();
 
-            viewModel.input = 'Message 2';
-            await viewModel.submitInput(); // Too fast
+			viewModel.input = 'Message 2';
+			await viewModel.submitInput(); // Too fast
 
-            expect(mockRunSessionService.sendInput).toHaveBeenCalledTimes(1);
-        });
-    });
+			expect(mockRunSessionService.sendInput).toHaveBeenCalledTimes(1);
+		});
+	});
 
-    describe('handleRunEvent', () => {
-        it('should handle assistant messages', () => {
-            const event = {
-                channel: 'claude:message',
-                type: 'assistant',
-                payload: {
-                    events: [{
-                        message: {
-                            content: [
-                                { type: 'text', text: 'Hello!' }
-                            ]
-                        }
-                    }]
-                }
-            };
+	describe('handleRunEvent', () => {
+		it('should handle assistant messages', () => {
+			const event = {
+				channel: 'claude:message',
+				type: 'assistant',
+				payload: {
+					events: [
+						{
+							message: {
+								content: [{ type: 'text', text: 'Hello!' }]
+							}
+						}
+					]
+				}
+			};
 
-            viewModel.handleRunEvent(event);
+			viewModel.handleRunEvent(event);
 
-            expect(viewModel.messages).toHaveLength(1);
-            expect(viewModel.messages[0].role).toBe('assistant');
-            expect(viewModel.messages[0].text).toBe('Hello!');
-        });
+			expect(viewModel.messages).toHaveLength(1);
+			expect(viewModel.messages[0].role).toBe('assistant');
+			expect(viewModel.messages[0].text).toBe('Hello!');
+		});
 
-        it('should handle errors gracefully', () => {
-            const event = {
-                channel: 'claude:error',
-                type: 'error',
-                payload: {
-                    error: 'Connection lost'
-                }
-            };
+		it('should handle errors gracefully', () => {
+			const event = {
+				channel: 'claude:error',
+				type: 'error',
+				payload: {
+					error: 'Connection lost'
+				}
+			};
 
-            viewModel.handleRunEvent(event);
+			viewModel.handleRunEvent(event);
 
-            expect(viewModel.lastError).toBe('Connection lost');
-            expect(viewModel.isWaitingForReply).toBe(false);
-        });
-    });
+			expect(viewModel.lastError).toBe('Connection lost');
+			expect(viewModel.isWaitingForReply).toBe(false);
+		});
+	});
 
-    describe('derived state', () => {
-        it('should compute canSubmit correctly', () => {
-            expect(viewModel.canSubmit).toBe(false);
+	describe('derived state', () => {
+		it('should compute canSubmit correctly', () => {
+			expect(viewModel.canSubmit).toBe(false);
 
-            viewModel.input = 'Hello';
-            viewModel.isAttached = true;
-            viewModel.sessionId = 'test-id';
+			viewModel.input = 'Hello';
+			viewModel.isAttached = true;
+			viewModel.sessionId = 'test-id';
 
-            expect(viewModel.canSubmit).toBe(true);
-        });
-    });
+			expect(viewModel.canSubmit).toBe(true);
+		});
+	});
 });
 ```
 
@@ -1303,6 +1332,7 @@ The Claude session implementation demonstrates solid MVVM fundamentals but requi
 4. **Complex event handling** without clear structure
 
 Addressing the **4 critical issues** (dependency injection, lifecycle separation, duplication, event handling) would significantly improve:
+
 - **Testability**: Enable comprehensive unit testing
 - **Maintainability**: Clear separation of concerns
 - **Extensibility**: Easier to add new features
@@ -1311,6 +1341,7 @@ Addressing the **4 critical issues** (dependency injection, lifecycle separation
 **Estimated total effort for critical fixes**: 10-17 hours
 
 **Recommended approach**:
+
 1. Week 1: Fix Issues #1-2 (dependency injection, lifecycle)
 2. Week 2: Fix Issues #3-4 (duplication, event handling)
 3. Week 3+: Address medium/low priority improvements incrementally

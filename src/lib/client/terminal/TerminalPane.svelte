@@ -58,10 +58,10 @@
 	}
 
 	// Initialize ViewModel
-	const authKey = localStorage.getItem('dispatch-auth-token');
+	// Authentication handled via session cookies (no auth key needed)
 	const viewModel = new TerminalPaneViewModel({
 		sessionId,
-		authKey,
+		authKey: null, // Socket.IO authenticates via session cookie
 		shouldResume
 	});
 
@@ -70,8 +70,8 @@
 		// Fit terminal to container first so cols/rows update
 		try {
 			fitAddon.fit();
-		} catch (e) {
-			// fit may throw if terminal not yet attached; ignore
+		} catch (_error) {
+			// Intentionally ignoring error - fit may throw if terminal not yet attached
 		}
 
 		// Use ViewModel to handle resize
@@ -160,13 +160,19 @@
 		// Cleanup UI resources
 		try {
 			window.removeEventListener('resize', resize);
-		} catch (e) {}
+		} catch (_error) {
+			// Intentionally ignoring cleanup errors - component is being destroyed
+		}
 		try {
 			if (ro) ro.disconnect();
-		} catch (e) {}
+		} catch (_error) {
+			// Intentionally ignoring cleanup errors - component is being destroyed
+		}
 		try {
 			if (term) term.dispose();
-		} catch (e) {}
+		} catch (_error) {
+			// Intentionally ignoring cleanup errors - component is being destroyed
+		}
 	});
 </script>
 
@@ -294,8 +300,4 @@
 	.loading-icon {
 		animation: pulse 2s ease-in-out infinite;
 	}
-
-	
-
-	
 </style>

@@ -43,23 +43,14 @@ import { SESSION_TYPE } from '../../../../shared/session-types.js';
 export { SESSION_TYPE };
 
 /**
- * Get authorization headers for API requests
- * @param {SessionConfig} config
+ * Get headers for API requests
+ * @param {SessionConfig} _config
  * @returns {Object} Headers object
  */
-export function getHeaders(config) {
-	const headers = {
+export function getHeaders(_config) {
+	return {
 		'content-type': 'application/json'
 	};
-
-	if (typeof localStorage !== 'undefined') {
-		const token = localStorage.getItem(config.authTokenKey);
-		if (token) {
-			headers['Authorization'] = `Bearer ${token}`;
-		}
-	}
-
-	return headers;
 }
 
 /**

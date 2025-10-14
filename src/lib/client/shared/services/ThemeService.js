@@ -35,22 +35,14 @@ export class ThemeService {
 	}
 
 	/**
-	 * Get authorization header with auth token
+	 * Get headers for API requests
+	 * Authentication via session cookies (no Authorization header needed)
 	 * @returns {Object} Headers object
 	 */
 	getHeaders() {
-		const headers = {
+		return {
 			'Content-Type': 'application/json'
 		};
-
-		if (typeof localStorage !== 'undefined') {
-			const token = localStorage.getItem(this.config.authTokenKey);
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
-		}
-
-		return headers;
 	}
 
 	/**
@@ -93,8 +85,9 @@ export class ThemeService {
 	 */
 	async listThemes() {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/themes`, {
-				headers: this.getHeaders()
+			const response = await fetch(`${this.baseUrl}/themes`, {
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 
 			const data = await this.handleResponse(response);
@@ -114,8 +107,9 @@ export class ThemeService {
 	 */
 	async getTheme(themeId) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}`, {
-				headers: this.getHeaders()
+			const response = await fetch(`${this.baseUrl}/themes/${encodeURIComponent(themeId)}`, {
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 
 			const data = await this.handleResponse(response);
@@ -138,18 +132,10 @@ export class ThemeService {
 			const formData = new FormData();
 			formData.append('theme', file);
 
-			// Get auth key for FormData request
-			const authKey =
-				typeof localStorage !== 'undefined' ? localStorage.getItem(this.config.authTokenKey) : null;
-
-			const headers = {};
-			if (authKey) {
-				headers['Authorization'] = `Bearer ${authKey}`;
-			}
-
-			const response = await fetch(`${this.baseUrl}/api/themes`, {
+			// Authentication via session cookie (no Authorization header needed)
+			const response = await fetch(`${this.baseUrl}/themes`, {
 				method: 'POST',
-				headers,
+				credentials: 'include',
 				body: formData
 			});
 
@@ -175,9 +161,10 @@ export class ThemeService {
 	 */
 	async deleteTheme(themeId) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}`, {
+			const response = await fetch(`${this.baseUrl}/themes/${encodeURIComponent(themeId)}`, {
 				method: 'DELETE',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 
 			const data = await this.handleResponse(response);
@@ -204,9 +191,10 @@ export class ThemeService {
 	async canDeleteTheme(themeId) {
 		try {
 			const response = await fetch(
-				`${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}/can-delete`,
+				`${this.baseUrl}/themes/${encodeURIComponent(themeId)}/can-delete`,
 				{
-					headers: this.getHeaders()
+					headers: this.getHeaders(),
+					credentials: 'include'
 				}
 			);
 
@@ -240,9 +228,10 @@ export class ThemeService {
 				params.append('workspaceId', workspaceId);
 			}
 
-			const url = `${this.baseUrl}/api/themes/active${params.toString() ? '?' + params : ''}`;
+			const url = `${this.baseUrl}/themes/active${params.toString() ? '?' + params : ''}`;
 			const response = await fetch(url, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 
 			const data = await this.handleResponse(response);
@@ -266,6 +255,7 @@ export class ThemeService {
 			const response = await fetch(`${this.baseUrl}/api/preferences`, {
 				method: 'PUT',
 				headers: this.getHeaders(),
+				credentials: 'include',
 				body: JSON.stringify({
 					category: 'themes',
 					preferences: {
@@ -297,6 +287,7 @@ export class ThemeService {
 				{
 					method: 'PUT',
 					headers: this.getHeaders(),
+					credentials: 'include',
 					body: JSON.stringify({
 						theme_override: themeId
 					})
@@ -322,7 +313,8 @@ export class ThemeService {
 			params.append('category', 'themes');
 
 			const response = await fetch(`${this.baseUrl}/api/preferences?${params}`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include'
 			});
 
 			const data = await this.handleResponse(response);
@@ -364,17 +356,6 @@ export class ThemeService {
 			valid: errors.length === 0,
 			errors
 		};
-	}
-
-	/**
-	 * Get authentication key from localStorage
-	 * @returns {string|null}
-	 */
-	getAuthKey() {
-		if (typeof localStorage !== 'undefined') {
-			return localStorage.getItem(this.config.authTokenKey);
-		}
-		return null;
 	}
 
 	/**

@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
 
 // Mock the enhanced component (will be implemented later)
-const ProjectSessionMenu = {
+const _ProjectSessionMenu = {
 	name: 'ProjectSessionMenu',
 	props: [
 		'selectedWorkspace',
@@ -20,12 +19,10 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 	let mockSessionApi;
 	let mockOnWorkspaceChanged;
 	let mockOnSessionSelected;
-	let mockOnNewSession;
 
 	beforeEach(() => {
 		mockOnWorkspaceChanged = vi.fn();
 		mockOnSessionSelected = vi.fn();
-		mockOnNewSession = vi.fn();
 
 		mockWorkspaceApi = {
 			getWorkspaces: vi.fn(),
@@ -171,12 +168,6 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 	});
 
 	it('should show workspace creation option', () => {
-		const createWorkspaceOption = {
-			label: '+ Create New Workspace',
-			action: 'create',
-			icon: '📁'
-		};
-
 		const handleCreateWorkspace = () => {
 			// This would trigger workspace creation UI
 			return { action: 'show-create-dialog' };

@@ -4,9 +4,6 @@
 	import Input from './Input.svelte';
 	import IconGitBranch from './Icons/IconGitBranch.svelte';
 	import IconGitCommit from './Icons/IconGitCommit.svelte';
-	import IconGitPull from './Icons/IconGitPull.svelte';
-	import IconGitMerge from './Icons/IconGitMerge.svelte';
-	import IconGitFork from './Icons/IconGitFork.svelte';
 	import IconGitWorktree from './Icons/IconGitWorktree.svelte';
 	import IconArrowDown from './Icons/IconArrowDown.svelte';
 	import IconArrowUp from './Icons/IconArrowUp.svelte';
@@ -17,7 +14,6 @@
 	import IconMinus from './Icons/IconMinus.svelte';
 	import WorktreeManager from './WorktreeManager.svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
-
 
 	let {
 		currentPath,
@@ -37,15 +33,12 @@
 	let showStatus = $state(false);
 	let showBranches = $state(false);
 	let showCommitForm = $state(false);
-	let showLog = $state(false);
 	let showWorktrees = $state(false);
 	let showDiff = $state(null); // file path to show diff for
 
 	// Form state
 	let commitMessage = $state('');
-	let selectedFiles = $state(new Set());
 	let newBranchName = $state('');
-	let targetBranch = $state('');
 
 	// Check if current directory is a git repository
 	async function checkGitRepo() {
@@ -402,7 +395,7 @@
 				{#if gitStatus.modified?.length}
 					<div class="file-group">
 						<h5 class="file-group-title">Modified Files</h5>
-						{#each gitStatus.modified as file}
+						{#each gitStatus.modified as file (file)}
 							<div class="file-item flex-between">
 								<span class="file-name">{file}</span>
 								<div class="flex gap-1">
@@ -431,7 +424,7 @@
 				{#if gitStatus.staged?.length}
 					<div class="file-group">
 						<h5 class="file-group-title">Staged Files</h5>
-						{#each gitStatus.staged as file}
+						{#each gitStatus.staged as file (file)}
 							<div class="file-item flex-between">
 								<span class="file-name">{file}</span>
 								<div class="flex gap-1">
@@ -460,7 +453,7 @@
 				{#if gitStatus.untracked?.length}
 					<div class="file-group">
 						<h5 class="file-group-title">Untracked Files</h5>
-						{#each gitStatus.untracked as file}
+						{#each gitStatus.untracked as file (file)}
 							<div class="file-item flex-between">
 								<span class="file-name">{file}</span>
 								<div class="flex gap-1">
@@ -498,7 +491,7 @@
 				</div>
 
 				<div class="flex-col gap-1">
-					{#each branches as branch}
+					{#each branches as branch (branch)}
 						<div class="branch-item {branch === currentBranch ? 'current' : ''} flex-between">
 							<span class="branch-name">{branch}</span>
 							{#if branch !== currentBranch}
@@ -551,21 +544,21 @@
 
 		<!-- File diff modal -->
 		{#if showDiff}
-			<div
+			<button
 				class="git-diff-modal"
+				type="button"
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="diff-title"
-				tabindex="-1"
-				onclick={() => (showDiff = null)}
+				aria-label="Close diff viewer"
+				onclick={(e) => {
+					if (e.target === e.currentTarget) {
+						showDiff = null;
+					}
+				}}
 				onkeydown={(e) => e.key === 'Escape' && (showDiff = null)}
 			>
-				<div
-					class="diff-content"
-					role="document"
-					onclick={(e) => e.stopPropagation()}
-					onkeydown={(e) => e.stopPropagation()}
-				>
+				<div class="diff-content" role="document">
 					<div class="diff-header">
 						<h4 id="diff-title">Diff: {showDiff}</h4>
 						<IconButton onclick={() => (showDiff = null)} variant="ghost">
@@ -577,7 +570,7 @@
 						<p>File diff display would be implemented here</p>
 					</div>
 				</div>
-			</div>
+			</button>
 		{/if}
 
 		{#if error}
@@ -691,6 +684,9 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
+		border: none;
+		padding: 0;
+		cursor: pointer;
 	}
 
 	.diff-content {

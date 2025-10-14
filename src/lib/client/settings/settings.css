@@ -165,7 +165,7 @@
 	height: 100%;
 	position: relative;
 
-	&>div {
+	& > div {
 		height: 100%;
 		overflow: auto;
 
@@ -246,7 +246,6 @@
 /**
  * Settings header section with title and optional description
  */
-
 
 .settings-header h3 {
 	margin: 0 0 var(--space-2) 0;
@@ -452,13 +451,13 @@
 		gap: var(--space-4);
 	}
 
-	.field-row>label {
+	.field-row > label {
 		flex: 0 0 200px;
 	}
 
-	.field-row>input,
-	.field-row>select,
-	.field-row>textarea {
+	.field-row > input,
+	.field-row > select,
+	.field-row > textarea {
 		flex: 1;
 	}
 }
@@ -1116,7 +1115,7 @@
 		flex-direction: column;
 	}
 
-	.field-row>label {
+	.field-row > label {
 		flex: 1;
 	}
 }
@@ -1246,7 +1245,6 @@
  * Reduced motion support
  */
 @media (prefers-reduced-motion: reduce) {
-
 	*,
 	*::before,
 	*::after {
@@ -1266,7 +1264,6 @@
  * High contrast mode support
  */
 @media (prefers-contrast: high) {
-
 	input[type='text'],
 	input[type='number'],
 	input[type='email'],

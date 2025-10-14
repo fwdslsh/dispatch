@@ -4,19 +4,42 @@ Complete reference for all REST API endpoints in Dispatch. All routes are prefix
 
 ## Authentication
 
-**Methods:**
+Dispatch supports **dual authentication** for different access patterns:
 
-1. **Authorization Header** (preferred):
-   ```
-   Authorization: Bearer YOUR_TERMINAL_KEY
-   ```
+### Browser Sessions (Session Cookies)
 
-2. **Query Parameter** (backwards compatible):
-   ```
-   ?authKey=YOUR_TERMINAL_KEY
-   ```
+Automatic authentication for web browsers using httpOnly, Secure (production), SameSite=Lax cookies:
 
-**Authentication is validated by hooks middleware** (`src/hooks.server.js`) for protected routes. The `locals.auth` object contains authentication state.
+- **Login**: POST to `/api/auth/login` with API key (form action)
+- **Session Cookie**: `dispatch_session` automatically included in requests
+- **Logout**: POST to `/api/auth/logout`
+- **Expiration**: 30 days with 24-hour rolling refresh window
+- **Multi-tab**: Same cookie shared across browser tabs
+
+### Programmatic Access (API Keys)
+
+For scripts, CLI tools, and automation:
+
+**Authorization Header** (recommended):
+
+```
+Authorization: Bearer dpk_YOUR_API_KEY_HERE
+```
+
+**Query Parameter** (alternative):
+
+```
+?authKey=dpk_YOUR_API_KEY_HERE
+```
+
+### Unified Route Support
+
+**All protected routes accept EITHER authentication method:**
+
+- Browser requests: Automatically use session cookie (via SvelteKit)
+- Programmatic requests: Include API key in Authorization header
+
+**Authentication validation** is performed by hooks middleware (`src/hooks.server.js`). The `event.locals.user` and `event.locals.sessionId` are populated on successful authentication.
 
 ## Session Management
 
@@ -28,16 +51,17 @@ Create a new session.
 
 ```json
 {
-  "kind": "pty",                    // or 'claude', 'file-editor'
-  "type": "pty",                    // Alias for kind (backwards compat)
-  "cwd": "/workspace/my-project",   // Optional working directory
-  "resume": false,                  // Set to true with sessionId to resume
-  "sessionId": "pty_abc123",        // Required if resume=true
-  "options": {                      // Session-specific options
-    "cols": 120,
-    "rows": 30,
-    "env": { "MY_VAR": "value" }
-  }
+	"kind": "pty", // or 'claude', 'file-editor'
+	"type": "pty", // Alias for kind (backwards compat)
+	"cwd": "/workspace/my-project", // Optional working directory
+	"resume": false, // Set to true with sessionId to resume
+	"sessionId": "pty_abc123", // Required if resume=true
+	"options": {
+		// Session-specific options
+		"cols": 120,
+		"rows": 30,
+		"env": { "MY_VAR": "value" }
+	}
 }
 ```
 
@@ -64,6 +88,7 @@ Create a new session.
 ```
 
 **Error Codes:**
+
 - `400` - Invalid or missing kind
 - `404` - Session not found (when resuming)
 - `503` - Session functionality temporarily unavailable
@@ -73,26 +98,27 @@ Create a new session.
 List all sessions.
 
 **Query Parameters:**
+
 - `include=all` - Include stopped sessions (default: active only)
 
 **Response:**
 
 ```json
 {
-  "sessions": [
-    {
-      "id": "pty_abc123",
-      "type": "pty",
-      "title": "Terminal Session",
-      "workspacePath": "/workspace/my-project",
-      "isActive": true,
-      "createdAt": 1698765432100,
-      "lastActivity": 1698765532100,
-      "inLayout": true,
-      "tileId": "tile-1",
-      "pinned": false
-    }
-  ]
+	"sessions": [
+		{
+			"id": "pty_abc123",
+			"type": "pty",
+			"title": "Terminal Session",
+			"workspacePath": "/workspace/my-project",
+			"isActive": true,
+			"createdAt": 1698765432100,
+			"lastActivity": 1698765532100,
+			"inLayout": true,
+			"tileId": "tile-1",
+			"pinned": false
+		}
+	]
 }
 ```
 
@@ -101,17 +127,19 @@ List all sessions.
 Close a session.
 
 **Query Parameters:**
+
 - `runId` (required) - Session identifier
 
 **Response:**
 
 ```json
 {
-  "success": true
+	"success": true
 }
 ```
 
 **Error Codes:**
+
 - `400` - Missing runId parameter
 - `500` - Deletion failed
 
@@ -168,6 +196,7 @@ Update workspace layout for a session.
 Get session event history.
 
 **Query Parameters:**
+
 - `seq` (optional) - Starting sequence number (default: 0)
 - `limit` (optional) - Maximum events to return (default: 100)
 
@@ -175,17 +204,17 @@ Get session event history.
 
 ```json
 {
-  "events": [
-    {
-      "runId": "pty_abc123",
-      "seq": 1,
-      "channel": "pty:stdout",
-      "type": "chunk",
-      "payload": { "data": "..." },
-      "ts": 1698765432100
-    }
-  ],
-  "hasMore": false
+	"events": [
+		{
+			"runId": "pty_abc123",
+			"seq": 1,
+			"channel": "pty:stdout",
+			"type": "chunk",
+			"payload": { "data": "..." },
+			"ts": 1698765432100
+		}
+	],
+	"hasMore": false
 }
 ```
 
@@ -194,21 +223,22 @@ Get session event history.
 Get workspace layout for current client.
 
 **Query Parameters:**
+
 - `clientId` (required) - Client identifier
 
 **Response:**
 
 ```json
 {
-  "layout": [
-    {
-      "run_id": "pty_abc123",
-      "client_id": "client-xyz",
-      "tile_id": "tile-1",
-      "created_at": 1698765432100,
-      "updated_at": 1698765532100
-    }
-  ]
+	"layout": [
+		{
+			"run_id": "pty_abc123",
+			"client_id": "client-xyz",
+			"tile_id": "tile-1",
+			"created_at": 1698765432100,
+			"updated_at": 1698765532100
+		}
+	]
 }
 ```
 
@@ -221,6 +251,7 @@ See [Workspace API Reference](./workspace-api.md) for detailed workspace endpoin
 List all workspaces.
 
 **Query Parameters:**
+
 - `authKey` (required) - Authentication key
 - `limit` (optional) - Results per page (default: 50)
 - `offset` (optional) - Results to skip (default: 0)
@@ -249,6 +280,7 @@ Delete a workspace.
 Get all settings or settings for a specific category.
 
 **Query Parameters:**
+
 - `category` (optional) - Filter by category: `global`, `claude`, `workspace`, `terminal`
 
 **Response:**
@@ -287,14 +319,14 @@ Get settings for a specific category.
 
 ```json
 {
-  "category": "claude",
-  "settings": {
-    "model": "claude-3-5-sonnet-20241022",
-    "permissionMode": "default"
-  },
-  "description": "Default Claude session settings",
-  "created_at": 1698765432100,
-  "updated_at": 1698765532100
+	"category": "claude",
+	"settings": {
+		"model": "claude-3-5-sonnet-20241022",
+		"permissionMode": "default"
+	},
+	"description": "Default Claude session settings",
+	"created_at": 1698765432100,
+	"updated_at": 1698765532100
 }
 ```
 
@@ -306,9 +338,9 @@ Update settings for a category.
 
 ```json
 {
-  "model": "claude-3-5-sonnet-20241022",
-  "permissionMode": "auto",
-  "maxTurns": 10
+	"model": "claude-3-5-sonnet-20241022",
+	"permissionMode": "auto",
+	"maxTurns": 10
 }
 ```
 
@@ -316,13 +348,13 @@ Update settings for a category.
 
 ```json
 {
-  "success": true,
-  "category": "claude",
-  "settings": {
-    "model": "claude-3-5-sonnet-20241022",
-    "permissionMode": "auto",
-    "maxTurns": 10
-  }
+	"success": true,
+	"category": "claude",
+	"settings": {
+		"model": "claude-3-5-sonnet-20241022",
+		"permissionMode": "auto",
+		"maxTurns": 10
+	}
 }
 ```
 
@@ -334,10 +366,10 @@ Get workspace-specific settings (environment variables).
 
 ```json
 {
-  "envVariables": {
-    "NODE_ENV": "development",
-    "MY_VAR": "value"
-  }
+	"envVariables": {
+		"NODE_ENV": "development",
+		"MY_VAR": "value"
+	}
 }
 ```
 
@@ -349,10 +381,10 @@ Update workspace environment variables.
 
 ```json
 {
-  "envVariables": {
-    "NODE_ENV": "production",
-    "API_KEY": "secret"
-  }
+	"envVariables": {
+		"NODE_ENV": "production",
+		"API_KEY": "secret"
+	}
 }
 ```
 
@@ -364,8 +396,8 @@ Get onboarding completion status.
 
 ```json
 {
-  "completed": true,
-  "completedAt": "2024-01-15T10:30:00.000Z"
+	"completed": true,
+	"completedAt": "2024-01-15T10:30:00.000Z"
 }
 ```
 
@@ -377,7 +409,7 @@ Mark onboarding as completed.
 
 ```json
 {
-  "completed": true
+	"completed": true
 }
 ```
 
@@ -388,21 +420,23 @@ Mark onboarding as completed.
 Read a file.
 
 **Query Parameters:**
+
 - `path` (required) - Absolute file path
 
 **Response:**
 
 ```json
 {
-  "path": "/workspace/my-project/file.txt",
-  "content": "file contents here",
-  "size": 1024,
-  "modified": "2024-01-15T10:30:00.000Z",
-  "readonly": false
+	"path": "/workspace/my-project/file.txt",
+	"content": "file contents here",
+	"size": 1024,
+	"modified": "2024-01-15T10:30:00.000Z",
+	"readonly": false
 }
 ```
 
 **Error Codes:**
+
 - `400` - Missing path or path is not a file
 - `403` - Access denied
 - `404` - File not found
@@ -413,13 +447,14 @@ Read a file.
 Write/update a file.
 
 **Query Parameters:**
+
 - `path` (required) - Absolute file path
 
 **Request Body:**
 
 ```json
 {
-  "content": "new file contents"
+	"content": "new file contents"
 }
 ```
 
@@ -427,14 +462,15 @@ Write/update a file.
 
 ```json
 {
-  "success": true,
-  "path": "/workspace/my-project/file.txt",
-  "size": 1024,
-  "modified": "2024-01-15T10:30:00.000Z"
+	"success": true,
+	"path": "/workspace/my-project/file.txt",
+	"size": 1024,
+	"modified": "2024-01-15T10:30:00.000Z"
 }
 ```
 
 **Error Codes:**
+
 - `400` - Missing path, invalid content, or directory doesn't exist
 - `403` - Permission denied
 - `507` - No space left on device
@@ -444,6 +480,7 @@ Write/update a file.
 Upload a file.
 
 **Request:** Multipart form data
+
 - `file` - File to upload
 - `path` - Destination path
 
@@ -451,9 +488,9 @@ Upload a file.
 
 ```json
 {
-  "success": true,
-  "path": "/workspace/uploads/file.pdf",
-  "size": 2048
+	"success": true,
+	"path": "/workspace/uploads/file.pdf",
+	"size": 2048
 }
 ```
 
@@ -464,6 +501,7 @@ Upload a file.
 Browse directory contents.
 
 **Query Parameters:**
+
 - `path` (optional) - Directory path (default: workspace root)
 - `authKey` (required) - Authentication key
 
@@ -471,26 +509,26 @@ Browse directory contents.
 
 ```json
 {
-  "path": "/workspace/my-project",
-  "entries": [
-    {
-      "name": "src",
-      "path": "/workspace/my-project/src",
-      "type": "directory",
-      "size": 4096,
-      "modified": "2024-01-15T10:30:00.000Z",
-      "permissions": "rwxr-xr-x"
-    },
-    {
-      "name": "README.md",
-      "path": "/workspace/my-project/README.md",
-      "type": "file",
-      "size": 1024,
-      "modified": "2024-01-15T10:30:00.000Z",
-      "permissions": "rw-r--r--"
-    }
-  ],
-  "parent": "/workspace"
+	"path": "/workspace/my-project",
+	"entries": [
+		{
+			"name": "src",
+			"path": "/workspace/my-project/src",
+			"type": "directory",
+			"size": 4096,
+			"modified": "2024-01-15T10:30:00.000Z",
+			"permissions": "rwxr-xr-x"
+		},
+		{
+			"name": "README.md",
+			"path": "/workspace/my-project/README.md",
+			"type": "file",
+			"size": 1024,
+			"modified": "2024-01-15T10:30:00.000Z",
+			"permissions": "rw-r--r--"
+		}
+	],
+	"parent": "/workspace"
 }
 ```
 
@@ -502,9 +540,9 @@ Create a new directory or file.
 
 ```json
 {
-  "path": "/workspace/my-project/new-dir",
-  "type": "directory",           // or 'file'
-  "authKey": "your-key"
+	"path": "/workspace/my-project/new-dir",
+	"type": "directory", // or 'file'
+	"authKey": "your-key"
 }
 ```
 
@@ -512,9 +550,9 @@ Create a new directory or file.
 
 ```json
 {
-  "success": true,
-  "path": "/workspace/my-project/new-dir",
-  "type": "directory"
+	"success": true,
+	"path": "/workspace/my-project/new-dir",
+	"type": "directory"
 }
 ```
 
@@ -526,9 +564,9 @@ Clone a git repository.
 
 ```json
 {
-  "url": "https://github.com/user/repo.git",
-  "destination": "/workspace/repos",
-  "authKey": "your-key"
+	"url": "https://github.com/user/repo.git",
+	"destination": "/workspace/repos",
+	"authKey": "your-key"
 }
 ```
 
@@ -536,9 +574,9 @@ Clone a git repository.
 
 ```json
 {
-  "success": true,
-  "path": "/workspace/repos/repo",
-  "message": "Repository cloned successfully"
+	"success": true,
+	"path": "/workspace/repos/repo",
+	"message": "Repository cloned successfully"
 }
 ```
 
@@ -549,18 +587,19 @@ Clone a git repository.
 Get git status for a repository.
 
 **Query Parameters:**
+
 - `path` - Repository path
 
 **Response:**
 
 ```json
 {
-  "branch": "main",
-  "modified": ["file1.js", "file2.js"],
-  "staged": ["file3.js"],
-  "untracked": ["newfile.js"],
-  "ahead": 2,
-  "behind": 0
+	"branch": "main",
+	"modified": ["file1.js", "file2.js"],
+	"staged": ["file3.js"],
+	"untracked": ["newfile.js"],
+	"ahead": 2,
+	"behind": 0
 }
 ```
 
@@ -569,14 +608,15 @@ Get git status for a repository.
 List git branches.
 
 **Query Parameters:**
+
 - `path` - Repository path
 
 **Response:**
 
 ```json
 {
-  "current": "main",
-  "branches": ["main", "develop", "feature/new-thing"]
+	"current": "main",
+	"branches": ["main", "develop", "feature/new-thing"]
 }
 ```
 
@@ -588,9 +628,9 @@ Checkout a branch.
 
 ```json
 {
-  "path": "/workspace/my-project",
-  "branch": "develop",
-  "create": false               // Set to true to create new branch
+	"path": "/workspace/my-project",
+	"branch": "develop",
+	"create": false // Set to true to create new branch
 }
 ```
 
@@ -602,8 +642,8 @@ Create a new branch.
 
 ```json
 {
-  "path": "/workspace/my-project",
-  "name": "feature/new-thing"
+	"path": "/workspace/my-project",
+	"name": "feature/new-thing"
 }
 ```
 
@@ -615,8 +655,8 @@ Stage files for commit.
 
 ```json
 {
-  "path": "/workspace/my-project",
-  "files": ["file1.js", "file2.js"]  // or ["."] for all
+	"path": "/workspace/my-project",
+	"files": ["file1.js", "file2.js"] // or ["."] for all
 }
 ```
 
@@ -628,8 +668,8 @@ Commit staged changes.
 
 ```json
 {
-  "path": "/workspace/my-project",
-  "message": "feat: Add new feature"
+	"path": "/workspace/my-project",
+	"message": "feat: Add new feature"
 }
 ```
 
@@ -641,9 +681,9 @@ Push commits to remote.
 
 ```json
 {
-  "path": "/workspace/my-project",
-  "remote": "origin",           // Optional
-  "branch": "main"              // Optional
+	"path": "/workspace/my-project",
+	"remote": "origin", // Optional
+	"branch": "main" // Optional
 }
 ```
 
@@ -655,7 +695,7 @@ Pull changes from remote.
 
 ```json
 {
-  "path": "/workspace/my-project"
+	"path": "/workspace/my-project"
 }
 ```
 
@@ -664,6 +704,7 @@ Pull changes from remote.
 Get commit log.
 
 **Query Parameters:**
+
 - `path` - Repository path
 - `limit` (optional) - Number of commits (default: 50)
 
@@ -671,14 +712,14 @@ Get commit log.
 
 ```json
 {
-  "commits": [
-    {
-      "hash": "abc123",
-      "message": "feat: Add new feature",
-      "author": "John Doe",
-      "date": "2024-01-15T10:30:00.000Z"
-    }
-  ]
+	"commits": [
+		{
+			"hash": "abc123",
+			"message": "feat: Add new feature",
+			"author": "John Doe",
+			"date": "2024-01-15T10:30:00.000Z"
+		}
+	]
 }
 ```
 
@@ -687,6 +728,7 @@ Get commit log.
 Get diff for staged/unstaged changes.
 
 **Query Parameters:**
+
 - `path` - Repository path
 - `staged` (optional) - Set to 'true' for staged diff
 
@@ -694,7 +736,7 @@ Get diff for staged/unstaged changes.
 
 ```json
 {
-  "diff": "diff --git a/file.js b/file.js\n..."
+	"diff": "diff --git a/file.js b/file.js\n..."
 }
 ```
 
@@ -705,24 +747,25 @@ Get diff for staged/unstaged changes.
 List all worktrees for a repository.
 
 **Query Parameters:**
+
 - `path` - Repository path
 
 **Response:**
 
 ```json
 {
-  "worktrees": [
-    {
-      "path": "/workspace/my-project",
-      "branch": "main",
-      "isMain": true
-    },
-    {
-      "path": "/workspace/my-project-feature",
-      "branch": "feature/new-thing",
-      "isMain": false
-    }
-  ]
+	"worktrees": [
+		{
+			"path": "/workspace/my-project",
+			"branch": "main",
+			"isMain": true
+		},
+		{
+			"path": "/workspace/my-project-feature",
+			"branch": "feature/new-thing",
+			"isMain": false
+		}
+	]
 }
 ```
 
@@ -734,9 +777,9 @@ Create a new worktree.
 
 ```json
 {
-  "repoPath": "/workspace/my-project",
-  "branch": "feature/new-thing",
-  "path": "/workspace/my-project-feature"
+	"repoPath": "/workspace/my-project",
+	"branch": "feature/new-thing",
+	"path": "/workspace/my-project-feature"
 }
 ```
 
@@ -748,7 +791,7 @@ Remove a worktree.
 
 ```json
 {
-  "path": "/workspace/my-project-feature"
+	"path": "/workspace/my-project-feature"
 }
 ```
 
@@ -760,7 +803,7 @@ Initialize or detect worktree-friendly repository.
 
 ```json
 {
-  "path": "/workspace/my-project"
+	"path": "/workspace/my-project"
 }
 ```
 
@@ -774,13 +817,13 @@ List Claude Code projects.
 
 ```json
 {
-  "projects": [
-    {
-      "id": "project-1",
-      "name": "My Project",
-      "path": "/workspace/my-project"
-    }
-  ]
+	"projects": [
+		{
+			"id": "project-1",
+			"name": "My Project",
+			"path": "/workspace/my-project"
+		}
+	]
 }
 ```
 
@@ -792,10 +835,10 @@ Get Claude authentication status.
 
 ```json
 {
-  "authenticated": true,
-  "user": {
-    "email": "user@example.com"
-  }
+	"authenticated": true,
+	"user": {
+		"email": "user@example.com"
+	}
 }
 ```
 
@@ -807,7 +850,7 @@ Initiate Claude authentication.
 
 ```json
 {
-  "action": "login"
+	"action": "login"
 }
 ```
 
@@ -821,18 +864,18 @@ List all available themes.
 
 ```json
 {
-  "themes": [
-    {
-      "id": "retro",
-      "name": "Retro",
-      "description": "Classic terminal look"
-    },
-    {
-      "id": "dracula",
-      "name": "Dracula",
-      "description": "Dark theme with purple accents"
-    }
-  ]
+	"themes": [
+		{
+			"id": "retro",
+			"name": "Retro",
+			"description": "Classic terminal look"
+		},
+		{
+			"id": "dracula",
+			"name": "Dracula",
+			"description": "Dark theme with purple accents"
+		}
+	]
 }
 ```
 
@@ -844,7 +887,7 @@ Get currently active theme.
 
 ```json
 {
-  "themeId": "retro"
+	"themeId": "retro"
 }
 ```
 
@@ -856,7 +899,7 @@ Set active theme.
 
 ```json
 {
-  "themeId": "dracula"
+	"themeId": "dracula"
 }
 ```
 
@@ -868,13 +911,13 @@ Get theme details.
 
 ```json
 {
-  "id": "retro",
-  "name": "Retro",
-  "description": "Classic terminal look",
-  "colors": {
-    "background": "#000000",
-    "foreground": "#00ff00"
-  }
+	"id": "retro",
+	"name": "Retro",
+	"description": "Classic terminal look",
+	"colors": {
+		"background": "#000000",
+		"foreground": "#00ff00"
+	}
 }
 ```
 
@@ -886,8 +929,8 @@ Check if theme can be deleted.
 
 ```json
 {
-  "canDelete": false,
-  "reason": "Theme is currently active"
+	"canDelete": false,
+	"reason": "Theme is currently active"
 }
 ```
 
@@ -899,25 +942,11 @@ Delete a custom theme.
 
 ```json
 {
-  "success": true
+	"success": true
 }
 ```
 
 ## Authentication
-
-### GET /api/auth/check
-
-Check authentication status.
-
-**Response:**
-
-```json
-{
-  "authenticated": true,
-  "method": "terminal_key",
-  "sessionId": "session-abc123"
-}
-```
 
 ### GET /api/auth/config
 
@@ -927,14 +956,168 @@ Get authentication configuration.
 
 ```json
 {
-  "enabled": true,
-  "methods": ["terminal_key", "oauth"]
+	"enabled": true,
+	"methods": ["terminal_key", "oauth"]
 }
 ```
 
 ### POST /api/auth/callback
 
 OAuth callback handler.
+
+### POST /api/auth/logout
+
+Logout and destroy session.
+
+**Response:**
+
+```json
+{
+	"success": true
+}
+```
+
+**Effects:**
+
+- Invalidates session cookie
+- Removes session from database
+- Clears cookie from browser
+
+### GET /api/auth/keys
+
+List all API keys for authenticated user.
+
+**Authentication:** Required (session cookie)
+
+**Response:**
+
+```json
+{
+	"keys": [
+		{
+			"id": "key-abc123",
+			"label": "Production Server",
+			"createdAt": "2024-01-15T10:30:00.000Z",
+			"lastUsedAt": "2024-01-16T14:20:00.000Z",
+			"disabled": false
+		},
+		{
+			"id": "key-xyz789",
+			"label": "CI/CD Pipeline",
+			"createdAt": "2024-01-10T08:15:00.000Z",
+			"lastUsedAt": null,
+			"disabled": true
+		}
+	]
+}
+```
+
+### POST /api/auth/keys
+
+Create a new API key.
+
+**Authentication:** Required (session cookie)
+
+**Request Body:**
+
+```json
+{
+	"label": "My New Key"
+}
+```
+
+**Response (201 Created):**
+
+```json
+{
+	"id": "key-abc123",
+	"key": "dpk_1234567890abcdefghijklmnopqrstuvwxyzABCDE",
+	"label": "My New Key",
+	"createdAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Security Notes:**
+
+- API key is returned ONLY ONCE in the response
+- Key is hashed with bcrypt (cost 12) before storage
+- Client must save the key immediately - it cannot be retrieved later
+
+### PUT /api/auth/keys/[keyId]
+
+Update API key (currently supports disabling/enabling).
+
+**Authentication:** Required (session cookie)
+
+**Request Body:**
+
+```json
+{
+	"disabled": true
+}
+```
+
+**Response:**
+
+```json
+{
+	"success": true,
+	"key": {
+		"id": "key-abc123",
+		"disabled": true
+	}
+}
+```
+
+### DELETE /api/auth/keys/[keyId]
+
+Delete an API key (hard delete).
+
+**Authentication:** Required (session cookie)
+
+**Response:**
+
+```json
+{
+	"success": true
+}
+```
+
+**Effects:**
+
+- Permanently removes API key from database
+- All future requests with this key will fail with 401
+- Active sessions using this key are immediately invalidated
+
+### POST /api/auth/oauth/initiate
+
+Initiate OAuth login flow.
+
+**Request Body:**
+
+```json
+{
+	"provider": "github" // or "google"
+}
+```
+
+**Response:**
+
+```json
+{
+	"authUrl": "https://github.com/login/oauth/authorize?client_id=...",
+	"state": "random-state-token"
+}
+```
+
+**Flow:**
+
+1. Client redirects to `authUrl`
+2. User authorizes on OAuth provider
+3. Provider redirects to `/api/auth/callback?code=...&state=...`
+4. Server exchanges code for access token
+5. Server creates session cookie
+6. Server redirects to application
 
 ## Environment & Status
 
@@ -946,10 +1129,10 @@ Get environment information.
 
 ```json
 {
-  "workspacesRoot": "/workspace",
-  "nodeVersion": "22.0.0",
-  "platform": "linux",
-  "tunnelEnabled": true
+	"workspacesRoot": "/workspace",
+	"nodeVersion": "22.0.0",
+	"platform": "linux",
+	"tunnelEnabled": true
 }
 ```
 
@@ -961,10 +1144,10 @@ Get server status.
 
 ```json
 {
-  "status": "running",
-  "uptime": 3600000,
-  "activeSessions": 5,
-  "version": "1.0.0"
+	"status": "running",
+	"uptime": 3600000,
+	"activeSessions": 5,
+	"version": "1.0.0"
 }
 ```
 
@@ -980,14 +1163,14 @@ List active socket connections.
 
 ```json
 {
-  "sockets": [
-    {
-      "id": "socket-123",
-      "connected": true,
-      "rooms": ["run:pty_abc123"],
-      "connectedAt": 1698765432100
-    }
-  ]
+	"sockets": [
+		{
+			"id": "socket-123",
+			"connected": true,
+			"rooms": ["run:pty_abc123"],
+			"connectedAt": 1698765432100
+		}
+	]
 }
 ```
 
@@ -996,20 +1179,21 @@ List active socket connections.
 Get recent socket events.
 
 **Query Parameters:**
+
 - `limit` (optional) - Number of events (default: 100)
 
 **Response:**
 
 ```json
 {
-  "events": [
-    {
-      "socketId": "socket-123",
-      "type": "run:attach",
-      "data": {},
-      "timestamp": 1698765432100
-    }
-  ]
+	"events": [
+		{
+			"socketId": "socket-123",
+			"type": "run:attach",
+			"data": {},
+			"timestamp": 1698765432100
+		}
+	]
 }
 ```
 
@@ -1026,6 +1210,7 @@ Get event history for specific socket.
 Get application logs.
 
 **Query Parameters:**
+
 - `component` (optional) - Filter by component
 - `level` (optional) - Filter by level
 - `limit` (optional) - Number of logs (default: 100)
@@ -1046,8 +1231,8 @@ Run database maintenance operations.
 
 ```json
 {
-  "action": "cleanup",              // 'cleanup' or 'vacuum'
-  "olderThan": 86400000            // Milliseconds (optional, for cleanup)
+	"action": "cleanup", // 'cleanup' or 'vacuum'
+	"olderThan": 86400000 // Milliseconds (optional, for cleanup)
 }
 ```
 
@@ -1057,14 +1242,16 @@ All endpoints use consistent error response format:
 
 ```json
 {
-  "error": "Error message here",
-  "details": {                      // Optional additional context
-    "field": "value"
-  }
+	"error": "Error message here",
+	"details": {
+		// Optional additional context
+		"field": "value"
+	}
 }
 ```
 
 **Common HTTP Status Codes:**
+
 - `200` - Success
 - `201` - Created
 - `400` - Bad Request (validation error)

@@ -25,6 +25,10 @@ export async function GET({ locals }) {
 
 export async function POST({ request, locals }) {
 	try {
+		// Require authentication
+		if (!locals.auth?.authenticated) {
+			return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 });
+		}
 		const { envVariables } = await request.json();
 
 		// Validate the input
@@ -86,6 +90,10 @@ export async function POST({ request, locals }) {
 
 export async function DELETE({ locals }) {
 	try {
+		// Require authentication
+		if (!locals.auth?.authenticated) {
+			return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 });
+		}
 		// Get current workspace settings
 		const { settingsRepository } = locals.services;
 		const currentSettings = await settingsRepository.getByCategory('workspace');

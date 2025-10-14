@@ -7,7 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 
-const log = createLogger('ui-state');
+const _log = createLogger('ui-state');
 
 export class UIState {
 	constructor() {

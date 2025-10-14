@@ -108,7 +108,7 @@ initializeDirectories()
 
 		// Initialize Socket.IO with services (includes EventRecorder subscription)
 		const { setupSocketIO } = await import('./lib/server/shared/socket-setup.js');
-		const io = setupSocketIO(server, services);
+		const _io = setupSocketIO(server, services);
 
 		server.listen(PORT, '0.0.0.0', () => {
 			console.log(`dispatch running at ${protocol}://localhost:${PORT}${sslInfo}`);

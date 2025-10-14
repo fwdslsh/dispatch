@@ -9,7 +9,7 @@
 	import { onMount } from 'svelte';
 
 	// Props
-	let { isMobile = false, left = null, center = null, right = null } = $props();
+	let { center = null, right = null } = $props();
 
 	// Version information
 	let appVersion = $state('');

@@ -30,7 +30,7 @@ function isPathAllowed(requestedPath) {
 	return resolved.startsWith(normalize(base)) || resolved.startsWith(normalize(homeDir));
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request, locals: _locals }) {
 	try {
 		const { path } = await request.json();
 
@@ -49,7 +49,7 @@ export async function POST({ request, locals }) {
 		try {
 			await access(resolvedPath, constants.F_OK);
 			return json({ error: 'Directory already exists' }, { status: 409 });
-		} catch (e) {
+		} catch (_e) {
 			// Directory doesn't exist, which is what we want
 		}
 
@@ -57,7 +57,7 @@ export async function POST({ request, locals }) {
 		const parentDir = dirname(resolvedPath);
 		try {
 			await access(parentDir, constants.W_OK);
-		} catch (e) {
+		} catch (_e) {
 			return json({ error: 'Parent directory does not exist or is not writable' }, { status: 403 });
 		}
 

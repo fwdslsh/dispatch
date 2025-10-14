@@ -10,7 +10,6 @@ All workspace endpoints require authentication. Authentication is validated by t
 
 1. **Authorization Header** (preferred): `Authorization: Bearer YOUR_TERMINAL_KEY`
 
-
 **Implementation:**
 
 - Authentication is checked by SvelteKit hooks before route handlers execute
@@ -395,12 +394,12 @@ Workspace status is computed dynamically based on session state and activity:
 
 ```javascript
 if (sessionCounts.running > 0) {
-  status = 'active';
+	status = 'active';
 } else if (workspace.lastActive) {
-  const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
-  status = daysSinceActivity > 30 ? 'archived' : 'inactive';
+	const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
+	status = daysSinceActivity > 30 ? 'archived' : 'inactive';
 } else {
-  status = 'new';
+	status = 'new';
 }
 ```
 
@@ -418,18 +417,18 @@ Workspace paths are validated in the `+server.js` handlers:
 
 ```javascript
 function isValidWorkspacePath(path) {
-  if (!path || typeof path !== 'string') return false;
+	if (!path || typeof path !== 'string') return false;
 
-  // Block path traversal
-  if (path.includes('..') || path.includes('~')) return false;
+	// Block path traversal
+	if (path.includes('..') || path.includes('~')) return false;
 
-  // Limit length
-  if (path.length > 500) return false;
+	// Limit length
+	if (path.length > 500) return false;
 
-  // Must be absolute
-  if (!path.startsWith('/')) return false;
+	// Must be absolute
+	if (!path.startsWith('/')) return false;
 
-  return true;
+	return true;
 }
 ```
 
@@ -439,9 +438,9 @@ If no name is provided, workspace name is derived from the path:
 
 ```javascript
 function extractWorkspaceName(path) {
-  if (!path) return 'Unnamed Workspace';
-  const segments = path.split('/').filter(Boolean);
-  return segments[segments.length - 1] || 'Root';
+	if (!path) return 'Unnamed Workspace';
+	const segments = path.split('/').filter(Boolean);
+	return segments[segments.length - 1] || 'Root';
 }
 ```
 

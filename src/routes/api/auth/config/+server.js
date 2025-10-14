@@ -14,7 +14,7 @@ import { json } from '@sveltejs/kit';
  */
 export async function GET({ locals }) {
 	try {
-		const { settingsRepository } = locals.services;
+		const { settingsRepository, oauthManager } = locals.services;
 
 		// Get authentication settings from unified settings table
 		const authSettings = await settingsRepository.getByCategory('authentication');
@@ -22,14 +22,41 @@ export async function GET({ locals }) {
 		// Build auth config response
 		const terminalKey =
 			authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
-		const oauthClientId = authSettings.oauth_client_id;
-		const oauthRedirectUri = authSettings.oauth_redirect_uri;
 
+		// Check OAuth providers via OAuthManager
+		let oauthConfigured = false;
+		let oauthProviders = [];
+		if (oauthManager) {
+			try {
+				const providers = await oauthManager.getProviders();
+				oauthProviders = providers.map((provider) => {
+					const hasClientId = Boolean(provider.clientId);
+					const isEnabled = provider.enabled === true;
+					const isAvailable = isEnabled && hasClientId;
+
+					return {
+						name: provider.name,
+						displayName: provider.displayName,
+						enabled: isEnabled,
+						hasClientId,
+						available: isAvailable
+					};
+				});
+				// OAuth is considered configured if ANY provider is available
+				oauthConfigured = oauthProviders.some((provider) => provider.available);
+			} catch (err) {
+				console.error('Failed to check OAuth providers:', err);
+			}
+		}
+
+		// NOTE: terminal_key_set is a LEGACY flag from when TERMINAL_KEY env var was the sole auth method.
+		// It's kept for backward compatibility but is no longer used for UI rendering decisions.
+		// API key authentication is now the primary method and is ALWAYS available via ApiKeyManager,
+		// regardless of the TERMINAL_KEY env var. The login form should always be visible.
 		const authConfig = {
 			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me-to-a-strong-password'),
-			oauth_configured: Boolean(oauthClientId && oauthRedirectUri),
-			oauth_client_id: oauthClientId,
-			oauth_redirect_uri: oauthRedirectUri
+			oauth_configured: oauthConfigured,
+			oauth_providers: oauthProviders
 		};
 
 		return json(authConfig, {
@@ -59,7 +86,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		const body = await request.json();
-		const { auth, settingsRepository } = locals.services;
+		const { auth: _auth, settingsRepository } = locals.services;
 
 		// Extract authentication settings from body
 		const authSettings = {};
@@ -102,11 +129,6 @@ export async function PUT({ request, locals }) {
 			updatedAuthSettings,
 			'Authentication configuration'
 		);
-
-		// Update terminal key cache if it was changed
-		if (authSettings.terminal_key !== undefined) {
-			auth.updateCachedKey(authSettings.terminal_key);
-		}
 
 		const response = {
 			success: true,

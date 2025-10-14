@@ -1,6 +1,4 @@
 <script>
-	
-
 	let { event } = $props();
 
 	const globInfo = $derived(parseGlobEvent(event));
@@ -98,7 +96,7 @@
 
 				{#if globInfo.results.files && globInfo.results.files.length > 0}
 					<ul class="activity-list file-list">
-						{#each globInfo.results.files as file}
+						{#each globInfo.results.files as file (file)}
 							<li title={file}>{formatFile(file)}</li>
 						{/each}
 					</ul>

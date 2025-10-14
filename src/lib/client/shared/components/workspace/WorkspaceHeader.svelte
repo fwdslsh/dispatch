@@ -12,18 +12,17 @@
 	import IconInfoCircle from '$lib/client/shared/components/Icons/IconInfoCircle.svelte';
 	import HelpModal from '$lib/client/shared/components/HelpModal.svelte';
 	import TunnelIndicator from '$lib/client/shared/components/TunnelIndicator.svelte';
-	import AppVersion from '$lib/client/shared/components/AppVersion.svelte';
 	import LayoutControls from './LayoutControls.svelte';
 
 	// Props
 	let {
-		hasActiveSessions = false,
+		hasActiveSessions: _hasActiveSessions = false,
 		sessionCount = 0,
 		currentSessionIndex = 0,
 		onLogout = () => {},
 		viewMode = 'window-manager',
 		onViewModeChange = () => {},
-		onInstallPWA = () => {},
+		onInstallPWA: _onInstallPWA = () => {},
 		isSingleSessionMode = false,
 		editModeEnabled = false,
 		onEditModeToggle = () => {}

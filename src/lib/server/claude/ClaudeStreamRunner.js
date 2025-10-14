@@ -77,7 +77,9 @@ export class ClaudeStreamRunner {
 					context.sawNoConversation = true;
 				}
 				this.log.error('Claude', `stderr ${session.sessionId}`, data);
-			} catch {}
+			} catch (_error) {
+				// Intentionally ignoring stderr processing error - logging is best-effort
+			}
 		};
 
 		const maxTurnsBase = defaultOptions?.maxTurns || 20;

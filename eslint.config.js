@@ -20,7 +20,15 @@ export default [
 			globals: { ...globals.browser, ...globals.node }
 		},
 		rules: {
-			'no-console': 'off'
+			'no-console': 'off',
+			'no-unused-vars': [
+				'error',
+				{
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+					caughtErrorsIgnorePattern: '^_'
+				}
+			]
 		}
 	},
 	{
@@ -36,15 +44,13 @@ export default [
 			'src/lib/client/settings/**/*'
 		],
 		rules: {
-			'no-console': 'error'
+			'no-console': 'error',
+			// Allow external documentation links in settings components
+			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},
 	{
-		files: [
-			'src/lib/client/shared/utils/logger.js',
-			'src/lib/server/utils/logger.js',
-			'src/lib/client/shared/viewmodels/SessionViewModel.backup.svelte.js'
-		],
+		files: ['src/lib/client/shared/utils/logger.js', 'src/lib/server/utils/logger.js'],
 		rules: {
 			'no-console': 'off'
 		}

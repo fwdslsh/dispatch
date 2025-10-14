@@ -26,7 +26,7 @@ function cleanup() {
 		spawn('docker', ['rm', 'dispatch-test'], { stdio: 'ignore' });
 		spawn('docker', ['stop', 'dispatch-test-local'], { stdio: 'ignore' });
 		spawn('docker', ['rm', 'dispatch-test-local'], { stdio: 'ignore' });
-	} catch (error) {
+	} catch {
 		// Ignore cleanup errors
 	}
 
@@ -199,7 +199,7 @@ async function testDockerHubImage() {
 		try {
 			await runCommand('docker', ['stop', 'dispatch-test']);
 			await runCommand('docker', ['rm', 'dispatch-test']);
-		} catch (error) {
+		} catch {
 			// Ignore cleanup errors
 		}
 	}
@@ -280,7 +280,7 @@ async function testLocalBuild() {
 		try {
 			await runCommand('docker', ['stop', 'dispatch-test-local']);
 			await runCommand('docker', ['rm', 'dispatch-test-local']);
-		} catch (error) {
+		} catch {
 			// Ignore cleanup errors
 		}
 	}

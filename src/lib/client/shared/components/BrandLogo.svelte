@@ -14,6 +14,7 @@
 	<span class="brand-icon">
 		<Logo height={32} width={32} />
 	</span>
+	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route -->
 	<a href="/workspace">
 		<span class="brand-text">Dispatch</span>
 		<AppVersion /></a
@@ -44,13 +45,6 @@
 		display: flex;
 	}
 
-	.brand-icon img {
-		max-width: 100%;
-		height: 32px;
-		width: auto;
-		display: block;
-	}
-
 	.brand-text {
 		color: var(--primary);
 		font-size: 1.5rem;
@@ -60,7 +54,7 @@
 
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
-		.brand-icon img {
+		.brand-icon {
 			display: none;
 		}
 	}

@@ -88,7 +88,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -107,10 +107,11 @@ function parseCSS(cssContent) {
 	cssContent = cssContent.replace(/\/\*[\s\S]*?\*\//g, '');
 
 	// Match CSS rules (selector { ... })
-	const ruleRegex = /([^{}]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
-
-	let match;
-	let nestingLevel = 0;
+	// Note: ruleRegex, match, and nestingLevel are declared but not currently used
+	// Kept for potential future implementation of nested CSS parsing
+	// const _ruleRegex = /([^{}]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
+	// let _match;
+	// let _nestingLevel = 0;
 
 	// Split by rules and track nesting
 	const lines = cssContent.split('\n');
@@ -217,7 +218,10 @@ function detectProblems(selector, specificity, nesting) {
 
 	// High specificity
 	if (specificity.a > 0 || specificity.b > 3) {
-		problems.push({ type: 'high-specificity', message: `High specificity (${specificity.string})` });
+		problems.push({
+			type: 'high-specificity',
+			message: `High specificity (${specificity.string})`
+		});
 	}
 
 	// Deep nesting
@@ -284,13 +288,12 @@ function analyzeCSSFile(filePath) {
 	}
 
 	// Calculate statistics
-	const avgSpecificity = analysis.specificities.length > 0
-		? analysis.specificities.reduce((a, b) => a + b, 0) / analysis.specificities.length
-		: 0;
+	const avgSpecificity =
+		analysis.specificities.length > 0
+			? analysis.specificities.reduce((a, b) => a + b, 0) / analysis.specificities.length
+			: 0;
 
-	const maxNesting = analysis.nestingDepths.length > 0
-		? Math.max(...analysis.nestingDepths)
-		: 0;
+	const maxNesting = analysis.nestingDepths.length > 0 ? Math.max(...analysis.nestingDepths) : 0;
 
 	const complexSelectors = analysis.selectors.filter(
 		(s) => s.specificity.a > 0 || s.specificity.b > 3
@@ -319,7 +322,8 @@ function analyzeCSSFile(filePath) {
 function generateMarkdownReport(analyses) {
 	let markdown = '# CSS Complexity Analysis Report\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
-	markdown += '> This report analyzes CSS complexity metrics including specificity, nesting depth, and problem patterns.\n\n';
+	markdown +=
+		'> This report analyzes CSS complexity metrics including specificity, nesting depth, and problem patterns.\n\n';
 
 	// Summary statistics
 	const totalFiles = analyses.length;
@@ -341,7 +345,7 @@ function generateMarkdownReport(analyses) {
 	const sortedByComplexity = [...analyses].sort((a, b) => b.complexityScore - a.complexityScore);
 
 	for (const analysis of sortedByComplexity) {
-		const relativePath = path.relative(PROJECT_ROOT, analysis.file);
+		const _relativePath = path.relative(PROJECT_ROOT, analysis.file);
 		const fileName = path.basename(analysis.file);
 		const complexityIndicator = analysis.complexityScore > options.threshold ? ' ⚠️' : '';
 
@@ -378,9 +382,7 @@ function generateMarkdownReport(analyses) {
 	// Problem selectors
 	markdown += '## Problem Selectors\n\n';
 
-	const allProblems = analyses.flatMap((a) =>
-		a.problems.map((p) => ({ file: a.file, ...p }))
-	);
+	const allProblems = analyses.flatMap((a) => a.problems.map((p) => ({ file: a.file, ...p })));
 
 	if (allProblems.length === 0) {
 		markdown += '✅ No problem selectors detected!\n\n';
@@ -419,7 +421,7 @@ function generateMarkdownReport(analyses) {
 
 	for (const analysis of sortedByComplexity) {
 		const relativePath = path.relative(PROJECT_ROOT, analysis.file);
-		const fileName = path.basename(analysis.file);
+		const _fileName = path.basename(analysis.file);
 
 		markdown += `### ${relativePath}\n\n`;
 		markdown += `**Complexity Score:** ${analysis.complexityScore.toFixed(1)}/10\n\n`;
@@ -539,13 +541,15 @@ async function main() {
 	log('📊 Summary', 'cyan');
 	log('='.repeat(60), 'cyan');
 
-	const avgComplexity =
-		analyses.reduce((sum, a) => sum + a.complexityScore, 0) / analyses.length;
+	const avgComplexity = analyses.reduce((sum, a) => sum + a.complexityScore, 0) / analyses.length;
 	const highComplexity = analyses.filter((a) => a.complexityScore > options.threshold).length;
 	const totalProblems = analyses.reduce((sum, a) => sum + a.problems.length, 0);
 
 	log(`CSS files analyzed: ${analyses.length}`, 'blue');
-	log(`Average complexity: ${avgComplexity.toFixed(2)}/10`, avgComplexity > options.threshold ? 'yellow' : 'green');
+	log(
+		`Average complexity: ${avgComplexity.toFixed(2)}/10`,
+		avgComplexity > options.threshold ? 'yellow' : 'green'
+	);
 	log(`High complexity files: ${highComplexity}`, highComplexity > 0 ? 'yellow' : 'green');
 	log(`Problem selectors: ${totalProblems}`, totalProblems > 0 ? 'yellow' : 'green');
 

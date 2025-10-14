@@ -100,10 +100,13 @@
 		console.log('[ClaudePane] Mounting with:', { sessionId, claudeSessionId, shouldResume });
 
 		try {
-			// Authenticate if not already done
-			const key = localStorage.getItem('dispatch-auth-token');
+			// Ensure socket is authenticated (cookie-based or stored token)
 			if (!runSessionClient.getStatus().authenticated) {
-				await runSessionClient.authenticate(key);
+				try {
+					await runSessionClient.authenticate(); // cookie-based if available
+				} catch (e) {
+					console.warn('[ClaudePane] Cookie auth failed, continuing:', e?.message || e);
+				}
 			}
 
 			// Attach to the run session and get backlog

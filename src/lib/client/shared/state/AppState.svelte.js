@@ -10,7 +10,7 @@ import { WorkspaceState } from './WorkspaceState.svelte.js';
 import { UIState } from './UIState.svelte.js';
 import { createLogger } from '../utils/logger.js';
 
-const log = createLogger('app-state');
+const _log = createLogger('app-state');
 
 export class AppState {
 	constructor() {

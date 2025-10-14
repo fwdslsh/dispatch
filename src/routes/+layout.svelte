@@ -3,20 +3,24 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import '$lib/client/shared/styles/index.css';
-	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
 	import {
 		useServiceContainer,
 		provideServiceContainer
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
 	import {
 		deriveUIColors,
 		deriveRgbVariables,
 		validateThemeColors
 	} from '$lib/client/shared/utils/color-utils.js';
 
-	let { data, children } = $props();
-	let onboardingViewModel = $state(null);
+	/**
+	 * @typedef {Object} LayoutProps
+	 * @property {import('./$types').LayoutData} data
+	 * @property {import('svelte').Snippet} children
+	 */
+
+	/** @type {LayoutProps} */
+	let { children } = $props();
 
 	// Provide service container for dependency injection
 	provideServiceContainer();
@@ -76,10 +80,6 @@
 		if (typeof window === 'undefined') return;
 
 		try {
-			// Get auth token
-			const authKey = getStoredAuthToken();
-			if (!authKey) return;
-
 			// Get current workspace if available (use container from top level)
 			let currentWorkspace = null;
 			try {
@@ -88,7 +88,7 @@
 					? workspaceStatePromise
 					: Promise.resolve(workspaceStatePromise));
 				currentWorkspace = workspaceState?.selectedWorkspace;
-			} catch (err) {
+			} catch (_err) {
 				// workspaceState may not be registered yet, continue without it
 				console.debug('[Layout] WorkspaceState not available yet');
 			}
@@ -100,9 +100,7 @@
 			}
 
 			const response = await fetch(url, {
-				headers: {
-					Authorization: `Bearer ${authKey}`
-				}
+				credentials: 'include' // Send session cookie
 			});
 
 			if (!response.ok) return;
@@ -146,18 +144,40 @@
 		// Then load fresh theme from server
 		await loadAndApplyTheme();
 
-		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
-		const hasStoredAuth = !!getStoredAuthToken();
-		const hasAuth = data?.hasTerminalKey || hasStoredAuth;
-
-		if (!hasAuth) {
-			document.body.classList.add('no-key');
-		} else {
-			document.body.classList.remove('no-key');
-		}
-
 		await checkOnboardingStatus();
+
+		// Apply theme selected during onboarding (if any)
+		await applyOnboardingTheme();
 	});
+
+	/**
+	 * Apply theme that was selected during onboarding (if any)
+	 * This runs after authentication is complete
+	 */
+	async function applyOnboardingTheme() {
+		if (typeof window === 'undefined') return;
+
+		const selectedTheme = localStorage.getItem('onboarding-selected-theme');
+		if (!selectedTheme) return;
+
+		try {
+			const themeStatePromise = serviceContainer.get('themeState');
+			const themeState = await (typeof themeStatePromise?.then === 'function'
+				? themeStatePromise
+				: Promise.resolve(themeStatePromise));
+
+			if (themeState) {
+				console.log('[Layout] Applying theme selected during onboarding:', selectedTheme);
+				await themeState.activateTheme(selectedTheme);
+				// Clear the flag so we don't apply it again
+				localStorage.removeItem('onboarding-selected-theme');
+			}
+		} catch (error) {
+			console.error('[Layout] Failed to apply onboarding theme:', error);
+			// Clear the flag even on error to avoid retry loops
+			localStorage.removeItem('onboarding-selected-theme');
+		}
+	}
 
 	/**
 	 * Check if user needs onboarding and redirect accordingly
@@ -188,14 +208,22 @@
 			// Check if we need to redirect to onboarding
 			const currentPath = page.url.pathname;
 			const isOnOnboardingPage = currentPath.startsWith('/onboarding');
+			const isOnSettingsPage = currentPath.startsWith('/settings');
 			const shouldOnboard = !status.onboarding.isComplete;
 
 			console.log('[Layout] Redirect logic:', {
 				currentPath,
 				isOnOnboardingPage,
+				isOnSettingsPage,
 				shouldOnboard,
 				isComplete: status.onboarding.isComplete
 			});
+
+			// Don't redirect if user is on settings page - allow settings access
+			if (isOnSettingsPage) {
+				console.log('[Layout] User is on settings page, skipping onboarding redirect');
+				return;
+			}
 
 			if (shouldOnboard && !isOnOnboardingPage) {
 				// User needs onboarding and isn't on onboarding page
@@ -205,7 +233,7 @@
 			} else if (!shouldOnboard && isOnOnboardingPage) {
 				// User completed onboarding but is still on onboarding page
 				/* eslint-disable svelte/no-navigation-without-resolve */
-				goto('/', { replaceState: true });
+				goto('/workspace', { replaceState: true });
 				/* eslint-enable svelte/no-navigation-without-resolve */
 			}
 		} catch (error) {

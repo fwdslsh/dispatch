@@ -56,8 +56,8 @@
 	/* Surface variants - Use already-defined base colors */
 	--surface: color-mix(in oklab, var(--bg) 95%, var(--text) 5%);
 	--elev: color-mix(in oklab, var(--bg) 90%, var(--text) 10%);
-	--muted: color-mix(in oklab, var(--text) 75%, var(--bg) 25%);  /* WCAG AA: ~5.2:1 */
-	--text-dim: color-mix(in oklab, var(--text) 55%, transparent 45%);  /* WCAG AA: ~4.6:1 */
+	--muted: color-mix(in oklab, var(--text) 75%, var(--bg) 25%); /* WCAG AA: ~5.2:1 */
+	--text-dim: color-mix(in oklab, var(--text) 55%, transparent 45%); /* WCAG AA: ~4.6:1 */
 
 	/* Primary brand color - Derived from terminal cursor (typically the accent) */
 	--primary: var(--theme-cursor, #2ee66b);
@@ -80,7 +80,6 @@
 	--accent: var(--theme-cursor-accent, var(--primary));
 	--color-primary: var(--primary);
 
-
 	/* Additional accent colors from ANSI palette */
 	--accent-amber: var(--theme-ansi-yellow, #ffd166);
 	--accent-cyan: var(--theme-ansi-cyan, #00c2ff);
@@ -100,7 +99,7 @@
 
 	/* Derived colors using color-mix for consistency */
 	--line: color-mix(in oklab, var(--text) 25%, transparent);
-	--line-strong: color-mix(in oklab, var(--text) 35%, transparent);  /* For emphasis */
+	--line-strong: color-mix(in oklab, var(--text) 35%, transparent); /* For emphasis */
 	--glow: color-mix(in oklab, var(--accent) 40%, transparent);
 
 	/* Focus ring system */
@@ -144,7 +143,11 @@
 	--info-box-border: color-mix(in oklab, var(--primary) 20%, transparent);
 	--hover-bg: color-mix(in oklab, var(--primary) 10%, transparent);
 	--card-shadow: 0 0 0 1px var(--primary-glow-10), 0 0 24px -8px var(--primary-glow-40);
-	--scrollbar-gradient: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary), transparent 35%));
+	--scrollbar-gradient: linear-gradient(
+		180deg,
+		var(--primary),
+		color-mix(in oklab, var(--primary), transparent 35%)
+	);
 
 	/* Component aliases - Maintain existing names for backward compatibility */
 	--text-primary: var(--text);

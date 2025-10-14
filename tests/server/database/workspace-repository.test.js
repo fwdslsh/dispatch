@@ -170,13 +170,13 @@ describe('WorkspaceRepository', () => {
 		});
 
 		it('should order by last_active DESC, then updated_at DESC', async () => {
-			const ws1 = await repository.create({ path: '/workspace/oldest' });
+			const _ws1 = await repository.create({ path: '/workspace/oldest' });
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			const ws2 = await repository.create({ path: '/workspace/middle' });
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
-			const ws3 = await repository.create({ path: '/workspace/newest' });
+			const _ws3 = await repository.create({ path: '/workspace/newest' });
 
 			// Update last_active for middle workspace
 			await repository.updateLastActive(ws2.path);

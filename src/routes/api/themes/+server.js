@@ -14,12 +14,10 @@ import { XtermThemeParser } from '$lib/server/themes/XtermThemeParser.js';
 const parser = new XtermThemeParser();
 const themeManager = new ThemeManager(parser);
 
-export async function GET({ locals }) {
+export async function GET({ locals: _locals }) {
 	try {
-		// Auth already validated by hooks middleware
-		if (!locals.auth?.authenticated) {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+		// Public route - no auth required (accessible during onboarding)
+		// Auth is optional - if provided, may enable additional features in future
 
 		// Initialize theme manager (safe to call multiple times)
 		await themeManager.initialize();

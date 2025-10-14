@@ -9,34 +9,49 @@ describe('SessionOrchestrator', () => {
 
 	beforeEach(() => {
 		// Create mock adapter registry
-		mockAdapterRegistry = {
-			getAdapter: vi.fn(),
-			hasAdapter: vi.fn()
-		};
+		// Type assertion needed because mock doesn't include private members (#adapters)
+		// which are implementation details not needed for testing
+		mockAdapterRegistry =
+			/** @type {import('../../../src/lib/server/sessions/AdapterRegistry.js').AdapterRegistry} */ (
+				/** @type {any} */ ({
+					getAdapter: vi.fn(),
+					hasAdapter: vi.fn()
+				})
+			);
 
-		// Create mock session repository
-		mockSessionRepository = {
-			create: vi.fn(),
-			findById: vi.fn(),
-			updateStatus: vi.fn(),
-			updateMetadata: vi.fn(),
-			delete: vi.fn(),
-			list: vi.fn()
-		};
+		// Create mock session repository with all public methods
+		// Type assertion needed because mock doesn't include private members (#db, #stmts, #parseSession)
+		// which are implementation details not needed for testing
+		mockSessionRepository =
+			/** @type {import('../../../src/lib/server/database/SessionRepository.js').SessionRepository} */ (
+				/** @type {any} */ ({
+					create: vi.fn(),
+					findById: vi.fn(),
+					findByWorkspace: vi.fn(),
+					findByKind: vi.fn(),
+					updateStatus: vi.fn(),
+					updateMetadata: vi.fn(),
+					delete: vi.fn(),
+					findAll: vi.fn(),
+					markAllStopped: vi.fn()
+				})
+			);
 
-		// Create mock event recorder
-		mockEventRecorder = {
-			startBuffering: vi.fn(),
-			flushBuffer: vi.fn(),
-			clearBuffer: vi.fn(),
-			recordEvent: vi.fn(),
-			stopRecording: vi.fn(),
-			getSequence: vi.fn().mockResolvedValue(0),
-			eventStore: {
-				clearSequence: vi.fn(),
-				getSequence: vi.fn().mockResolvedValue(0)
-			}
-		};
+		// Create mock event recorder with all public methods
+		// Type assertion needed because mock doesn't include private members (#eventStore, #eventEmitter, #buffers)
+		// which are implementation details not needed for testing
+		mockEventRecorder =
+			/** @type {import('../../../src/lib/server/sessions/EventRecorder.js').EventRecorder} */ (
+				/** @type {any} */ ({
+					startBuffering: vi.fn(),
+					flushBuffer: vi.fn(),
+					clearBuffer: vi.fn(),
+					recordEvent: vi.fn(),
+					eventStore: {
+						clearSequence: vi.fn()
+					}
+				})
+			);
 
 		// Create orchestrator with mocks in correct order (repository, recorder, registry)
 		orchestrator = new SessionOrchestrator(
@@ -102,9 +117,7 @@ describe('SessionOrchestrator', () => {
 			});
 
 			// Act & Assert
-			await expect(
-				orchestrator.createSession('unknown', {})
-			).rejects.toThrow();
+			await expect(orchestrator.createSession('unknown', {})).rejects.toThrow();
 
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith('session-123');
@@ -124,14 +137,9 @@ describe('SessionOrchestrator', () => {
 			});
 
 			// Act & Assert
-			await expect(
-				orchestrator.createSession('pty', {})
-			).rejects.toThrow('Creation failed');
+			await expect(orchestrator.createSession('pty', {})).rejects.toThrow('Creation failed');
 
-			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(
-				'session-123',
-				'error'
-			);
+			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith('session-123');
 		});
 	});
@@ -170,9 +178,7 @@ describe('SessionOrchestrator', () => {
 
 		it('should throw error for non-existent session', async () => {
 			// Act & Assert
-			await expect(
-				orchestrator.sendInput('invalid', 'test')
-			).rejects.toThrow('Session not found');
+			await expect(orchestrator.sendInput('invalid', 'test')).rejects.toThrow('Session not found');
 		});
 	});
 
@@ -198,21 +204,15 @@ describe('SessionOrchestrator', () => {
 			// Assert
 			expect(mockProcess.close).toHaveBeenCalled();
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith(sessionId);
-			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(
-				sessionId,
-				'closed'
-			);
+			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(sessionId, 'closed');
 		});
 
 		it('should handle session not found without error', async () => {
 			// Act - closeSession doesn't throw for non-existent sessions
-			const result = await orchestrator.closeSession('invalid');
+			const _result = await orchestrator.closeSession('invalid');
 
 			// Assert - should still update status in database
-			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(
-				'invalid',
-				'closed'
-			);
+			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('invalid', 'closed');
 		});
 	});
 
@@ -285,9 +285,7 @@ describe('SessionOrchestrator', () => {
 			mockSessionRepository.findById.mockResolvedValue(null);
 
 			// Act & Assert
-			await expect(
-				orchestrator.resumeSession('invalid')
-			).rejects.toThrow();
+			await expect(orchestrator.resumeSession('invalid')).rejects.toThrow();
 		});
 
 		it('should handle session already running', async () => {

@@ -10,7 +10,7 @@
 	import IconInfoCircle from '../shared/components/Icons/IconInfoCircle.svelte';
 
 	// Props
-	let { session, onClose = () => {}, index = 0, claudeSessionId = null } = $props();
+	let { session, onClose = () => {}, index: _index = 0, claudeSessionId = null } = $props();
 
 	// Session display info
 	const sessionId = $derived(session.id?.slice(0, 6) || 'unknown');

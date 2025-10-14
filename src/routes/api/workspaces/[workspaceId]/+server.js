@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
 
 /** @type {import('./$types').RequestHandler} */
-export async function GET({ params, request, locals }) {
+export async function GET({ params, request: _request, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 		const dbManager = locals.services.database;
@@ -91,11 +91,11 @@ export async function GET({ params, request, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function PUT({ params, request, url, locals }) {
+export async function PUT({ params, request, url: _url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 		const data = await request.json();
-		const { name, status } = data;
+		const { name, status, theme_override } = data;
 
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -149,6 +149,14 @@ export async function PUT({ params, request, url, locals }) {
 			updateParts.push('name = ?');
 			updateParams.push(trimmedName);
 		}
+
+		// Handle theme override updates (allow explicit null to clear)
+		if (Object.prototype.hasOwnProperty.call(data, 'theme_override')) {
+			updateParts.push('theme_override = ?');
+			// Store with .json suffix for consistency if provided
+			const storedOverride = theme_override ? `${theme_override}` : null;
+			updateParams.push(storedOverride);
+		}
 		updateParams.push(workspaceId);
 		await dbManager.run(
 			`UPDATE workspaces SET ${updateParts.join(', ')} WHERE path = ?`,
@@ -157,7 +165,7 @@ export async function PUT({ params, request, url, locals }) {
 
 		// If reactivating, update last_active
 		if (status === 'active') {
-			await dbManager.updateWorkspaceActivity(workspaceId);
+			await locals.services.workspaceRepository.updateLastActive(workspaceId);
 		}
 
 		// Get updated workspace
@@ -213,7 +221,7 @@ export async function PUT({ params, request, url, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function DELETE({ params, request, url, locals }) {
+export async function DELETE({ params, request: _request, url: _url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 

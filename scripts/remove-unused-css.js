@@ -51,7 +51,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -99,8 +99,9 @@ function logVerbose(message, color = 'gray') {
 
 /**
  * Extract CSS class selectors from CSS content
+ * Note: This function is currently unused but kept for potential future use
  */
-function extractCSSClasses(cssContent) {
+function _extractCSSClasses(cssContent) {
 	const classes = new Set();
 
 	// Match class selectors (.classname)
@@ -175,7 +176,7 @@ function findUsedClasses(svelteFiles) {
 		let match;
 		while ((match = classAttrRegex.exec(content)) !== null) {
 			const classNames = match[1].split(/\s+/).filter(Boolean);
-			classNames.forEach(cls => usedClasses.add(cls));
+			classNames.forEach((cls) => usedClasses.add(cls));
 		}
 
 		// Pattern 2: class:class-name={...}
@@ -188,7 +189,7 @@ function findUsedClasses(svelteFiles) {
 		const classNameRegex = /className\s*=\s*["']([^"']+)["']/g;
 		while ((match = classNameRegex.exec(content)) !== null) {
 			const classNames = match[1].split(/\s+/).filter(Boolean);
-			classNames.forEach(cls => usedClasses.add(cls));
+			classNames.forEach((cls) => usedClasses.add(cls));
 		}
 
 		// Pattern 4: classList.add/remove/toggle
@@ -203,7 +204,7 @@ function findUsedClasses(svelteFiles) {
 			// Extract potential class names from template literal
 			const potentialClasses = match[1].match(/\b[a-zA-Z_-][a-zA-Z0-9_-]*\b/g);
 			if (potentialClasses) {
-				potentialClasses.forEach(cls => usedClasses.add(cls));
+				potentialClasses.forEach((cls) => usedClasses.add(cls));
 			}
 		}
 	}
@@ -221,7 +222,7 @@ function shouldKeepRule(rule, usedClasses) {
 	}
 
 	// If ANY of the rule's classes are used, keep the rule
-	return rule.classes.some(cls => usedClasses.has(cls));
+	return rule.classes.some((cls) => usedClasses.has(cls));
 }
 
 /**
@@ -246,7 +247,7 @@ function removeUnusedRules(cssContent, usedClasses) {
 	// Remove rules in reverse order to maintain string positions
 	removedRules
 		.sort((a, b) => cssContent.lastIndexOf(b.fullRule) - cssContent.lastIndexOf(a.fullRule))
-		.forEach(rule => {
+		.forEach((rule) => {
 			newContent = newContent.replace(rule.fullRule, '');
 		});
 
@@ -307,7 +308,7 @@ async function main() {
 			log(`   Removed: ${result.removedCount} rules`, 'red');
 
 			if (options.verbose) {
-				result.removedRules.forEach(rule => {
+				result.removedRules.forEach((rule) => {
 					logVerbose(`   - ${rule.selector}`, 'gray');
 				});
 			}
@@ -356,7 +357,7 @@ async function main() {
 }
 
 // Run the script
-main().catch(error => {
+main().catch((error) => {
 	log(`\n❌ Error: ${error.message}`, 'red');
 	if (options.verbose) {
 		console.error(error);

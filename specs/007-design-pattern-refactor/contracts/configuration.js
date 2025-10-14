@@ -3,6 +3,8 @@
  * @file Interface definitions for configuration and JWT services
  */
 
+/* eslint-disable no-unused-vars */
+
 /**
  * ConfigurationService - Environment variable management
  * @class
@@ -69,6 +71,8 @@ class JWTService {
 	 */
 	refreshToken(token) {}
 }
+
+/* eslint-enable no-unused-vars */
 
 /**
  * Configuration TypeDefs

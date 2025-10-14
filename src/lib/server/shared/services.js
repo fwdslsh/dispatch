@@ -4,7 +4,6 @@
  */
 
 import { ConfigurationService } from './ConfigurationService.js';
-import { JWTService } from '../auth/JWTService.js';
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { SessionRepository } from '../database/SessionRepository.js';
 import { EventStore } from '../database/EventStore.js';
@@ -15,10 +14,13 @@ import { EventRecorder } from '../sessions/EventRecorder.js';
 import { SessionOrchestrator } from '../sessions/SessionOrchestrator.js';
 import { AuthService } from './auth.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
-import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
 import { TunnelManager } from '../tunnels/TunnelManager.js';
 import { VSCodeTunnelManager } from '../tunnels/VSCodeTunnelManager.js';
-import path from 'node:path';
+import { ApiKeyManager } from '../auth/ApiKeyManager.server.js';
+import { SessionManager } from '../auth/SessionManager.server.js';
+import { OAuthManager } from '../auth/OAuth.server.js';
+import { UserManager } from '../auth/UserManager.server.js';
+import { createMigrationManager } from './db/migrate.js';
 import os from 'node:os';
 import { logger } from './utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
@@ -33,34 +35,37 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  *
  * @typedef {Object} Services
  * @property {ConfigurationService} config
- * @property {JWTService} jwt
  * @property {DatabaseManager} db
  * @property {DatabaseManager} database
  * @property {SessionRepository} sessionRepository
  * @property {EventStore} eventStore
  * @property {SettingsRepository} settingsRepository
+ * @property {SettingsRepository} settingsManager - Alias for backward compatibility
  * @property {WorkspaceRepository} workspaceRepository
+ * @property {WorkspaceRepository} workspaceManager - Alias for backward compatibility
  * @property {AdapterRegistry} adapterRegistry
  * @property {EventRecorder} eventRecorder
  * @property {SessionOrchestrator} sessionOrchestrator
  * @property {AuthService} auth
+ * @property {ApiKeyManager} apiKeyManager
+ * @property {SessionManager} sessionManager
+ * @property {UserManager} userManager
+ * @property {OAuthManager} oauthManager
  * @property {ClaudeAuthManager} claudeAuthManager
- * @property {MultiAuthManager} multiAuthManager
  * @property {TunnelManager} tunnelManager
  * @property {VSCodeTunnelManager} vscodeManager
  * @property {PtyAdapter} ptyAdapter
  * @property {ClaudeAdapter} claudeAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
- * @property {() => MultiAuthManager} getAuthManager
  * @property {() => DatabaseManager} getDatabase
  */
 
 /**
  * Factory function to create all services with dependencies wired
  * @param {Object} [config] - Optional configuration overrides
- * @returns {Services} Services object containing all initialized services
+ * @returns {Promise<Services>} Services object containing all initialized services
  */
-export function createServices(config = {}) {
+export async function createServices(config = {}) {
 	// Resolve tilde paths
 	const homeDir = config.HOME || process.env.HOME || os.homedir();
 	const resolvedConfig = {
@@ -90,7 +95,6 @@ export function createServices(config = {}) {
 	});
 
 	// Layer 2: Core infrastructure
-	const jwtService = new JWTService(configService.get('TERMINAL_KEY'));
 	const db = new DatabaseManager(resolvedConfig.dbPath);
 
 	// Layer 3: Repositories (depend on db)
@@ -109,9 +113,12 @@ export function createServices(config = {}) {
 	);
 
 	// Layer 5: Auth services
-	const authService = new AuthService();
+	const apiKeyManager = new ApiKeyManager(db);
+	const sessionManager = new SessionManager(db);
+	const userManager = new UserManager(db);
+	const oauthManager = new OAuthManager(db, settingsRepository);
+	const authService = new AuthService(apiKeyManager);
 	const claudeAuthManager = new ClaudeAuthManager();
-	const multiAuthManager = new MultiAuthManager(db);
 
 	// Layer 6: Tunnel services
 	const tunnelManager = new TunnelManager({
@@ -133,7 +140,6 @@ export function createServices(config = {}) {
 	return {
 		// Core
 		config: configService,
-		jwt: jwtService,
 		db,
 		database: db, // Alias for backward compatibility
 
@@ -141,7 +147,9 @@ export function createServices(config = {}) {
 		sessionRepository,
 		eventStore,
 		settingsRepository,
+		settingsManager: settingsRepository, // Alias for backward compatibility
 		workspaceRepository,
+		workspaceManager: workspaceRepository, // Alias for backward compatibility
 
 		// Session management
 		adapterRegistry,
@@ -150,8 +158,11 @@ export function createServices(config = {}) {
 
 		// Auth
 		auth: authService,
+		apiKeyManager,
+		sessionManager,
+		userManager,
+		oauthManager,
 		claudeAuthManager,
-		multiAuthManager,
 
 		// Tunnels
 		tunnelManager,
@@ -163,7 +174,6 @@ export function createServices(config = {}) {
 		fileEditorAdapter,
 
 		// Convenience methods
-		getAuthManager: () => multiAuthManager,
 		getDatabase: () => db
 	};
 }
@@ -187,57 +197,19 @@ export async function initializeServices(config = {}) {
 	try {
 		logger.info('SERVICES', 'Initializing services...');
 
-		services = createServices(config);
+		services = await createServices(config);
 
 		// Initialize database
 		await services.db.init();
 
+		// Run database migrations
+		const migrationManager = createMigrationManager(services.db);
+		await migrationManager.migrate();
+		logger.info('SERVICES', 'Database migrations completed');
+
 		// Mark all sessions as stopped (cleanup from previous run)
 		await services.sessionRepository.markAllStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
-
-		// Initialize AuthService
-		await services.auth.initialize(services.settingsRepository);
-		logger.info('SERVICES', 'AuthService initialized');
-
-		// Initialize MultiAuthManager
-		await services.multiAuthManager.init();
-
-		// Wire MultiAuthManager to AuthService
-		services.auth.setMultiAuthManager(services.multiAuthManager);
-
-		// Register OAuth providers from settings
-		const authSettingsRow = await services.db.get(
-			"SELECT * FROM settings WHERE category = 'authentication'"
-		);
-
-		if (authSettingsRow && authSettingsRow.settings_json) {
-			try {
-				const authSettings = JSON.parse(authSettingsRow.settings_json);
-
-				if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
-					const githubProvider = new GitHubAuthProvider({
-						clientId: authSettings.oauth_client_id,
-						clientSecret: authSettings.oauth_client_secret,
-						redirectUri:
-							authSettings.oauth_redirect_uri ||
-							`http://localhost:${services.config.get('PORT')}/auth/callback`,
-						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
-					});
-					await services.multiAuthManager.registerProvider(githubProvider);
-					logger.info('SERVICES', 'GitHub OAuth provider registered');
-				} else {
-					logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
-				}
-			} catch (error) {
-				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
-			}
-		} else {
-			logger.info(
-				'SERVICES',
-				'No authentication settings found - skipping OAuth provider registration'
-			);
-		}
 
 		// Initialize tunnel managers
 		await services.tunnelManager.init();

@@ -7,6 +7,16 @@
 	 * Provides better UX than bare "no data" text
 	 */
 
+	/**
+	 * @typedef {Object} Props
+	 * @property {string | import('svelte').Snippet} [icon]
+	 * @property {string} message
+	 * @property {string} [title]
+	 * @property {import('svelte').Snippet} [children]
+	 * @property {string} [class]
+	 */
+
+	/** @type {Props & Record<string, any>} */
 	let {
 		// Content
 		icon = '',
@@ -14,7 +24,7 @@
 		title = '',
 
 		// Optional action buttons (rendered in children)
-		children,
+		children = undefined,
 
 		// HTML attributes
 		class: customClass = '',

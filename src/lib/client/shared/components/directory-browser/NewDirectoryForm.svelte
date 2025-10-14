@@ -8,12 +8,7 @@
 	 * Form for creating a new directory.
 	 * Displays input for directory name and handles creation.
 	 */
-	let {
-		dirName = $bindable(''),
-		creating = false,
-		onCreate,
-		onCancel
-	} = $props();
+	let { dirName = $bindable(''), creating = false, onCreate, onCancel } = $props();
 
 	function handleKeydown(e) {
 		if (e.key === 'Enter' && !creating && dirName.trim()) {

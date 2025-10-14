@@ -711,10 +711,11 @@
 							: 'Search workspaces...'}
 					value={currentTab === 'workspaces' ? workspaceNavigation?.searchTerm || '' : searchTerm}
 					oninput={(e) => {
+						const value = /** @type {HTMLInputElement} */ (e.target).value;
 						if (currentTab === 'workspaces' && workspaceNavigation) {
-							workspaceNavigation.searchWorkspaces(e.target.value);
+							workspaceNavigation.searchWorkspaces(value);
 						} else {
-							searchTerm = e.target.value;
+							searchTerm = value;
 						}
 					}}
 					class="search-input"
@@ -749,10 +750,15 @@
 	.menu-root {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		padding-inline: var(--space-2);
+		height: stretch;
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		.panel {
+			padding: 0;
+		}
 	}
-
 	/* Bottom Navigation */
 	.bottom-navigation {
 		display: flex;

@@ -4,6 +4,7 @@
  * Implements buffering logic from RunSessionManager to prevent race conditions during initialization
  */
 
+// eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { EventStore } from '../database/EventStore.js';
 
 import { EventEmitter } from 'events';
@@ -164,14 +165,6 @@ export class EventRecorder {
 	 */
 	async getEvents(sessionId, fromSeq = 0) {
 		return await this.#eventStore.getEvents(sessionId, fromSeq);
-	}
-
-	/**
-	 * Legacy method for backward compatibility
-	 * @deprecated Use recordEvent instead
-	 */
-	async record(sessionId, event) {
-		return await this.recordEvent(sessionId, event);
 	}
 
 	/**

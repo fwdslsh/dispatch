@@ -21,7 +21,7 @@ describe('Settings Database Integration - JSON per Category', () => {
 		}
 		try {
 			rmSync(tempDbPath, { force: true });
-		} catch (e) {
+		} catch {
 			// Ignore cleanup errors
 		}
 	});

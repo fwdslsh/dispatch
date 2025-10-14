@@ -80,10 +80,14 @@
 	background:
 		linear-gradient(var(--surface) 30%, transparent),
 		linear-gradient(transparent, var(--surface) 70%) 0 100%,
-		radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.3), transparent),
-		radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.3), transparent) 0 100%;
+		radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.3), transparent),
+		radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.3), transparent) 0 100%;
 	background-repeat: no-repeat;
-	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+	background-size:
+		100% 40px,
+		100% 40px,
+		100% 14px,
+		100% 14px;
 	background-attachment: local, local, scroll, scroll;
 }
 

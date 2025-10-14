@@ -18,7 +18,7 @@ export const fileEditorSessionModule = {
 		console.log('[file-editor-module] Prepared props:', props);
 		return props;
 	},
-	prepareHeaderProps: function (session, options) {
+	prepareHeaderProps: function (_session, _options) {
 		return {};
 	}
 };

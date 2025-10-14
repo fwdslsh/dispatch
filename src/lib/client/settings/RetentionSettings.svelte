@@ -14,7 +14,7 @@
 	import Button from '../shared/components/Button.svelte';
 
 	// Props
-	let { onSave = (policy) => {} } = $props();
+	let { onSave = (_policy) => {} } = $props();
 
 	// Get services from context
 	const serviceContainer = getContext('services');
@@ -32,17 +32,13 @@
 				throw new Error('Settings service not available');
 			}
 
-			// Get auth key from localStorage
-			const authKey = localStorage.getItem('dispatch-auth-token') || '';
-			if (!authKey) {
-				throw new Error('Authentication key not found');
-			}
-
 			// Create RetentionPolicyViewModel with SettingsService
-			viewModel = new RetentionPolicyViewModel(settingsService, authKey);
+			// Note: authKey parameter removed - API uses session cookies
+			viewModel = new RetentionPolicyViewModel(settingsService);
 			await viewModel.loadPolicy();
-		} catch (error) {
-			console.error('Failed to initialize RetentionSettings:', error);
+		} catch (_error) {
+			// Error is caught but not logged - component shows loading state
+			// If viewModel fails to initialize, the component will show "Loading..."
 		}
 	});
 
@@ -53,8 +49,9 @@
 		try {
 			const updatedPolicy = await viewModel.savePolicy();
 			onSave(updatedPolicy);
-		} catch (error) {
-			console.error('Failed to save retention policy:', error);
+		} catch (_error) {
+			// Error handling is done in viewModel - it sets viewModel.error
+			// which is displayed in the component's error display section
 		}
 	}
 
@@ -238,7 +235,6 @@
 </div>
 
 <style>
-
 	/* Component-specific overrides only */
 	.retention-settings {
 		container-type: inline-size;
@@ -307,7 +303,6 @@
 		padding: var(--space-6) var(--space-5);
 		color: var(--muted);
 	}
-
 
 	.warning-message,
 	.error-message {

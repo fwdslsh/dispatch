@@ -5,7 +5,6 @@
 	import IconGitWorktree from './Icons/IconGitWorktree.svelte';
 	import IconPlus from './Icons/IconPlus.svelte';
 	import IconX from './Icons/IconX.svelte';
-	import IconCheck from './Icons/IconCheck.svelte';
 	import IconGitBranch from './Icons/IconGitBranch.svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
@@ -127,7 +126,7 @@
 				throw new Error(data.error || 'Failed to add worktree');
 			}
 
-			const data = await res.json();
+			await res.json();
 
 			// Save initialization script if requested
 			if (saveInitScript && initCommands.length > 0) {
@@ -256,7 +255,7 @@
 
 	{#if worktrees.length > 0}
 		<div class="worktree-list">
-			{#each worktrees as worktree}
+			{#each worktrees as worktree (worktree.path)}
 				<div class="worktree-item">
 					<div class="worktree-info">
 						<div class="worktree-path">{worktree.path}</div>
@@ -287,8 +286,13 @@
 				<h4>Add New Worktree</h4>
 
 				<div class="form-row">
-					<label>Worktree Path:</label>
-					<Input bind:value={newWorktreePath} placeholder="/path/to/new/worktree" fullWidth />
+					<label for="worktree-path">Worktree Path:</label>
+					<Input
+						id="worktree-path"
+						bind:value={newWorktreePath}
+						placeholder="/path/to/new/worktree"
+						fullWidth
+					/>
 				</div>
 
 				<div class="form-row">
@@ -300,15 +304,20 @@
 
 				{#if createNewBranch}
 					<div class="form-row">
-						<label>New Branch Name:</label>
-						<Input bind:value={newBranchName} placeholder="feature-branch" fullWidth />
+						<label for="branch-name">New Branch Name:</label>
+						<Input
+							id="branch-name"
+							bind:value={newBranchName}
+							placeholder="feature-branch"
+							fullWidth
+						/>
 					</div>
 				{:else if branches.length > 0}
 					<div class="form-row">
-						<label>Select Branch:</label>
-						<select bind:value={selectedBranch} class="branch-select">
+						<label for="branch-select">Select Branch:</label>
+						<select id="branch-select" bind:value={selectedBranch} class="branch-select">
 							<option value="">Choose a branch...</option>
-							{#each branches as branch}
+							{#each branches as branch (branch)}
 								<option value={branch}>{branch}</option>
 							{/each}
 						</select>
@@ -340,7 +349,7 @@
 								<div class="detected-info">
 									<p>Detected:</p>
 									<ul>
-										{#each detectedInit.detected as pattern}
+										{#each detectedInit.detected as pattern (pattern.description)}
 											<li>{pattern.description}</li>
 										{/each}
 									</ul>
@@ -354,7 +363,7 @@
 							{/if}
 
 							<div class="command-list">
-								{#each initCommands as command, index}
+								{#each initCommands as command, index (index)}
 									<div class="command-row">
 										<Input
 											value={command}

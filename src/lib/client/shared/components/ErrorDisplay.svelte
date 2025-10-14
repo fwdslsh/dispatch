@@ -67,14 +67,6 @@
 		return baseClasses.join(' ');
 	});
 
-	// Icon mappings
-	const icons = {
-		error: IconX,
-		warning: IconAlertTriangle,
-		info: IconInfoCircle,
-		success: IconCheck
-	};
-
 	// Handle dismiss
 	function handleDismiss() {
 		ondismiss?.();

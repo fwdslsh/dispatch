@@ -18,7 +18,7 @@
 		totalSessions = 0
 	} = $props();
 
-	const currentDisplay = $derived(Math.min(currentIndex + 1, totalSessions));
+	const _currentDisplay = $derived(Math.min(currentIndex + 1, totalSessions));
 
 	function handlePrevious() {
 		onNavigateSession('prev');
@@ -55,14 +55,6 @@
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-	}
-
-	.session-counter {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		color: var(--text-secondary);
-		min-width: 40px;
-		text-align: center;
 	}
 
 	:global(.nav-btn:disabled) {

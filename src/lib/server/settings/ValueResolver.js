@@ -6,12 +6,10 @@
  * 3. Default Value (database default_value)
  */
 
-import SettingsManager from './SettingsManager';
-
 export class ValueResolver {
 	/**
 	 * Create ValueResolver instance
-	 * @param {SettingsManager} settingsManager - Settings manager instance
+	 * @param {Object} settingsManager - Settings manager instance with getSetting/getSettings methods
 	 */
 	constructor(settingsManager) {
 		this.settingsManager = settingsManager;
@@ -44,8 +42,8 @@ export class ValueResolver {
 	}
 
 	/**
-	 * Resolve value for a ConfigurationSetting instance
-	 * @param {ConfigurationSetting} setting - Setting instance
+	 * Resolve value for a configuration setting instance
+	 * @param {Object} setting - Setting instance with current_value, env_var_name, and default_value properties
 	 * @returns {string|null} Resolved value
 	 */
 	resolveValue(setting) {
@@ -268,7 +266,7 @@ export class ValueResolver {
 		const resolutionInfo = await this.getAllResolutionInfo();
 
 		for (const info of resolutionInfo) {
-			const { key, source, sources, setting_info } = info;
+			const { key, source, sources: _sources, setting_info } = info;
 
 			// Recommend UI configuration for sensitive settings
 			if (setting_info.is_sensitive && source === 'environment') {

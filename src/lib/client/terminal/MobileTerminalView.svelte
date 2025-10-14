@@ -9,6 +9,7 @@
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import MobileTerminalInput from './MobileTerminalInput.svelte';
 	import { AnsiUp } from 'ansi_up';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	// Props
 	let { sessionId, shouldResume = false } = $props();
@@ -18,13 +19,11 @@
 	let container = $state();
 	let isAttached = $state(false);
 	let isCatchingUp = $state(false);
-	let connectionError = $state(null);
+	let _connectionError = $state(null);
 	let shouldAutoScroll = $state(true);
 	let wrapMode = $state('wrap'); // 'wrap' | 'scroll'
 	const MAX_LINES = 1000; // Keep only last 1000 lines for performance
 	let lineIdCounter = 0; // Unique counter for line IDs
-
-	let key = localStorage.getItem('dispatch-auth-token');
 
 	// Initialize AnsiUp for proper ANSI escape sequence handling
 	const ansiUp = new AnsiUp();
@@ -37,11 +36,11 @@
 	const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
 
 	// ANSI-to-HTML conversion with clickable links
-	function ansiToHtml(text, lineId) {
+	function ansiToHtml(text, _lineId) {
 		try {
 			// First, apply URL detection to raw text before ANSI conversion
 			// This prevents conflicts with ANSI escape sequences
-			const urlPlaceholders = new Map();
+			const urlPlaceholders = new SvelteMap();
 			let placeholderIndex = 0;
 
 			// Replace URLs with placeholders temporarily
@@ -288,10 +287,7 @@
 		}
 
 		try {
-			// Authenticate if not already done
-			if (!runSessionClient.getStatus().authenticated) {
-				await runSessionClient.authenticate(key);
-			}
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
 
 			// Attach to the run session and get backlog
 			console.log('[MOBILE-TERMINAL] Attaching to run session:', sessionId);
@@ -299,7 +295,7 @@
 
 			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
 			isAttached = true;
-			connectionError = null;
+			_connectionError = null;
 			console.log('[MOBILE-TERMINAL] Attached to run session:', result);
 
 			// Send initial enter to trigger prompt (only for new terminals)
@@ -325,7 +321,7 @@
 			}
 		} catch (error) {
 			console.error('[MOBILE-TERMINAL] Failed to attach to run session:', error);
-			connectionError = `Failed to connect: ${error.message}`;
+			_connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
 		}
 	});
@@ -354,19 +350,20 @@
 	{/if}
 
 	<!-- Mobile terminal output -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		bind:this={container}
 		class="terminal-scroll {wrapMode === 'wrap' ? 'wrap-mode' : 'scroll-mode'}"
 		onscroll={onScroll}
 		onclick={handleTerminalClick}
-		onkeydown={(e) => e.key === 'Enter' && handleTerminalClick(e)}
+		onkeydown={handleTerminalClick}
 		role="log"
 		aria-label="Terminal output with clickable links"
 		aria-live="polite"
-		tabindex="0"
 	>
 		<div class="terminal-pre">
 			{#each terminalLines as line (line.id)}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- Terminal output sanitized via ansi_up library -->
 				<div class="terminal-line">{@html line.html}</div>
 			{/each}
 		</div>

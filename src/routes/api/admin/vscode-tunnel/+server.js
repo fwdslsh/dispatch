@@ -6,7 +6,7 @@ import { json } from '@sveltejs/kit';
  * POST: Start/stop tunnel
  */
 
-export async function GET({ url, locals }) {
+export async function GET({ url: _url, locals }) {
 	try {
 		const vscodeManager = locals.services?.vscodeManager;
 		if (!vscodeManager) {
@@ -21,7 +21,7 @@ export async function GET({ url, locals }) {
 	}
 }
 
-export async function POST({ request, url, locals }) {
+export async function POST({ request, url: _url, locals }) {
 	try {
 		const body = await request.json();
 		const { action, name, folder, extra } = body;

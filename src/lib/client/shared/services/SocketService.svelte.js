@@ -6,7 +6,7 @@
  */
 
 import { io } from 'socket.io-client';
-import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
 /**
  * @typedef {Object} SocketConfig
@@ -47,8 +47,8 @@ export class SocketService {
 		this.lastError = $state(null);
 
 		// Event handlers
-		this.eventHandlers = new Map();
-		this.sessionHandlers = new Map(); // sessionId -> handlers
+		this.eventHandlers = new SvelteMap();
+		this.sessionHandlers = new SvelteMap(); // sessionId -> handlers
 
 		// Message queues for offline/reconnect scenarios
 		this.messageQueue = [];
@@ -264,7 +264,7 @@ export class SocketService {
 
 		// Store handler for cleanup
 		if (!this.eventHandlers.has(event)) {
-			this.eventHandlers.set(event, new Set());
+			this.eventHandlers.set(event, new SvelteSet());
 		}
 		this.eventHandlers.get(event).add(handler);
 

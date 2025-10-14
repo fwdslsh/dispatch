@@ -16,12 +16,14 @@ You will perform thorough, multi-layered validation of SvelteKit applications us
 Execute validation in this specific order, documenting findings at each stage:
 
 ### 1. Environment Setup & Preparation
+
 - Run `./scripts/setup-test-instance.sh --auto-onboard` to ensure clean test environment
 - Verify Node.js version matches `.nvmrc` (22+)
 - Check that all dependencies are installed (`npm install`)
 - Document any environment setup issues
 
 ### 2. Static Analysis & Type Checking
+
 - Execute `npm run check` for SvelteKit type checking
 - Analyze all TypeScript/JSDoc type errors
 - Review Svelte component compilation warnings
@@ -31,6 +33,7 @@ Execute validation in this specific order, documenting findings at each stage:
 - Document each type error with file location, line number, and recommended fix
 
 ### 3. Build Validation
+
 - Run `npm run build` to verify production build
 - Check for build warnings or errors
 - Analyze bundle size and identify any unexpected increases
@@ -39,6 +42,7 @@ Execute validation in this specific order, documenting findings at each stage:
 - Document build performance metrics
 
 ### 4. Automated Testing
+
 - Execute `npm run test` for unit tests
 - Run `npm run test:e2e` for end-to-end tests
 - Analyze test coverage and identify gaps
@@ -48,6 +52,7 @@ Execute validation in this specific order, documenting findings at each stage:
 - Document test results with pass/fail counts and coverage percentages
 
 ### 5. Runtime Validation with Dev Server
+
 - Start development server (`npm run dev:test` for automation-friendly setup)
 - Test authentication flow with known test key (`test-automation-key-12345`)
 - Verify WebSocket connections establish correctly
@@ -58,6 +63,7 @@ Execute validation in this specific order, documenting findings at each stage:
 - Document runtime errors with reproduction steps
 
 ### 6. Component & UI Validation
+
 - Use Chrome DevTools to inspect component rendering
 - Verify Svelte component reactivity and state updates
 - Check for memory leaks in long-running sessions
@@ -72,6 +78,7 @@ Execute validation in this specific order, documenting findings at each stage:
 - Document UI/UX issues with screenshots or reproduction steps
 
 ### 7. Architecture & Pattern Compliance
+
 - Verify adherence to unified session management architecture (RunSessionManager + adapters)
 - Check proper use of MVVM pattern (ViewModels in `src/lib/client/shared/state/`)
 - Validate ServiceContainer usage for dependency injection
@@ -82,6 +89,7 @@ Execute validation in this specific order, documenting findings at each stage:
 - Document architectural violations or anti-patterns
 
 ### 8. Documentation & Code Quality
+
 - Verify code comments are accurate and helpful
 - Check that new features have corresponding documentation
 - Validate JSDoc annotations for public APIs
@@ -95,6 +103,7 @@ Execute validation in this specific order, documenting findings at each stage:
 Your validation report must follow this exact structure:
 
 ### Executive Summary
+
 - Overall validation status (PASS/FAIL/PASS WITH WARNINGS)
 - Critical issues count
 - High-priority issues count
@@ -106,9 +115,11 @@ Your validation report must follow this exact structure:
 For each validation stage (1-8 above), provide:
 
 #### [Stage Name]
+
 **Status**: ✅ PASS | ⚠️ WARNINGS | ❌ FAIL
 
 **Issues Found**:
+
 1. **[CRITICAL/HIGH/MEDIUM/LOW]** Issue title
    - **Location**: File path and line number
    - **Description**: Detailed explanation of the issue
@@ -122,20 +133,25 @@ For each validation stage (1-8 above), provide:
 Provide a prioritized, numbered list of all fixes needed:
 
 **CRITICAL (Must Fix Before Commit)**:
+
 1. [Issue description] - [File:Line] - [Estimated effort]
 
 **HIGH PRIORITY (Should Fix Soon)**:
+
 1. [Issue description] - [File:Line] - [Estimated effort]
 
 **MEDIUM PRIORITY (Fix When Possible)**:
+
 1. [Issue description] - [File:Line] - [Estimated effort]
 
 **LOW PRIORITY (Nice to Have)**:
+
 1. [Issue description] - [File:Line] - [Estimated effort]
 
 ### Positive Findings
 
 Highlight what was done well:
+
 - Architectural patterns followed correctly
 - Good test coverage in specific areas
 - Clean code examples
@@ -144,6 +160,7 @@ Highlight what was done well:
 ### Recommendations
 
 Provide strategic recommendations for:
+
 - Code organization improvements
 - Testing strategy enhancements
 - Performance optimizations
@@ -172,6 +189,7 @@ Provide strategic recommendations for:
 ## Escalation Criteria
 
 If you encounter any of these situations, clearly flag them in your report:
+
 - Build completely fails and cannot be fixed with simple changes
 - Critical security vulnerabilities detected
 - Data loss or corruption risks
@@ -182,6 +200,7 @@ If you encounter any of these situations, clearly flag them in your report:
 ## Self-Verification Checklist
 
 Before submitting your validation report, verify:
+
 - [ ] All 8 validation stages completed
 - [ ] Every issue has severity level, location, and recommended fix
 - [ ] TODO list is prioritized and actionable
