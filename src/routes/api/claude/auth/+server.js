@@ -73,19 +73,22 @@ function spawnAsync(command, args, options = {}) {
  */
 
 export async function GET() {
-    // Only support $HOME/.claude/.credentials.json
-    try {
-        const credentialsPath = join(homedir(), '.claude', '.credentials.json');
-        try {
-            await fs.access(credentialsPath);
-        } catch {
-            return json({ authenticated: false, status: 'not_authenticated', hint: 'Claude credentials file not found' });
-        }
+	// Only support $HOME/.claude/.credentials.json
+	try {
+		const credentialsPath = join(homedir(), '.claude', '.credentials.json');
+		try {
+			await fs.access(credentialsPath);
+		} catch {
+			return json({
+				authenticated: false,
+				status: 'not_authenticated',
+				hint: 'Claude credentials file not found'
+			});
+		}
 
-
-        const raw = await fs.readFile(credentialsPath, 'utf8');
-        const creds = JSON.parse(raw);
-        const oauth = creds.claudeAiOauth;
+		const raw = await fs.readFile(credentialsPath, 'utf8');
+		const creds = JSON.parse(raw);
+		const oauth = creds.claudeAiOauth;
 		if (
 			oauth &&
 			typeof oauth.accessToken === 'string' &&
@@ -103,12 +106,21 @@ export async function GET() {
 				now: Date.now()
 			});
 
-			return json({ authenticated: false, status: 'not_authenticated', hint: 'No valid Claude OAuth token found' });
+			return json({
+				authenticated: false,
+				status: 'not_authenticated',
+				hint: 'No valid Claude OAuth token found'
+			});
 		}
 	} catch (error_) {
 		logger.error('Claude auth GET error:', error_);
-        return json({ authenticated: false, status: 'not_authenticated', hint: 'Claude credentials not found or invalid', error: error_.message || 'Unknown error' });
-    }
+		return json({
+			authenticated: false,
+			status: 'not_authenticated',
+			hint: 'Claude credentials not found or invalid',
+			error: error_.message || 'Unknown error'
+		});
+	}
 }
 
 export async function POST({ request }) {
@@ -179,14 +191,14 @@ export async function DELETE() {
 			env: { ...process.env, PATH: process.env.PATH }
 		});
 
-    // Also try to remove credentials file if it exists
-    try {
-        const credentialsPath = join(homedir(), '.claude', '.credentials.json');
-		console.log('Removing Claude credentials from', credentialsPath);
-        await fs.unlink(credentialsPath);
-    } catch {
-        // Ignore errors removing credentials file
-    }
+		// Also try to remove credentials file if it exists
+		try {
+			const credentialsPath = join(homedir(), '.claude', '.credentials.json');
+			console.log('Removing Claude credentials from', credentialsPath);
+			await fs.unlink(credentialsPath);
+		} catch {
+			// Ignore errors removing credentials file
+		}
 
 		return json({
 			success: true,

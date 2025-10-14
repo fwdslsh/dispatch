@@ -526,8 +526,6 @@
 		font-weight: 400;
 	}
 
-	
-
 	.input-hint {
 		margin: 0;
 		color: var(--muted);

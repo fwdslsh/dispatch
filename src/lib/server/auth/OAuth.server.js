@@ -178,7 +178,8 @@ export class OAuthManager {
 		return {
 			userId: this.generateUserId(provider, profile),
 			email: profile.email,
-			name: profile.name || profile.login || profile.username || this.getProviderDisplayName(provider),
+			name:
+				profile.name || profile.login || profile.username || this.getProviderDisplayName(provider),
 			provider: `oauth_${provider}`,
 			rawProfile: profile
 		};
@@ -281,7 +282,7 @@ export class OAuthManager {
 	buildAuthorizationUrl(provider, config, state, customRedirectUri) {
 		let redirectUri = customRedirectUri || config.redirectUri;
 
-		if(!redirectUri.startsWith('http')) {
+		if (!redirectUri.startsWith('http')) {
 			// prepend with the current protocol and host
 			// In production, this should use the actual domain
 			// For now, use a placeholder that will be replaced by environment config

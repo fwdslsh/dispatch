@@ -15,6 +15,9 @@
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 	import { CLAUDE_AUTH_TIMEOUTS } from '$lib/shared/constants/auth-timeouts.js';
+	import { createLogger } from '$lib/client/shared/utils/logger.js';
+
+	const log = createLogger('claude-settings');
 
 	/**
 	 * Claude Settings Component
@@ -155,7 +158,7 @@
 				socketService.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError)
 			];
 		} catch (error) {
-			console.error('[ClaudeSettings] Failed to initialize socket listeners:', error);
+			log.error('[ClaudeSettings] Failed to initialize socket listeners:', error);
 			if (!authError) {
 				authError = 'Unable to connect to authentication service';
 			}

@@ -141,8 +141,7 @@ async function authenticationMiddleware({ event, resolve }) {
 				`Authenticated ${pathname} via session cookie (provider: ${sessionData.session.provider})`
 			);
 		}
-	}
-	else if (isSettingsApi) {
+	} else if (isSettingsApi) {
 		logger.info('AUTH', 'No session cookie found for settings request');
 	}
 

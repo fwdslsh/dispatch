@@ -174,7 +174,7 @@
 		</InfoBox>
 	{/if}
 
-    <!-- API Keys Table -->
+	<!-- API Keys Table -->
 	{#if isAuthenticated === false}
 		<InfoBox variant="warning">
 			You are not authenticated. Log in to view and manage API keys.

@@ -41,7 +41,6 @@ export class RunSessionClient {
 			transports: ['websocket', 'polling']
 		});
 
-
 		this.socket.on('connect', async () => {
 			this.logger.info('Connected to server');
 			this.connected = true;
@@ -292,8 +291,9 @@ export class RunSessionClient {
 		const headers = {};
 		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 		const response = await fetch(`${baseUrl}/api/sessions?runId=${encodeURIComponent(runId)}`, {
-			method: 'DELETE'
-			, headers, credentials: 'include'
+			method: 'DELETE',
+			headers,
+			credentials: 'include'
 		});
 
 		const result = await response.json();
@@ -400,23 +400,23 @@ export class RunSessionClient {
 	/**
 	 * Disconnect from server
 	 */
-		disconnect() {
-			if (this.socket) {
-				this.socket.disconnect();
-				this.socket = null;
-			}
-			this.connected = false;
-			this.authenticated = false;
-			this.attachedSessions.clear();
+	disconnect() {
+		if (this.socket) {
+			this.socket.disconnect();
+			this.socket = null;
 		}
+		this.connected = false;
+		this.authenticated = false;
+		this.attachedSessions.clear();
+	}
 
 	/**
 	 * Reconnect to server
 	 */
-		reconnect() {
-			this.disconnect();
-			this.connect();
-		}
+	reconnect() {
+		this.disconnect();
+		this.connect();
+	}
 
 	/**
 	 * Update API key at runtime (for non-browser clients)

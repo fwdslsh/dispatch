@@ -1,5 +1,5 @@
 import path, { resolve } from 'node:path';
-import { existsSync, unlink, unlinkSync } from 'node:fs';
+import { existsSync, unlinkSync } from 'node:fs';
 import { logger } from '../shared/utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { homedir } from 'node:os';
@@ -39,10 +39,10 @@ class ClaudeAuthManager {
 		try {
 			return String(input)
 				.replace(
-					/[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+					/[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, // eslint-disable-line no-control-regex
 					''
 				)
-				.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+				.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // eslint-disable-line no-control-regex
 		} catch {
 			return String(input || '');
 		}
@@ -130,7 +130,9 @@ class ClaudeAuthManager {
 						success: false,
 						error: 'Terminal functionality not available - node-pty failed to load'
 					});
-				} catch { }
+				} catch (_err) {
+					/* noop */
+				}
 				return false;
 			}
 
@@ -156,7 +158,9 @@ class ClaudeAuthManager {
 							try {
 								const tail = this.stripAnsi(state.buffer).slice(-800) || '[buffer empty]';
 								logger.info('CLAUDE', 'Auth buffer snapshot (tail)', tail);
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 						}, 3500);
 					}
 
@@ -176,7 +180,9 @@ class ClaudeAuthManager {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
 								state.urlEmitted = true;
 								logger.info('CLAUDE', 'Auth URL emitted (OSC hyperlink)');
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 						}
 					}
 					const plain = this.stripAnsi(state.buffer);
@@ -193,11 +199,15 @@ class ClaudeAuthManager {
 							state.finished = true;
 							try {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, { success: true });
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 							logger.info('CLAUDE', 'Auth flow reported success; terminating PTY');
 							try {
 								state.p.kill();
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 							return;
 						}
 						if (lower.includes('invalid') || lower.includes('expired') || lower.includes('error')) {
@@ -207,11 +217,15 @@ class ClaudeAuthManager {
 									success: false,
 									error: 'Authorization code rejected'
 								});
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 							logger.warn('CLAUDE', 'Auth flow reported error; terminating PTY');
 							try {
 								state.p.kill();
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 							return;
 						}
 					}
@@ -227,7 +241,9 @@ class ClaudeAuthManager {
 							};
 							try {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
-							} catch { }
+							} catch (_err) {
+								/* noop */
+							}
 							logger.info('CLAUDE', 'Auth URL emitted to client');
 						}
 					}
@@ -263,7 +279,9 @@ class ClaudeAuthManager {
 					success: false,
 					error: String(error?.message || error)
 				});
-			} catch { }
+			} catch (_err) {
+				/* noop */
+			}
 			return false;
 		}
 	}
@@ -278,7 +296,9 @@ class ClaudeAuthManager {
 					success: false,
 					error: 'No auth session active'
 				});
-			} catch { }
+			} catch (_err) {
+				/* noop */
+			}
 			return false;
 		}
 		// Ensure state has the properties used below
@@ -293,7 +313,9 @@ class ClaudeAuthManager {
 			setTimeout(() => {
 				try {
 					if (!state.finished) state.p.write('\r');
-				} catch { }
+				} catch (_err) {
+					/* noop */
+				}
 			}, 250);
 			// Watchdog: if nothing concludes within 25s after code submission, emit error
 			setTimeout(() => {
@@ -303,10 +325,14 @@ class ClaudeAuthManager {
 						success: false,
 						error: 'Authentication timeout waiting for CLI'
 					});
-				} catch { }
+				} catch (_err) {
+					/* noop */
+				}
 				try {
 					state.p.kill();
-				} catch { }
+				} catch (_err) {
+					/* noop */
+				}
 				state.finished = true;
 			}, 25000);
 			logger.info('CLAUDE', 'Authorization code submitted to PTY');
@@ -319,7 +345,9 @@ class ClaudeAuthManager {
 					success: false,
 					error: String(error?.message || error)
 				});
-			} catch { }
+			} catch (_err) {
+				/* noop */
+			}
 			return false;
 		}
 	}
@@ -330,7 +358,9 @@ class ClaudeAuthManager {
 			if (s && s.p) {
 				try {
 					s.p.kill();
-				} catch { }
+				} catch (_err) {
+					/* noop */
+				}
 			}
 		} finally {
 			this.sessions.delete(key);
