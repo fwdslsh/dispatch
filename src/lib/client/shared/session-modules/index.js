@@ -31,4 +31,15 @@ export function listClientSessionModules() {
 	return Array.from(moduleMap.values());
 }
 
+/**
+ * Get the Svelte component for a given session type
+ * Used by sv-window-manager integration to render session components in panes
+ * @param {string} type - Session type (e.g., 'pty', 'claude', 'file-editor')
+ * @returns {import('svelte').SvelteComponent | null} - Svelte component class or null if not found
+ */
+export function getComponentForSessionType(type) {
+	const module = getClientSessionModule(type);
+	return module?.component || null;
+}
+
 registerClientSessionModules(terminalSessionModule, claudeSessionModule, fileEditorSessionModule);

@@ -1,833 +1,1072 @@
-# Error Handling Patterns
+# Error Handling Guide
+
+**Version:** 1.0
+**Last Updated:** 2025-01-09
+**Status:** Standard Practice
 
 ## Overview
 
-Dispatch uses standardized error handling patterns across the codebase to ensure consistent error propagation, user-friendly error messages, and robust failure recovery. This guide documents the patterns used in services, ViewModels, API routes, and Socket.IO handlers.
+This guide establishes consistent error handling patterns for async operations in Dispatch ViewModels and Services. Consistency in error handling improves code reliability, makes debugging easier, and provides better user experience.
 
-**Core Principles**:
+## Core Principles
 
-- Fail gracefully with user-friendly messages
-- Log errors with context for debugging
-- Propagate errors to appropriate layers
-- Never expose sensitive information in error messages
-- Always clean up resources in `finally` blocks
+1. **Fail Fast**: Errors should be caught and handled as close to the source as possible
+2. **Be Explicit**: Error states should be clear and unambiguous
+3. **Stay Consistent**: Use the same pattern for similar operation types
+4. **Preserve Context**: Always log errors with sufficient context for debugging
+5. **Set State**: Update ViewModel error state for UI feedback
 
-## Error Handling Layers
+## Error Handling Patterns
 
-### 1. Service Layer (API Clients)
+Dispatch uses **two primary patterns** based on operation type:
 
-Services handle HTTP/WebSocket communication errors and transform them into application-specific errors.
+### Pattern 1: Throw Errors (Critical Operations)
 
-**Pattern**: Try-catch with response validation
+Use this pattern for **operations that must succeed** or that have no meaningful fallback.
+
+**When to use:**
+
+- Data loading operations (loadSessions, loadThemes)
+- Critical initialization (initialize, setupWorkspace)
+- Operations with no meaningful partial success state
+
+**Implementation:**
 
 ```javascript
-// SessionApiClient.js
-export class SessionApiClient {
-	async list({ workspace, includeAll = false } = {}) {
-		try {
-			const params = new URLSearchParams();
-			if (workspace) params.append('workspace', workspace);
-			if (includeAll) params.append('include', 'all');
+/**
+ * Load sessions from API
+ * @throws {Error} If loading fails
+ */
+async loadSessions() {
+    this.loading = true;
+    this.error = null;
 
-			const url = `${this.baseUrl}/api/sessions${params.toString() ? '?' + params : ''}`;
-			const response = await fetch(url, {
-				headers: this.getHeaders()
-			});
-
-			const data = await this.handleResponse(response);
-			return { sessions: data.sessions || [] };
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to list sessions:', error);
-			}
-			throw error; // Re-throw for ViewModel layer
-		}
-	}
-
-	async handleResponse(response) {
-		if (!response.ok) {
-			const errorBody = await response.text();
-			let errorMessage;
-
-			try {
-				const errorData = JSON.parse(errorBody);
-				errorMessage = errorData.error || errorData.message || response.statusText;
-			} catch {
-				errorMessage = errorBody || response.statusText;
-			}
-
-			const error = new Error(errorMessage);
-			error.status = response.status;
-			error.statusText = response.statusText;
-
-			// Add specific error codes
-			if (errorMessage.includes('node-pty failed to load')) {
-				error.code = 'TERMINAL_UNAVAILABLE';
-			} else if (errorMessage.includes('Vite module runner')) {
-				error.code = 'SERVER_RESTARTING';
-			}
-
-			throw error;
-		}
-
-		const contentType = response.headers.get('content-type');
-		if (contentType?.includes('application/json')) {
-			return response.json();
-		}
-
-		return response.text();
-	}
+    try {
+        const result = await this.sessionApi.list();
+        this.sessions = result.sessions || [];
+        log.info('Sessions loaded successfully');
+    } catch (error) {
+        this.error = error.message || 'Failed to load sessions';
+        log.error('Failed to load sessions', error);
+        throw error; // Re-throw for caller to handle
+    } finally {
+        this.loading = false;
+    }
 }
 ```
 
-**Key Features**:
-
-- Centralized response handling
-- Error code extraction
-- Specific error codes for common issues
-- Debug logging with conditional output
-- Error object enrichment (status, statusText, code)
-
-### 2. ViewModel Layer (Business Logic)
-
-ViewModels handle service errors and update reactive state for UI display.
-
-**Pattern**: Try-catch-finally with state management
+**Caller handling:**
 
 ```javascript
-// SessionViewModel.svelte.js
-export class SessionViewModel {
-	constructor(appStateManager, sessionApi) {
-		this.appStateManager = appStateManager;
-		this.sessionApi = sessionApi;
-
-		// Operation state tracking
-		this.operationState = $state({
-			loading: false,
-			creating: false,
-			error: null,
-			lastOperation: null
-		});
-	}
-
-	async createSession({ type, workspacePath, options = {} }) {
-		// Prevent duplicate operations
-		if (this.operationState.creating) {
-			log.warn('Session creation already in progress');
-			return null;
-		}
-
-		this.operationState.creating = true;
-		this.operationState.error = null;
-		this.operationState.lastOperation = 'create';
-
-		// Set global loading state
-		this.appStateManager.ui.setLoading('creatingSession', true);
-
-		try {
-			const sessionData = { type, workspacePath, ...options };
-
-			log.info('Creating session', sessionData);
-			const result = await this.sessionApi.create(sessionData);
-
-			const newSession = this.validateAndNormalizeSession(result);
-			log.info('Session created successfully', newSession.id);
-
-			// Update global state
-			this.appStateManager.createSession(newSession);
-
-			return newSession;
-		} catch (error) {
-			log.error('Failed to create session', error);
-
-			// Set local error state
-			this.operationState.error = error.message || 'Failed to create session';
-
-			// Propagate to global error state
-			this.appStateManager.sessions.setError(error.message);
-
-			return null; // Return null instead of throwing
-		} finally {
-			// Always clean up operation state
-			this.operationState.creating = false;
-			this.appStateManager.ui.setLoading('creatingSession', false);
-		}
-	}
-
-	async loadSessions(filters = {}) {
-		this.operationState.loading = true;
-		this.operationState.error = null;
-		this.operationState.lastOperation = 'load';
-
-		this.appStateManager.sessions.setLoading(true);
-
-		try {
-			const result = await this.sessionApi.list(filters);
-			log.info('Loaded sessions from API', result.sessions?.length || 0);
-
-			const validatedSessions = this.validateAndNormalizeSessions(result.sessions || []);
-
-			this.appStateManager.loadSessions(validatedSessions);
-
-			log.info('Successfully loaded sessions');
-		} catch (error) {
-			log.error('Failed to load sessions', error);
-
-			this.operationState.error = error.message || 'Failed to load sessions';
-			this.appStateManager.sessions.setError(error.message);
-		} finally {
-			this.operationState.loading = false;
-			this.appStateManager.sessions.setLoading(false);
-		}
-	}
-
-	// Error state management
-	clearError() {
-		this.operationState.error = null;
-		this.appStateManager.sessions.clearError();
-	}
-
-	getCurrentError() {
-		return this.operationState.error || this.appStateManager.ui.errors.sessions;
-	}
-}
-```
-
-**Key Features**:
-
-- Operation state tracking (loading, creating, error)
-- Prevent duplicate operations
-- User-friendly error messages
-- Error propagation to global state
-- Return null on error instead of throwing
-- Always clean up in `finally` block
-
-### 3. Component Layer (Views)
-
-Components display errors from ViewModels and handle user interaction errors.
-
-**Pattern**: Reactive error display with user actions
-
-```svelte
-<script>
-	import { SessionViewModel } from './state/SessionViewModel.svelte.js';
-	import { useServiceContainer } from './services/ServiceContainer.svelte.js';
-
-	const container = useServiceContainer();
-	const appState = await container.get('appStateManager');
-	const sessionApi = await container.get('sessionApi');
-
-	const viewModel = new SessionViewModel(appState, sessionApi);
-
-	// Reactive error binding
-	const error = $derived(viewModel.operationState.error);
-	const loading = $derived(viewModel.operationState.loading);
-
-	async function handleCreateSession() {
-		const result = await viewModel.createSession({
-			type: 'pty',
-			workspacePath: '/workspace'
-		});
-
-		if (result) {
-			// Success - UI updates automatically via reactive state
-			console.log('Session created:', result.id);
-		} else {
-			// Error - displayed via error binding
-			console.error('Failed to create session');
-		}
-	}
-</script>
-
-<div class="session-manager">
-	{#if loading}
-		<div class="loading-indicator">Creating session...</div>
-	{/if}
-
-	{#if error}
-		<div class="error-banner" role="alert">
-			<span class="error-icon">⚠️</span>
-			<span class="error-message">{error}</span>
-			<button onclick={() => viewModel.clearError()}> Dismiss </button>
-		</div>
-	{/if}
-
-	<button onclick={handleCreateSession} disabled={loading}> Create Session </button>
-</div>
-
-<style>
-	.error-banner {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 1rem;
-		background-color: var(--error-bg);
-		color: var(--error-text);
-		border-radius: 4px;
-		margin-bottom: 1rem;
-	}
-</style>
-```
-
-**Key Features**:
-
-- Reactive error display via `$derived`
-- User-friendly error UI
-- Dismissible error messages
-- Loading state feedback
-- Accessibility (role="alert")
-
-### 4. Socket.IO Event Handlers
-
-Socket.IO handlers manage real-time communication errors and connection failures.
-
-**Pattern**: Event-based error handling with reconnection
-
-```javascript
-// RunSessionClient.js
-export class RunSessionClient {
-	constructor(config = {}) {
-		this.config = config;
-		this.socket = null;
-		this.connected = false;
-		this.authenticated = false;
-		this.logger = createLogger('RunSessionClient');
-		this.connect();
-	}
-
-	connect() {
-		if (this.socket?.connected) return;
-
-		const socketUrl = this.config.socketUrl || window.location.origin;
-		this.socket = io(socketUrl, { path: '/socket.io' });
-
-		this.socket.on('connect', () => {
-			this.logger.info('Connected to server');
-			this.connected = true;
-			this.identifyClient();
-		});
-
-		this.socket.on('disconnect', () => {
-			console.log('RunSessionClient: Disconnected from server');
-			this.connected = false;
-			this.authenticated = false;
-		});
-
-		this.socket.on('run:event', (event) => {
-			this.handleRunEvent(event);
-		});
-
-		this.socket.on('run:error', (error) => {
-			console.error('RunSessionClient: Run error:', error);
-
-			// Forward error to attached session handler
-			const attachment = this.attachedSessions.get(error.runId);
-			if (attachment?.onError) {
-				attachment.onError(error);
-			}
-		});
-
-		this.socket.on('connect_error', (error) => {
-			console.error('RunSessionClient: Connection error:', error);
-			this.connected = false;
-			this.authenticated = false;
-		});
-	}
-
-	async authenticate(key) {
-		return new Promise((resolve, reject) => {
-			if (!this.connected) {
-				reject(new Error('Not connected to server'));
-				return;
-			}
-
-			this.socket.emit(
-				'client:hello',
-				{ clientId: this.clientId, terminalKey: key },
-				(response) => {
-					if (response?.success) {
-						this.authenticated = true;
-						resolve();
-					} else {
-						reject(new Error(response?.error || 'Authentication failed'));
-					}
-				}
-			);
-		});
-	}
-
-	async attachToRunSession(runId, onEvent, afterSeq = 0, onError = null) {
-		return new Promise((resolve, reject) => {
-			if (!this.authenticated) {
-				reject(new Error('Not authenticated'));
-				return;
-			}
-
-			this.socket.emit('run:attach', { runId, afterSeq }, (response) => {
-				if (response?.success) {
-					// Store attachment with error handler
-					this.attachedSessions.set(runId, {
-						lastSeq: afterSeq,
-						onEvent,
-						onError
-					});
-
-					resolve({
-						runId,
-						backlogEvents: response.events?.length || 0
-					});
-				} else {
-					reject(new Error(response?.error || 'Failed to attach to run session'));
-				}
-			});
-		});
-	}
-
-	sendInput(runId, data) {
-		if (!this.authenticated) {
-			throw new Error('Not authenticated');
-		}
-
-		this.socket.emit('run:input', { runId, data });
-	}
-
-	// Graceful cleanup
-	disconnect() {
-		if (this.socket) {
-			this.socket.disconnect();
-			this.socket = null;
-		}
-		this.connected = false;
-		this.authenticated = false;
-		this.attachedSessions.clear();
-	}
-}
-```
-
-**Key Features**:
-
-- Connection state tracking
-- Error event handlers
-- Promise-based async operations
-- Error callbacks for session-specific errors
-- Graceful cleanup on disconnect
-
-### 5. API Route Handlers
-
-API routes validate input, handle errors, and return consistent error responses.
-
-**Pattern**: Input validation with structured error responses
-
-```javascript
-// routes/api/sessions/+server.js
-import { json, error } from '@sveltejs/kit';
-import { services } from '$lib/server/shared/index.js';
-
-export async function POST({ request }) {
-	try {
-		const body = await request.json();
-
-		// Validate required fields
-		if (!body.kind) {
-			throw error(400, 'Missing required field: kind');
-		}
-
-		if (!body.cwd) {
-			throw error(400, 'Missing required field: cwd');
-		}
-
-		// Validate session type
-		const validTypes = ['pty', 'claude', 'file-editor'];
-		if (!validTypes.includes(body.kind)) {
-			throw error(
-				400,
-				`Invalid session type: ${body.kind}. Must be one of: ${validTypes.join(', ')}`
-			);
-		}
-
-		// Create session via orchestrator
-		const sessionOrchestrator = services.sessionOrchestrator;
-		const runId = await sessionOrchestrator.createSession(body.kind, body.cwd, body.options || {});
-
-		return json({ runId, success: true });
-	} catch (err) {
-		console.error('POST /api/sessions error:', err);
-
-		// Handle known error types
-		if (err.status) {
-			// SvelteKit error - already has status
-			throw err;
-		}
-
-		// Handle adapter errors
-		if (err.message?.includes('not available')) {
-			throw error(503, {
-				error: err.message,
-				code: 'SERVICE_UNAVAILABLE'
-			});
-		}
-
-		// Generic server error
-		throw error(500, {
-			error: 'Failed to create session',
-			details: err.message
-		});
-	}
-}
-
-export async function DELETE({ url }) {
-	try {
-		const runId = url.searchParams.get('runId');
-
-		if (!runId) {
-			throw error(400, 'Missing required parameter: runId');
-		}
-
-		const sessionOrchestrator = services.sessionOrchestrator;
-		await sessionOrchestrator.deleteSession(runId);
-
-		return json({ success: true });
-	} catch (err) {
-		console.error('DELETE /api/sessions error:', err);
-
-		if (err.status) {
-			throw err;
-		}
-
-		throw error(500, {
-			error: 'Failed to delete session',
-			details: err.message
-		});
-	}
-}
-```
-
-**Key Features**:
-
-- Input validation with clear error messages
-- Structured error responses
-- HTTP status code mapping
-- Error code classification
-- Detailed logging with context
-
-### 6. Adapter Layer
-
-Adapters handle external library errors and emit error events.
-
-**Pattern**: Try-catch with error event emission
-
-```javascript
-// ClaudeAdapter.js
-export class ClaudeAdapter {
-	async create({ cwd, options = {}, onEvent }) {
-		const { query } = await import('@anthropic-ai/claude-code');
-
-		const claudeOptions = buildClaudeOptions({ ...options, cwd });
-
-		let activeQuery = null;
-		let isClosing = false;
-
-		return {
-			kind: SESSION_TYPE.CLAUDE,
-			input: {
-				async write(data) {
-					if (isClosing) {
-						logger.warn('CLAUDE_ADAPTER', 'Ignoring input - adapter is closing');
-						return;
-					}
-
-					const message = typeof data === 'string' ? data : new TextDecoder().decode(data);
-
-					activeQuery = query({
-						prompt: message,
-						options: claudeOptions
-					});
-
-					try {
-						for await (const event of activeQuery) {
-							if (isClosing) break;
-							emitClaudeEvent(event);
-						}
-					} catch (error) {
-						if (!isClosing) {
-							logger.error('CLAUDE_ADAPTER', 'Claude query error:', error);
-
-							// Emit error event to client
-							onEvent({
-								channel: 'claude:error',
-								type: 'execution_error',
-								payload: {
-									error: error.message,
-									stack: error.stack,
-									timestamp: Date.now()
-								}
-							});
-						}
-					}
-				}
-			},
-			close() {
-				try {
-					isClosing = true;
-
-					if (activeQuery) {
-						logger.info('CLAUDE_ADAPTER', 'Closing gracefully');
-					}
-				} catch (error) {
-					logger.warn('CLAUDE_ADAPTER', 'Error during close:', error.message);
-				} finally {
-					activeQuery = null;
-				}
-			}
-		};
-	}
-}
-```
-
-**Key Features**:
-
-- Graceful error handling during execution
-- Error event emission to clients
-- State-aware error handling (isClosing)
-- Error logging with context
-- Resource cleanup in `finally`
-
-## Error Message Guidelines
-
-### User-Facing Messages
-
-✅ **Good**: "Failed to create session. Please try again."
-❌ **Bad**: "Error: ENOENT: no such file or directory"
-
-✅ **Good**: "Unable to connect to server. Check your connection."
-❌ **Bad**: "fetch failed: TypeError: Failed to fetch"
-
-✅ **Good**: "Terminal unavailable. Please contact administrator."
-❌ **Bad**: "node-pty.node is not a valid Win32 application"
-
-### Log Messages
-
-Include context for debugging:
-
-```javascript
-log.error('Failed to create session', {
-	sessionType: type,
-	workspacePath,
-	error: error.message,
-	stack: error.stack
-});
-```
-
-### Error Codes
-
-Use specific codes for common errors:
-
-```javascript
-const ErrorCodes = {
-	TERMINAL_UNAVAILABLE: 'TERMINAL_UNAVAILABLE',
-	SERVER_RESTARTING: 'SERVER_RESTARTING',
-	NOT_AUTHENTICATED: 'NOT_AUTHENTICATED',
-	SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
-	INVALID_INPUT: 'INVALID_INPUT'
-};
-```
-
-## Async Error Patterns
-
-### Promise-based APIs
-
-```javascript
-async function fetchData() {
-	try {
-		const response = await fetch('/api/data');
-		return await response.json();
-	} catch (error) {
-		console.error('Failed to fetch data:', error);
-		throw error; // Re-throw for caller to handle
-	}
-}
-```
-
-### Event-based APIs
-
-```javascript
-socket.on('error', (error) => {
-	console.error('Socket error:', error);
-	// Emit to error handler
-	errorHandler.handleSocketError(error);
-});
-```
-
-### Callback-based APIs
-
-```javascript
-function operationWithCallback(callback) {
-	try {
-		const result = performOperation();
-		callback(null, result);
-	} catch (error) {
-		callback(error);
-	}
-}
-```
-
-## Resource Cleanup
-
-Always clean up resources in `finally` blocks:
-
-```javascript
-async function processData() {
-	let resource = null;
-
-	try {
-		resource = await acquireResource();
-		return await processResource(resource);
-	} catch (error) {
-		console.error('Processing failed:', error);
-		throw error;
-	} finally {
-		// Always clean up, even if error occurred
-		if (resource) {
-			await resource.release();
-		}
-	}
-}
-```
-
-## Error Boundaries (Future Enhancement)
-
-Consider adding error boundaries for component-level error handling:
-
-```svelte
-<!-- ErrorBoundary.svelte -->
-<script>
-	let { children, fallback } = $props();
-	let error = $state(null);
-
-	function handleError(event) {
-		error = event.detail.error;
-		console.error('Component error:', error);
-	}
-</script>
-
-{#if error}
-	{@render fallback?.(error)}
-{:else}
-	{@render children?.()}
-{/if}
-```
-
-## Testing Error Handling
-
-### Unit Test Example
-
-```javascript
-import { describe, it, expect, vi } from 'vitest';
-import { SessionViewModel } from './SessionViewModel.svelte.js';
-
-describe('SessionViewModel Error Handling', () => {
-	it('should handle API errors gracefully', async () => {
-		const mockApi = {
-			create: vi.fn().mockRejectedValue(new Error('API Error'))
-		};
-
-		const mockAppState = {
-			createSession: vi.fn(),
-			sessions: { setError: vi.fn() },
-			ui: { setLoading: vi.fn() }
-		};
-
-		const viewModel = new SessionViewModel(mockAppState, mockApi);
-
-		const result = await viewModel.createSession({
-			type: 'pty',
-			workspacePath: '/workspace'
-		});
-
-		// Should return null on error
-		expect(result).toBeNull();
-
-		// Should set error state
-		expect(viewModel.operationState.error).toBe('API Error');
-
-		// Should propagate to global state
-		expect(mockAppState.sessions.setError).toHaveBeenCalledWith('API Error');
-
-		// Should clean up loading state
-		expect(viewModel.operationState.creating).toBe(false);
-	});
-});
-```
-
-## Common Pitfalls
-
-### ❌ Swallowing Errors
-
-```javascript
-// WRONG - error is lost
 try {
-	await riskyOperation();
+	await viewModel.loadSessions();
+	// Continue with loaded data
 } catch (error) {
-	// Empty catch - error disappears
+	// Show error UI or retry
+	showError(error.message);
 }
 ```
 
+**Benefits:**
+
+- Forces callers to handle errors explicitly
+- No ambiguity about success/failure
+- Stack traces preserved for debugging
+- Follows "fail-fast" principle
+
+---
+
+### Pattern 2: Return Result Object (User Operations)
+
+Use this pattern for **user-initiated operations** where you want to provide structured feedback.
+
+**When to use:**
+
+- Form submissions (login, createKey)
+- User actions with explicit success/failure feedback (deleteKey, toggleKey)
+- Operations where the caller needs detailed error information
+
+**TypeScript-style Result type:**
+
 ```javascript
-// CORRECT - log and handle
+/**
+ * @typedef {Object} Result
+ * @property {boolean} success - Whether operation succeeded
+ * @property {any} [data] - Result data (only present if success=true)
+ * @property {string} [error] - Error message (only present if success=false)
+ */
+```
+
+**Implementation:**
+
+```javascript
+/**
+ * Create a new API key
+ * @param {string} label - User-friendly label
+ * @returns {Promise<Result>} Result with key data or error
+ */
+async createKey(label) {
+    this.loading = true;
+    this.error = '';
+
+    try {
+        const response = await fetch('/api/auth/keys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ label })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            log.info('API key created successfully', { id: data.id });
+
+            return {
+                success: true,
+                data: {
+                    id: data.id,
+                    key: data.key,
+                    label: data.label
+                }
+            };
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData?.error || 'Failed to create API key';
+            this.error = errorMessage;
+            log.error('Failed to create API key', errorMessage);
+
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
+    } catch (err) {
+        const errorMessage = 'Unable to reach server';
+        this.error = errorMessage;
+        log.error('Create key error', err);
+
+        return {
+            success: false,
+            error: errorMessage
+        };
+    } finally {
+        this.loading = false;
+    }
+}
+```
+
+**Caller handling:**
+
+```javascript
+const result = await apiKeyState.createKey('My API Key');
+
+if (result.success) {
+	// Show success message with result.data
+	showKey(result.data.key);
+} else {
+	// Show error message
+	showError(result.error);
+}
+```
+
+**Benefits:**
+
+- Explicit success/failure without try/catch
+- Structured error information
+- Type-safe (with TypeScript/JSDoc)
+- Better for form handling
+
+---
+
+## Pattern Comparison
+
+| Aspect              | Throw Errors                 | Return Result Object  |
+| ------------------- | ---------------------------- | --------------------- |
+| **Use Case**        | Critical operations          | User operations       |
+| **Error Signal**    | Exception thrown             | `success: false`      |
+| **Caller Handling** | `try/catch`                  | `if (result.success)` |
+| **Fail Fast**       | ✅ Yes                       | ❌ No (graceful)      |
+| **Type Safety**     | ⚠️ Limited                   | ✅ Excellent          |
+| **Best For**        | Data loading, initialization | Forms, user actions   |
+
+---
+
+## Anti-Patterns to Avoid
+
+### ❌ Returning null on Error
+
+```javascript
+// BAD: Ambiguous - is null an error or valid result?
+async createSession() {
+    try {
+        return await api.create();
+    } catch (error) {
+        log.error(error);
+        return null; // DON'T DO THIS
+    }
+}
+```
+
+**Why it's bad:**
+
+- Callers can't distinguish between "operation failed" and "no result"
+- Silently swallows errors
+- Makes debugging harder
+
+**Fix:** Use Pattern 1 (throw) or Pattern 2 (Result object)
+
+---
+
+### ❌ Mixing Patterns
+
+```javascript
+// BAD: Inconsistent error handling
+async operation1() {
+    return null; // Returns null on error
+}
+
+async operation2() {
+    throw error; // Throws on error
+}
+
+async operation3() {
+    return { success: false }; // Returns Result
+}
+```
+
+**Why it's bad:**
+
+- Unpredictable for callers
+- Requires callers to know implementation details
+- Hard to maintain
+
+**Fix:** Choose one pattern per ViewModel/Service based on operation type
+
+---
+
+### ❌ Swallowing Errors Without State Update
+
+```javascript
+// BAD: Error is logged but not exposed
+async loadData() {
+    try {
+        this.data = await api.load();
+    } catch (error) {
+        log.error(error); // Logged but not accessible to UI
+        // Missing: this.error = error.message;
+    }
+}
+```
+
+**Why it's bad:**
+
+- UI has no way to show error feedback
+- Silent failures lead to poor UX
+
+**Fix:** Always set error state for UI feedback
+
+---
+
+## Standard Implementation Template
+
+### For Data Loading Operations (Pattern 1: Throw)
+
+```javascript
+/**
+ * Load [resource] from API
+ * @throws {Error} If loading fails
+ */
+async load[Resource]() {
+    this.loading = true;
+    this.error = null;
+
+    try {
+        // 1. Perform operation
+        const result = await this.api.load();
+
+        // 2. Update state
+        this.[resource] = result;
+
+        // 3. Log success
+        log.info('[Resource] loaded successfully');
+
+        // 4. No return value needed (void)
+    } catch (error) {
+        // 5. Set error state
+        this.error = error.message || 'Failed to load [resource]';
+
+        // 6. Log error with context
+        log.error('Failed to load [resource]', error);
+
+        // 7. Re-throw for caller
+        throw error;
+    } finally {
+        // 8. Always cleanup
+        this.loading = false;
+    }
+}
+```
+
+### For User Operations (Pattern 2: Result Object)
+
+```javascript
+/**
+ * [Action description]
+ * @param {Type} param - Parameter description
+ * @returns {Promise<Result>} Result with data or error
+ */
+async [action](param) {
+    this.loading = true;
+    this.error = '';
+
+    try {
+        // 1. Perform operation
+        const response = await fetch('/api/endpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ param })
+        });
+
+        // 2. Handle success
+        if (response.ok) {
+            const data = await response.json();
+            log.info('[Action] successful', { id: data.id });
+
+            return {
+                success: true,
+                data: data
+            };
+        }
+
+        // 3. Handle API error
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.error || 'Operation failed';
+        this.error = errorMessage;
+        log.error('[Action] failed', errorMessage);
+
+        return {
+            success: false,
+            error: errorMessage
+        };
+    } catch (err) {
+        // 4. Handle network error
+        const errorMessage = 'Unable to reach server';
+        this.error = errorMessage;
+        log.error('[Action] error', err);
+
+        return {
+            success: false,
+            error: errorMessage
+        };
+    } finally {
+        // 5. Always cleanup
+        this.loading = false;
+    }
+}
+```
+
+---
+
+## Migration Guide
+
+When updating existing code to follow these patterns:
+
+### 1. Identify Operation Type
+
+Ask: Is this operation **critical** (must succeed) or **user-initiated** (provide feedback)?
+
+- **Critical** → Use Pattern 1 (Throw)
+- **User-initiated** → Use Pattern 2 (Result)
+
+### 2. Update Method Signature
+
+**Before (returns null):**
+
+```javascript
+async createSession() {
+    // ...
+    return null; // on error
+}
+```
+
+**After (Pattern 1 - Throw):**
+
+```javascript
+/**
+ * @throws {Error} If creation fails
+ */
+async createSession() {
+    // ...
+    throw error; // on error
+}
+```
+
+**After (Pattern 2 - Result):**
+
+```javascript
+/**
+ * @returns {Promise<Result>} Result with session or error
+ */
+async createSession() {
+    // ...
+    return { success: false, error: message };
+}
+```
+
+### 3. Update All Callers
+
+**Pattern 1 callers:**
+
+```javascript
+// OLD
+const session = await createSession();
+if (!session) {
+	// handle error
+}
+
+// NEW
 try {
-	await riskyOperation();
+	const session = await createSession();
+	// use session
 } catch (error) {
-	console.error('Operation failed:', error);
-	this.error = error.message;
+	// handle error
 }
 ```
 
-### ❌ Not Cleaning Up
+**Pattern 2 callers:**
 
 ```javascript
-// WRONG - resource leak on error
-async function process() {
-	const resource = await acquire();
-	await use(resource); // May throw
-	await release(resource); // Never called if error
+// OLD
+const session = await createSession();
+if (!session) {
+	// handle error
+}
+
+// NEW
+const result = await createSession();
+if (result.success) {
+	// use result.data
+} else {
+	// handle result.error
 }
 ```
+
+### 4. Update Tests
+
+Ensure tests reflect the new error handling pattern:
 
 ```javascript
-// CORRECT - always clean up
-async function process() {
-	let resource;
-	try {
-		resource = await acquire();
-		await use(resource);
-	} finally {
-		if (resource) {
-			await release(resource);
-		}
-	}
-}
+// Pattern 1 tests
+test('throws on API error', async () => {
+	mockApi.load.mockRejectedValue(new Error('API error'));
+	await expect(viewModel.loadSessions()).rejects.toThrow('API error');
+});
+
+// Pattern 2 tests
+test('returns error on API failure', async () => {
+	mockApi.create.mockRejectedValue(new Error('API error'));
+	const result = await viewModel.createKey('label');
+	expect(result.success).toBe(false);
+	expect(result.error).toContain('API error');
+});
 ```
 
-### ❌ Exposing Sensitive Information
+---
+
+## Current Status (2025-01-09)
+
+### Fully Compliant ViewModels
+
+✅ **ThemeState** - All methods use Pattern 1 (Throw) consistently
+✅ **AuthViewModel.loginWithKey()** - Uses Pattern 2 (Result) correctly
+
+### ViewModels Needing Updates
+
+🔶 **SessionViewModel** - Mixed patterns (returns null on some, void on others)
+🔶 **ApiKeyState** - Mixed patterns (returns null on createKey, boolean on others)
+
+---
+
+## References
+
+- [Svelte 5 Error Handling](https://svelte.dev/docs/svelte/error-handling)
+- [SvelteKit Error Handling](https://kit.svelte.dev/docs/errors)
+- [CODE_REVIEW_FINDINGS.md](../../CODE_REVIEW_FINDINGS.md) - Issue 4: Error Handling Analysis
+
+---
+
+## Questions & Answers
+
+### Q: When should I use try/catch in components?
+
+**A:** Use try/catch when calling ViewModels that throw errors (Pattern 1). For Result objects (Pattern 2), check the `success` flag instead.
+
+### Q: Should I set error state AND throw?
+
+**A:** Yes! Always set `this.error` for UI feedback, then throw to signal the caller. ThemeState demonstrates this pattern correctly.
+
+### Q: What about void operations that can fail?
+
+**A:** Use Pattern 1 (throw). Even with no return value, errors should be thrown for caller to handle. Example: `loadThemes()`.
+
+### Q: Can I return both data and error?
+
+**A:** No. In Pattern 2, `data` is only present when `success=true`, and `error` is only present when `success=false`. Keep them mutually exclusive.
+
+---
+
+## Refactoring Roadmap for Existing Code
+
+This section identifies specific methods in existing ViewModels that need refactoring to match the documented patterns. All changes are **optional** quality-of-life improvements - the current code is functional.
+
+### Priority: Medium (4-6 hours total)
+
+These changes would improve consistency and make error handling more predictable across the codebase.
+
+---
+
+### 1. SessionViewModel (`src/lib/client/shared/state/SessionViewModel.svelte.js`)
+
+**Status:** ❌ Mixed patterns - needs standardization
+
+**Recommended Pattern:** Pattern 1 (Throw) - Critical session operations
+
+#### Methods Needing Updates:
+
+**a) `createSession()` - Lines 133-177**
+
+**Current:** Returns `null` on error, returns `Session` on success
 
 ```javascript
-// WRONG - exposes internal details
-catch (error) {
-	return { error: error.stack }; // Stack trace to user!
+async createSession({ type, workspacePath, options = {} }) {
+    try {
+        const result = await this.sessionApi.create(sessionData);
+        return newSession; // Success
+    } catch (error) {
+        log.error('Failed to create session', error);
+        this.operationState.error = error.message;
+        return null; // ❌ Ambiguous
+    }
 }
 ```
+
+**Recommended:** Pattern 1 - Throw on error
 
 ```javascript
-// CORRECT - user-friendly message
-catch (error) {
-	console.error('Internal error:', error); // Log full details
-	return { error: 'Operation failed. Please try again.' };
+/**
+ * Create a new session
+ * @param {Object} params - Session parameters
+ * @returns {Promise<Session>} Created session
+ * @throws {Error} If session creation fails
+ */
+async createSession({ type, workspacePath, options = {} }) {
+    if (this.operationState.creating) {
+        throw new Error('Session creation already in progress');
+    }
+
+    this.operationState.creating = true;
+    this.operationState.error = null;
+    this.appStateManager.ui.setLoading('creatingSession', true);
+
+    try {
+        const sessionData = { type, workspacePath, ...options };
+        const result = await this.sessionApi.create(sessionData);
+        const newSession = this.validateAndNormalizeSession(result);
+
+        this.appStateManager.createSession(newSession);
+        log.info('Session created successfully', newSession.id);
+
+        return newSession;
+    } catch (error) {
+        this.operationState.error = error.message || 'Failed to create session';
+        this.appStateManager.sessions.setError(error.message);
+        log.error('Failed to create session', error);
+        throw error; // ✅ Explicit failure
+    } finally {
+        this.operationState.creating = false;
+        this.appStateManager.ui.setLoading('creatingSession', false);
+    }
 }
 ```
 
-## See Also
+**Callers to Update:**
 
-- [MVVM Patterns Guide](../architecture/mvvm-patterns.md) - ViewModel architecture
-- [Adapter Registration Guide](../architecture/adapter-guide.md) - Adapter error handling
-- [Testing Quick Start](../../docs/testing-quickstart.md) - Testing error scenarios
-- [API Documentation](../../docs/reference/api-reference.md) - API error responses
+- Search for: `const session = await.*createSession\(`
+- Pattern: Wrap in try/catch instead of null check
+- Example locations: SessionContainer.svelte, CreateSessionModal.svelte
+
+---
+
+**b) `updateSession()` - Lines 184-212**
+
+**Current:** Returns `null` on error
+
+```javascript
+async updateSession(sessionId, updates) {
+    try {
+        // ... update logic
+        return updatedSession;
+    } catch (error) {
+        log.error('Failed to update session', error);
+        return null; // ❌ Ambiguous
+    }
+}
+```
+
+**Recommended:** Pattern 1 - Throw on error
+
+```javascript
+/**
+ * Update session properties
+ * @param {string} sessionId - Session ID
+ * @param {Object} updates - Updates to apply
+ * @returns {Promise<Session>} Updated session
+ * @throws {Error} If update fails
+ */
+async updateSession(sessionId, updates) {
+    try {
+        log.info('Updating session', sessionId, updates);
+        const result = await this.sessionApi.update({
+            action: 'rename',
+            sessionId,
+            newTitle: updates.title
+        });
+        const updatedSession = this.validateAndNormalizeSession(result);
+        this.appStateManager.sessions.updateSession(sessionId, updatedSession);
+        log.info('Session updated successfully', sessionId);
+        return updatedSession;
+    } catch (error) {
+        this.operationState.error = error.message || 'Failed to update session';
+        this.appStateManager.sessions.setError(error.message);
+        log.error('Failed to update session', error);
+        throw error; // ✅ Explicit failure
+    }
+}
+```
+
+---
+
+**c) `resumeSession()` - Lines 301-348**
+
+**Current:** Returns `null` on error
+
+```javascript
+async resumeSession(sessionId, workspacePath) {
+    try {
+        // ... resume logic
+        return resumedSession;
+    } catch (error) {
+        log.error('Failed to resume session', error);
+        return null; // ❌ Ambiguous
+    }
+}
+```
+
+**Recommended:** Pattern 1 - Throw on error
+
+```javascript
+/**
+ * Resume an existing session
+ * @param {string} sessionId - Session ID
+ * @param {string} workspacePath - Workspace path
+ * @returns {Promise<Session>} Resumed session
+ * @throws {Error} If resume fails
+ */
+async resumeSession(sessionId, workspacePath) {
+    try {
+        log.info('Resuming session', sessionId);
+
+        const existingSession = this.appStateManager.sessions.getSession(sessionId);
+        const sessionType = existingSession?.sessionType || SESSION_TYPE.PTY;
+        const resolvedWorkspace = existingSession?.workspacePath || workspacePath;
+
+        const result = await this.sessionApi.create({
+            type: sessionType,
+            workspacePath: resolvedWorkspace,
+            resume: true,
+            sessionId
+        });
+        const resumedSession = this.validateAndNormalizeSession(result);
+
+        // Update or create in state
+        const existingInState = this.appStateManager.sessions.getSession(sessionId);
+        if (existingInState) {
+            this.appStateManager.sessions.updateSession(sessionId, {
+                ...resumedSession,
+                isActive: true
+            });
+        } else {
+            this.appStateManager.createSession({ ...resumedSession, isActive: true });
+        }
+
+        log.info('Session resumed successfully', sessionId);
+        return resumedSession;
+    } catch (error) {
+        this.operationState.error = error.message || 'Failed to resume session';
+        this.appStateManager.sessions.setError(error.message);
+        log.error('Failed to resume session', error);
+        throw error; // ✅ Explicit failure
+    }
+}
+```
+
+---
+
+**d) `loadSessions()` - Lines 83-124**
+
+**Current:** Doesn't throw, only sets error state
+
+```javascript
+async loadSessions(filters = {}) {
+    try {
+        // ... load logic
+    } catch (error) {
+        log.error('Failed to load sessions', error);
+        this.operationState.error = error.message;
+        // Missing: throw error
+    } finally {
+        this.loading = false;
+    }
+}
+```
+
+**Recommended:** Pattern 1 - Throw on error
+
+```javascript
+/**
+ * Load sessions from API
+ * @param {Object} [filters={}] - Optional filters
+ * @throws {Error} If loading fails
+ */
+async loadSessions(filters = {}) {
+    this.operationState.loading = true;
+    this.operationState.error = null;
+    this.appStateManager.sessions.setLoading(true);
+
+    try {
+        const shouldIncludeAll = filters.includeAll ?? true;
+        const requestOptions = { includeAll: shouldIncludeAll };
+        if (filters.workspace) {
+            requestOptions.workspace = filters.workspace;
+        }
+
+        const result = await this.sessionApi.list(requestOptions);
+        const validatedSessions = this.validateAndNormalizeSessions(result.sessions || []);
+
+        this.appStateManager.loadSessions(validatedSessions);
+        log.info('Successfully loaded sessions');
+    } catch (error) {
+        this.operationState.error = error.message || 'Failed to load sessions';
+        this.appStateManager.sessions.setError(error.message);
+        log.error('Failed to load sessions', error);
+        throw error; // ✅ Add throw
+    } finally {
+        this.operationState.loading = false;
+        this.appStateManager.sessions.setLoading(false);
+    }
+}
+```
+
+**Estimated Effort:** 2-3 hours (includes updating callers and tests)
+
+---
+
+### 2. ApiKeyState (`src/lib/client/shared/state/ApiKeyState.svelte.js`)
+
+**Status:** ❌ Mixed patterns - needs standardization
+
+**Recommended Pattern:** Pattern 2 (Result) - User operations with feedback
+
+#### Methods Needing Updates:
+
+**a) `createKey()` - Lines 122-159**
+
+**Current:** Returns `null` on error, returns object on success
+
+```javascript
+async createKey(label) {
+    try {
+        // ... create logic
+        return { id, key, label, message };
+    } catch (err) {
+        this.error = errorMessage;
+        return null; // ❌ Ambiguous
+    }
+}
+```
+
+**Recommended:** Pattern 2 - Return Result object
+
+```javascript
+/**
+ * Create a new API key
+ * @param {string} label - User-friendly label
+ * @returns {Promise<Result>} Result with key data or error
+ */
+async createKey(label) {
+    this.loading = true;
+    this.error = '';
+
+    try {
+        log.info('Creating new API key', { label });
+
+        const response = await fetch('/api/auth/keys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ label })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            log.info('API key created successfully', { id: data.id });
+
+            // Reload keys to get updated list
+            await this.loadKeys();
+
+            return {
+                success: true,
+                data: {
+                    id: data.id,
+                    key: data.key,
+                    label: data.label,
+                    message: data.message
+                }
+            }; // ✅ Explicit success
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData?.error || 'Failed to create API key';
+            this.error = errorMessage;
+            log.error('Failed to create API key', errorMessage);
+
+            return {
+                success: false,
+                error: errorMessage
+            }; // ✅ Explicit failure
+        }
+    } catch (err) {
+        const errorMessage = 'Unable to reach server';
+        this.error = errorMessage;
+        log.error('Create key error', err);
+
+        return {
+            success: false,
+            error: errorMessage
+        }; // ✅ Explicit failure
+    } finally {
+        this.loading = false;
+    }
+}
+```
+
+**Callers to Update:**
+
+- Search for: `const.*= await.*createKey\(`
+- Pattern: Check `result.success` instead of null
+- Example: AuthenticationSettings.svelte
+
+---
+
+**b) `loadKeys()` - Lines 86-115**
+
+**Current:** Doesn't throw, only sets error state
+
+```javascript
+async loadKeys() {
+    try {
+        // ... load logic
+    } catch (err) {
+        this.error = errorMessage;
+        // Missing: throw error
+    }
+}
+```
+
+**Recommended:** Pattern 1 - Throw on error (critical data loading)
+
+```javascript
+/**
+ * Load all API keys from server
+ * @throws {Error} If loading fails
+ */
+async loadKeys() {
+    this.loading = true;
+    this.error = '';
+
+    try {
+        log.info('Loading API keys');
+
+        const response = await fetch('/api/auth/keys', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            this.keys = data.keys || [];
+            log.info(`Loaded ${this.keys.length} API keys`);
+        } else {
+            const data = await response.json().catch(() => ({}));
+            const errorMessage = data?.error || 'Failed to load API keys';
+            this.error = errorMessage;
+            log.error('Failed to load API keys', errorMessage);
+            throw new Error(errorMessage); // ✅ Add throw
+        }
+    } catch (err) {
+        const errorMessage = err.message || 'Unable to reach server';
+        this.error = errorMessage;
+        log.error('Load keys error', err);
+        throw err; // ✅ Add throw
+    } finally {
+        this.loading = false;
+    }
+}
+```
+
+---
+
+**c) `deleteKey()` and `toggleKey()` - Consider Pattern 2**
+
+**Current:** Returns boolean (acceptable but could be improved)
+
+```javascript
+async deleteKey(keyId) {
+    try {
+        // ... delete logic
+        return true; // ⚠️ Acceptable but limited
+    } catch (err) {
+        return false;
+    }
+}
+```
+
+**Optional Improvement:** Pattern 2 - Return Result for better error messages
+
+```javascript
+/**
+ * Delete an API key permanently
+ * @param {string} keyId - API key ID to delete
+ * @returns {Promise<Result>} Result with success status or error
+ */
+async deleteKey(keyId) {
+    this.loading = true;
+    this.error = '';
+
+    try {
+        log.info('Deleting API key', { keyId });
+
+        const response = await fetch(`/api/auth/keys/${keyId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            log.info('API key deleted successfully', { keyId });
+            await this.loadKeys();
+
+            return {
+                success: true,
+                data: { keyId }
+            }; // ✅ Can add success message
+        } else {
+            const data = await response.json().catch(() => ({}));
+            const errorMessage = data?.error || 'Failed to delete API key';
+            this.error = errorMessage;
+            log.error('Failed to delete API key', errorMessage);
+
+            return {
+                success: false,
+                error: errorMessage
+            }; // ✅ Specific error message
+        }
+    } catch (err) {
+        const errorMessage = 'Unable to reach server';
+        this.error = errorMessage;
+        log.error('Delete key error', err);
+
+        return {
+            success: false,
+            error: errorMessage
+        };
+    } finally {
+        this.loading = false;
+    }
+}
+```
+
+**Estimated Effort:** 2-3 hours (includes updating callers and tests)
+
+---
+
+### Implementation Strategy
+
+**Recommended Approach:**
+
+1. **Start with SessionViewModel** (2-3 hours)
+   - Update all 4 methods to use Pattern 1 (Throw)
+   - Update callers to use try/catch
+   - Update tests to expect throws
+   - Most impact on code consistency
+
+2. **Then ApiKeyState** (2-3 hours)
+   - Update `createKey()` to use Pattern 2 (Result) - already partially done in AuthViewModel
+   - Update `loadKeys()` to throw on error
+   - Optionally improve `deleteKey()` and `toggleKey()` to Result pattern
+   - Better user feedback in settings UI
+
+3. **Update Tests** (included in above estimates)
+   - Pattern 1: `await expect(method()).rejects.toThrow()`
+   - Pattern 2: `expect(result.success).toBe(false)`
+
+---
+
+### Testing Checklist
+
+After refactoring, verify:
+
+- ✅ All unit tests pass
+- ✅ E2E tests for session creation/management pass
+- ✅ E2E tests for API key management pass
+- ✅ Error messages display correctly in UI
+- ✅ Loading states work as expected
+- ✅ No console errors during normal operations
+- ✅ Error boundaries catch and display errors appropriately
+
+---
+
+### Breaking Changes
+
+**Impact:** Medium - Requires caller updates
+
+**Affected Areas:**
+
+- Components calling `SessionViewModel` methods
+- Components calling `ApiKeyState.createKey()`
+- Any tests mocking these methods
+
+**Migration Path:**
+
+1. Update ViewModel methods first
+2. Update component callers
+3. Update tests
+4. Test thoroughly in development
+5. Deploy with release notes
+
+---
+
+**Total Estimated Effort:** 4-6 hours
+
+**Priority:** Optional - Current code is functional, this improves consistency
+
+**Benefits:**
+
+- Predictable error handling across the codebase
+- Better developer experience (clearer APIs)
+- Improved error messages for users
+- Easier debugging with stack traces
+- Foundation for future development
+
+---
+
+**This is a living document. Update as patterns evolve or new cases emerge.**

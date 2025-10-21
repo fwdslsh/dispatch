@@ -10,6 +10,12 @@ import { createLogger } from '../utils/logger.js';
 const log = createLogger('workspace-state');
 
 export class WorkspaceState {
+	bwinHostRef = $state(null);
+	// Window manager state (sv-window-manager integration)
+	windowManager = {
+		bwinHostRef: this.bwinHostRef
+	};
+
 	constructor() {
 		// Core workspace data
 		this.workspaces = $state([]);

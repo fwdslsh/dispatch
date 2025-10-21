@@ -9,10 +9,16 @@
 	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
+	import {
+		getComponentForSessionType,
+		getClientSessionModule
+	} from '$lib/client/shared/session-modules/index.js';
+	import { BwinHost } from 'sv-window-manager';
+
+	let windowManagerLoadError = $state(null);
 
 	// Components
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
-	import SessionWindowManager from './SessionWindowManager.svelte';
 	import SingleSessionView from './SingleSessionView.svelte';
 	import StatusBar from './WorkspaceStatusBar.svelte';
 
@@ -42,6 +48,9 @@
 	const log = createLogger('workspace:page');
 	// workspaceViewModel removed - obsolete in unified architecture
 	let sessionViewModel = $state();
+	let appStateManager = $state();
+	let workspaceState = $state();
+	let bwinHostRef = $state(null);
 
 	// Component references
 	let workspaceViewMode = $state('window-manager');
@@ -118,11 +127,18 @@
 
 		// Get shared ViewModels from container
 		sessionViewModel = await container.get('sessionViewModel');
+		appStateManager = await container.get('appStateManager');
+		workspaceState = appStateManager.workspaces;
 
 		// Load initial data - workspace loading removed in unified architecture
 		log.info('Loading sessions...');
 		await sessionViewModel.loadSessions();
 		log.info('Sessions loaded, count:', sessionViewModel.sessions.length);
+
+		// Auto-initialize workspace with default terminal if empty (T005 integration)
+		if (sessionViewModel.sessions.length === 0) {
+			log.info('Empty workspace detected, will auto-create terminal on BwinHost mount');
+		}
 
 		// Setup PWA install prompt
 		if (typeof window !== 'undefined') {
@@ -384,6 +400,9 @@
 		const fallbackSession =
 			currentSessions[currentIndex + 1] ?? currentSessions[currentIndex - 1] ?? null;
 
+		// T013: Remove pane before closing session
+		removeSessionPane(sessionId);
+
 		// Close session in SessionViewModel
 		sessionViewModel.closeSession(sessionId);
 
@@ -394,6 +413,62 @@
 
 	function handleSessionAssignToTile(sessionId, tileId) {
 		sessionViewModel.addToLayout(sessionId, tileId);
+	}
+
+	// T011: Pane management for sv-window-manager
+	function addSessionToPane(session) {
+		if (!bwinHostRef) {
+			log.warn('Cannot add pane: BwinHost not available', {
+				hasWorkspaceState: !!workspaceState,
+				hasRef: !!workspaceState?.windowManager?.bwinHostRef,
+				hasBwinHost: !!BwinHost
+			});
+			return;
+		}
+
+		if (!session || !session.id || !session.sessionType) {
+			console.warn('Invalid session data for adding pane:', session);
+			return;
+		}
+		console.log('Adding session to pane:', session.id, session.sessionType);
+		const component = getComponentForSessionType(session.sessionType);
+		if (!component) {
+			log.error('No component found for session type:', session.sessionType);
+			return;
+		}
+
+		// Get session module to prepare props
+		const module = getClientSessionModule(session.type);
+		const props = module?.prepareProps ? module.prepareProps(session) : { sessionId: session.id };
+
+		try {
+			bwinHostRef.addPane(
+				session.id, // Use sessionId as pane ID
+				{}, // Pane config (use library defaults)
+				component, // Svelte component to render
+				props // Props to pass to component
+			);
+			log.info('Added session to pane:', session.id, session.type);
+		} catch (error) {
+			log.error('Failed to add pane for session:', session.id, error);
+		}
+	}
+
+	// T013: Remove pane when session closes
+	function removeSessionPane(sessionId) {
+		if (!bwinHostRef) {
+			return;
+		}
+
+		try {
+			// sv-window-manager should handle pane removal via its own API
+			// For now, we rely on the library's internal management
+			// TODO: Check sv-window-manager API for explicit pane removal method
+			log.info('Session closed, pane should be removed by library:', sessionId);
+			bwinHostRef.removePane(sessionId);
+		} catch (error) {
+			log.error('Failed to remove pane:', sessionId, error);
+		}
 	}
 
 	function handleSessionCreate(detail) {
@@ -409,6 +484,9 @@
 			workspacePath,
 			typeSpecificId
 		});
+
+		// T011: Add session to BwinHost pane
+		addSessionToPane({ id, type, workspacePath, typeSpecificId });
 
 		// Close local create session modal if open
 		if (activeModal?.type === 'createSession') {
@@ -435,6 +513,22 @@
 			const fallbackId = sessionsList[0]?.id ?? null;
 			if (fallbackId) {
 				updateActiveSession(fallbackId);
+			}
+		}
+	});
+
+	// T011: Populate BwinHost with existing sessions when it mounts
+	$effect(() => {
+		if (!bwinHostRef) {
+			return;
+		}
+
+		// BwinHost is ready - add all existing sessions as panes
+		log.info('BwinHost mounted, adding existing sessions to panes');
+
+		for (const session of sessionsList) {
+			if (session && session.isActive) {
+				addSessionToPane(session);
 			}
 		}
 	});
@@ -495,15 +589,32 @@
 
 		<!-- Main Content -->
 		<div class="workspace-content">
-			{#if isWindowManagerView}
-				<SessionWindowManager
-					sessions={sessionsList}
-					showEditMode={editModeEnabled}
-					onSessionFocus={handleSessionFocus}
-					onSessionClose={handleSessionClose}
-					onSessionAssignToTile={handleSessionAssignToTile}
-					onCreateSession={handleCreateSession}
-				/>
+			{#if windowManagerLoadError}
+				<!-- T001a: Error UI when sv-window-manager fails to load -->
+				<div class="window-manager-error">
+					<div class="error-content surface-raised border border-danger radius p-4">
+						<h2 class="text-danger mb-2">Window Manager Load Error</h2>
+						<p class="text-muted mb-3">
+							Failed to load the sv-window-manager library. Workspace operations are unavailable
+							until this is resolved.
+						</p>
+						<details>
+							<summary class="cursor-pointer text-sm opacity-70">Error Details</summary>
+							<pre
+								class="mt-2 p-2 surface radius text-xs overflow-auto">{windowManagerLoadError}</pre>
+						</details>
+						<div class="mt-4 flex gap-2">
+							<button class="btn-primary" onclick={() => window.location.reload()}>
+								Reload Page
+							</button>
+							<button class="btn-secondary" onclick={() => goto('/settings')}>
+								Go to Settings
+							</button>
+						</div>
+					</div>
+				</div>
+			{:else if isWindowManagerView}
+				<BwinHost bind:this={bwinHostRef} config={{ fitContainer: true }} />
 			{:else}
 				<SingleSessionView
 					session={selectedSingleSession}
@@ -570,8 +681,46 @@
 </Shell>
 
 <style>
-	/* Workspace-specific layout */
 	.dispatch-workspace {
+		--bw-container-height: calc(100vh - 175px); /* Adjust for header and status bar heights */
+		--bw-container-width: stretch;
+
+		/* Typography */
+		--bw-font-family: var(--font-sans);
+		--bw-font-size: var(--font-size-1);
+
+		/* Colors - Using theme variables */
+		--bw-drop-area-bg-color: var(--primary-muted);
+		--bw-pane-bg-color: var(--bg);
+		--bw-muntin-bg-color: var(--surface);
+		--bw-glass-bg-color: var(--surface);
+		--bw-glass-border-color: var(--surface-border);
+
+		--bw-glass-border-color-disabled: var(--line);
+		--bw-glass-bg-color-disabled: var(--surface);
+		--bw-glass-header-bg-color: var(--elev);
+		--bw-glass-tab-hover-bg: var(--hover-bg);
+		--bw-glass-action-hover-bg: var(--hover-bg);
+		--bw-minimized-glass-hover-bg: var(--hover-bg);
+
+		/* Sizing & Spacing */
+		--bw-glass-clearance: var(--space-0);
+		--bw-glass-border-radius: var(--radius);
+		--bw-glass-header-height: 30px;
+		--bw-glass-header-gap: var(--space-1);
+		--bw-sill-gap: var(--space-2);
+		--bw-action-gap: var(--space-0);
+		--bw-minimized-glass-height: 10px;
+		--bw-minimized-glass-basis: 10%;
+
+		:global(.bw-glass-action){
+			background: transparent;
+			border: none;
+			color: var(--primary);
+		}
+	}
+	/* Workspace-specific layout */
+	/* .dispatch-workspace {
 		position: relative;
 		display: grid;
 		overflow: hidden;
@@ -580,7 +729,7 @@
 		.workspace-content {
 			overflow: hidden;
 		}
-	}
+	} */
 
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {
@@ -636,6 +785,20 @@
 
 	.pwa-instructions__steps li {
 		color: var(--text-primary);
+	}
+
+	/* Window manager error UI (T001a) */
+	.window-manager-error {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		padding: var(--space-4);
+	}
+
+	.window-manager-error .error-content {
+		max-width: 600px;
+		width: 100%;
 	}
 
 	/* Mobile responsive adjustments */
