@@ -6,7 +6,6 @@
  */
 
 import { SessionState } from './SessionState.svelte.js';
-import { WorkspaceState } from './WorkspaceState.svelte.js';
 import { UIState } from './UIState.svelte.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -16,7 +15,6 @@ export class AppState {
 	constructor() {
 		// Compose focused state managers
 		this.sessions = new SessionState();
-		this.workspaces = new WorkspaceState();
 		this.ui = new UIState();
 
 		// Combined derived state for complex queries
@@ -33,11 +31,6 @@ export class AppState {
 				const ids = this.ui.display.displayedSessionIds.slice(0, maxVisible);
 				return ids.map((id) => this.sessions.getSession(id)).filter(Boolean);
 			}
-		});
-
-		this.workspaceFilteredSessions = $derived.by(() => {
-			if (!this.ui.display.filterByWorkspace) return this.sessions.sessions;
-			return this.sessions.getSessionsByWorkspace(this.ui.display.filterByWorkspace);
 		});
 
 		this.currentDisplayedSession = $derived.by(() => {
@@ -98,13 +91,7 @@ export class AppState {
 		return {
 			sessions: {
 				count: this.sessions.sessionCount,
-				inLayout: this.sessions.inLayoutSessions.length,
 				active: this.sessions.activeSessions.length
-			},
-			workspaces: {
-				count: this.workspaces.workspaces.length,
-				selected: this.workspaces.selectedWorkspace,
-				claudeProjects: this.workspaces.claudeProjects.length
 			},
 			ui: {
 				layout: this.ui.layout.preset,

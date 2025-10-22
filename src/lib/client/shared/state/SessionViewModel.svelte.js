@@ -20,12 +20,11 @@ const log = createLogger('session:viewmodel');
 
 /**
  * @typedef {Object} Session
+ * Sessions are completely self-contained - just ID, type, and state
+ * Working directories are managed internally by session adapters
  * @property {string} id
- * @property {string} workspacePath
  * @property {string} sessionType
  * @property {boolean} isActive
- * @property {boolean} inLayout
- * @property {string|null} [tileId]
  * @property {string} title
  * @property {string} createdAt
  * @property {string} lastActivity
@@ -54,7 +53,6 @@ export class SessionViewModel {
 
 		// Derived business logic state from AppState
 		this.sessions = $derived(this.appStateManager.sessions.sessions);
-		this.inLayoutSessions = $derived(this.appStateManager.sessions.inLayoutSessions);
 		this.activeSessions = $derived(this.appStateManager.sessions.activeSessions);
 		this.sessionCount = $derived(this.appStateManager.sessions.sessionCount);
 		this.hasActiveSessions = $derived(this.appStateManager.sessions.hasActiveSessions);
@@ -126,12 +124,13 @@ export class SessionViewModel {
 
 	/**
 	 * Create a new session
+	 * Sessions are self-contained - just type and options
+	 * Working directory is passed in options, managed internally by adapter
 	 * @param {Object} params Session creation parameters
 	 * @param {string} params.type Session type
-	 * @param {string} params.workspacePath Workspace path
-	 * @param {Object} [params.options={}] Additional session options
+	 * @param {Object} [params.options={}] Session options (may include cwd for adapter)
 	 */
-	async createSession({ type, workspacePath, options = {} }) {
+	async createSession({ type, options = {} }) {
 		if (this.operationState.creating) {
 			log.warn('Session creation already in progress');
 			return null;
@@ -147,8 +146,7 @@ export class SessionViewModel {
 		try {
 			const sessionData = {
 				type,
-				workspacePath,
-				...options
+				options
 			};
 
 			log.info('Creating session', sessionData);
@@ -211,92 +209,8 @@ export class SessionViewModel {
 	}
 
 	/**
-	 * Toggle session layout state (add/remove from layout)
-	 * @param {string} sessionId - Session ID
-	 */
-	async toggleSessionPin(sessionId) {
-		const session = this.getSession(sessionId);
-		if (!session) {
-			log.warn('Session not found for layout toggle', sessionId);
-			return;
-		}
-
-		if (session.inLayout) {
-			await this.removeFromLayout(sessionId);
-		} else {
-			// Add to first available tile - this would need tile management
-			log.info('Adding session to layout would require tile selection', sessionId);
-		}
-	}
-
-	/**
-	 * Remove a session from layout
-	 * @param {string} sessionId - Session ID
-	 */
-	async removeFromLayout(sessionId) {
-		const session = this.getSession(sessionId);
-		if (!session) {
-			log.warn('Session not found for layout removal', sessionId);
-			return;
-		}
-
-		if (!session.inLayout) {
-			log.debug('Session already not in layout', sessionId);
-			return;
-		}
-
-		try {
-			await this.sessionApi.removeLayout(sessionId);
-
-			// Update session in state via AppStateManager
-			const updatedSession = { ...session, inLayout: false };
-			this.appStateManager.sessions.updateSession(sessionId, updatedSession);
-
-			log.info('Session removed from layout successfully', sessionId);
-		} catch (error) {
-			log.error('Failed to remove session from layout', error);
-			this.operationState.error = error.message || 'Failed to remove session from layout';
-
-			// Dispatch error
-			this.appStateManager.sessions.setError(error.message);
-		}
-	}
-
-	/**
-	 * Add a session to a specific tile layout
-	 * @param {string} sessionId - Session ID
-	 * @param {string} tileId - Tile ID (e.g., 'tile-1', 'tile-2')
-	 * @param {number} position - Position within tile
-	 */
-	async addToLayout(sessionId, tileId, position = 0) {
-		const session = this.getSession(sessionId);
-		if (!session) {
-			log.warn('Session not found for layout addition', sessionId);
-			return;
-		}
-
-		try {
-			// Get the actual clientId from localStorage (same as RunSessionClient)
-			const clientId = getClientId();
-
-			await this.sessionApi.setLayout(sessionId, tileId, position, clientId);
-
-			// Update session in state via AppStateManager
-			const updatedSession = { ...session, inLayout: true, tileId, position };
-			this.appStateManager.sessions.updateSession(sessionId, updatedSession);
-
-			log.info('Session added to layout successfully', { sessionId, tileId, position });
-		} catch (error) {
-			log.error('Failed to add session to layout', error);
-			this.operationState.error = error.message || 'Failed to add session to layout';
-
-			// Dispatch error
-			this.appStateManager.sessions.setError(error.message);
-		}
-	}
-
-	/**
 	 * Close/terminate a session
+	 * Sessions are self-contained - no workspace coupling needed
 	 * @param {string} sessionId - Session ID
 	 */
 	async closeSession(sessionId) {
@@ -306,34 +220,10 @@ export class SessionViewModel {
 			// Mark session operation as in progress
 			this.sessionOperations.set(sessionId, { operation: 'closing', timestamp: Date.now() });
 
-			// Get session to obtain workspacePath for API call
-			const session = this.getSession(sessionId);
-			if (!session) {
-				throw new Error(`Session ${sessionId} not found`);
-			}
-
-			// Ensure workspacePath is valid
-			const workspacePath = session.workspacePath || '';
-			if (!workspacePath) {
-				log.warn('Session has missing workspacePath, attempting fallback', sessionId);
-				// Try to get from current workspace selection as fallback
-				const currentWorkspace = this.appStateManager.workspaces.selectedWorkspace;
-				let fallbackPath = currentWorkspace?.path || '';
-
-				// If still no valid workspace path, use a default or force cleanup
-				if (!fallbackPath) {
-					log.warn('No valid workspace path available, forcing session cleanup', sessionId);
-					// Use a placeholder path for corrupted sessions
-					fallbackPath = '/tmp/corrupted-session-cleanup';
-				}
-
-				await this.sessionApi.delete(sessionId);
-			} else {
-				await this.sessionApi.delete(sessionId);
-			}
+			// Sessions are self-contained - just delete by ID
+			await this.sessionApi.delete(sessionId);
 
 			// Dispatch session removal to AppStateManager
-			// Cleanup socket manager registration
 			// Socket cleanup handled automatically by RunSessionClient when detaching
 			this.appStateManager.removeSession(sessionId);
 
@@ -351,13 +241,13 @@ export class SessionViewModel {
 
 	/**
 	 * Handle external session creation (e.g., from Socket.IO events)
+	 * Sessions are self-contained - just ID, type, and state
 	 * @param {Object} sessionData - Session data
 	 * @param {string} sessionData.id - Session ID
 	 * @param {string} sessionData.type - Session type
-	 * @param {string} sessionData.workspacePath - Workspace path
 	 */
 	handleSessionCreated(sessionData) {
-		const { id, type, workspacePath } = sessionData;
+		const { id, type } = sessionData;
 
 		// Validate required fields
 		if (!id || !type) {
@@ -368,11 +258,9 @@ export class SessionViewModel {
 		// Create normalized session object
 		const newSession = {
 			id,
-			workspacePath,
 			sessionType: type,
 			type,
 			isActive: true,
-			inLayout: false,
 			title: `New ${type} session`,
 			createdAt: new SvelteDate().toISOString(),
 			lastActivity: new SvelteDate().toISOString(),
@@ -389,19 +277,19 @@ export class SessionViewModel {
 
 	/**
 	 * Handle session selection from UI components (like ProjectSessionMenu)
+	 * Sessions are self-contained - just ID and type
 	 * @param {Object} sessionData - Session data from UI component
 	 * @param {string} sessionData.id - Session ID
 	 * @param {string} sessionData.type - Session type
-	 * @param {string} sessionData.workspacePath - Workspace path
 	 * @param {boolean} sessionData.shouldResume - Whether this is a resume operation
 	 */
 	async handleSessionSelected(sessionData) {
-		const { id, type: _type, workspacePath, shouldResume } = sessionData;
+		const { id, type: _type, shouldResume } = sessionData;
 
 		try {
 			if (shouldResume) {
 				// This is a session resume operation
-				await this.resumeSession(id, workspacePath);
+				await this.resumeSession(id);
 
 				// Reload sessions to pick up the updated status from server
 				await this.loadSessions();
@@ -425,21 +313,19 @@ export class SessionViewModel {
 
 	/**
 	 * Resume an existing session
+	 * Sessions are self-contained - adapter manages working directory internally
 	 * @param {string} sessionId - Session ID
-	 * @param {string} workspacePath - Workspace path
 	 */
-	async resumeSession(sessionId, workspacePath) {
+	async resumeSession(sessionId) {
 		try {
 			log.info('Resuming session', sessionId);
 
 			const existingSession = this.appStateManager.sessions.getSession(sessionId);
 			const sessionType = existingSession?.sessionType || existingSession?.type || SESSION_TYPE.PTY;
-			const resolvedWorkspace = existingSession?.workspacePath || workspacePath || '';
 
 			// Resume is handled via create with resume flag
 			const result = await this.sessionApi.create({
 				type: sessionType,
-				workspacePath: resolvedWorkspace,
 				options: {},
 				resume: true,
 				sessionId
@@ -539,15 +425,6 @@ export class SessionViewModel {
 	}
 
 	/**
-	 * Get sessions by workspace
-	 * @param {string} workspacePath - Workspace path
-	 * @returns {Session[]}
-	 */
-	getSessionsByWorkspace(workspacePath) {
-		return this.appStateManager.sessions.getSessionsByWorkspace(workspacePath);
-	}
-
-	/**
 	 * Get sessions by type
 	 * @param {string} sessionType - Session type
 	 * @returns {Session[]}
@@ -573,19 +450,15 @@ export class SessionViewModel {
 
 	/**
 	 * Validate and normalize a single session
+	 * Sessions are completely self-contained - just ID, type, and state
 	 * @param {Object} session - Raw session from API
 	 * @returns {Session}
 	 */
 	validateAndNormalizeSession(session) {
-		// In simplified architecture, sessions don't need workspacePath
-		// They manage their own working directories once created
 		return {
 			id: session.id,
-			workspacePath: session.workingDirectory || session.workspacePath || '',
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
-			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
-			tileId: session.tileId ?? session.layout?.tileId ?? null,
 			title: session.title || `${session.type || session.sessionType} session`,
 			createdAt: session.createdAt || new SvelteDate().toISOString(),
 			lastActivity: session.lastActivity || new SvelteDate().toISOString(),

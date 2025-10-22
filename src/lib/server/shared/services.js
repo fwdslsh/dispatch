@@ -8,7 +8,6 @@ import { DatabaseManager } from '../database/DatabaseManager.js';
 import { SessionRepository } from '../database/SessionRepository.js';
 import { EventStore } from '../database/EventStore.js';
 import { SettingsRepository } from '../database/SettingsRepository.js';
-import { WorkspaceRepository } from '../database/WorkspaceRepository.js';
 import { AdapterRegistry } from '../sessions/AdapterRegistry.js';
 import { EventRecorder } from '../sessions/EventRecorder.js';
 import { SessionOrchestrator } from '../sessions/SessionOrchestrator.js';
@@ -41,8 +40,6 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {EventStore} eventStore
  * @property {SettingsRepository} settingsRepository
  * @property {SettingsRepository} settingsManager - Alias for backward compatibility
- * @property {WorkspaceRepository} workspaceRepository
- * @property {WorkspaceRepository} workspaceManager - Alias for backward compatibility
  * @property {AdapterRegistry} adapterRegistry
  * @property {EventRecorder} eventRecorder
  * @property {SessionOrchestrator} sessionOrchestrator
@@ -101,7 +98,6 @@ export async function createServices(config = {}) {
 	const sessionRepository = new SessionRepository(db);
 	const eventStore = new EventStore(db);
 	const settingsRepository = new SettingsRepository(db);
-	const workspaceRepository = new WorkspaceRepository(db);
 
 	// Layer 4: Session components
 	const adapterRegistry = new AdapterRegistry();
@@ -148,8 +144,6 @@ export async function createServices(config = {}) {
 		eventStore,
 		settingsRepository,
 		settingsManager: settingsRepository, // Alias for backward compatibility
-		workspaceRepository,
-		workspaceManager: workspaceRepository, // Alias for backward compatibility
 
 		// Session management
 		adapterRegistry,

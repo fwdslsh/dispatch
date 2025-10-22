@@ -21,27 +21,21 @@ export class SessionRepository {
 	 * Create new session
 	 * @param {Object} sessionData - Session creation data
 	 * @param {string} sessionData.kind - Session type (pty, claude, file-editor)
-	 * @param {string} sessionData.workspacePath - Workspace path
-	 * @param {Object} [sessionData.metadata] - Additional metadata
+	 * @param {Object} sessionData.metadata - Session metadata (must include cwd)
 	 * @param {string} [sessionData.ownerUserId=null] - Owner user ID
 	 * @returns {Promise<Object>} Created session
 	 */
 	async create(sessionData) {
-		const { kind, workspacePath, metadata = {}, ownerUserId = null } = sessionData;
+		const { kind, metadata = {}, ownerUserId = null } = sessionData;
 
 		// Generate run ID
 		const runId = `${kind}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 		const now = Date.now();
 
-		const meta = {
-			workspacePath,
-			...metadata
-		};
-
 		await this.#db.run(
 			`INSERT INTO sessions (run_id, owner_user_id, kind, status, created_at, updated_at, meta_json)
 			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			[runId, ownerUserId, kind, 'starting', now, now, JSON.stringify(meta)]
+			[runId, ownerUserId, kind, 'starting', now, now, JSON.stringify(metadata)]
 		);
 
 		return {
@@ -52,7 +46,7 @@ export class SessionRepository {
 			status: 'starting',
 			createdAt: now,
 			updatedAt: now,
-			meta
+			meta: metadata
 		};
 	}
 
@@ -66,20 +60,6 @@ export class SessionRepository {
 		if (!row) return null;
 
 		return this.#parseSession(row);
-	}
-
-	/**
-	 * Find sessions by workspace path
-	 * @param {string} workspacePath - Workspace path
-	 * @returns {Promise<Array>} Sessions in workspace
-	 */
-	async findByWorkspace(workspacePath) {
-		const rows = await this.#db.all(
-			`SELECT * FROM sessions WHERE meta_json LIKE ? ORDER BY updated_at DESC`,
-			[`%"workspacePath":"${workspacePath}"%`]
-		);
-
-		return rows.map((row) => this.#parseSession(row));
 	}
 
 	/**

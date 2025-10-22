@@ -32,8 +32,7 @@ export class UIState {
 		// Display state
 		this.display = $state({
 			displayedSessionIds: [],
-			showOnlyPinned: false, // Changed to false to show all sessions by default (including resumed sessions)
-			filterByWorkspace: null
+			showOnlyPinned: false // Changed to false to show all sessions by default (including resumed sessions)
 		});
 
 		// Loading states

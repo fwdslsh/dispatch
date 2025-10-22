@@ -82,17 +82,15 @@
 		loading = true;
 		error = null;
 		try {
-			const data = await sessionApi.list({ includeAll: true });
+			const data = await sessionApi.list();
 			const sessions = data.sessions || [];
 			allSessions = sessions
 				.filter((s) => s && s.id)
 				.map((session) => ({
 					id: session.id,
 					type: session.type,
-					workspacePath: session.workspacePath,
 					title: session.title || `${session.type} Session`,
 					isActive: session.isActive || false,
-					inLayout: session.inLayout === true || !!session.tileId,
 					createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
 					lastActivity: session.lastActivity ? new Date(session.lastActivity) : new Date()
 				}))
@@ -121,7 +119,6 @@
 				const term = searchTerm.toLowerCase();
 				return (
 					session.title.toLowerCase().includes(term) ||
-					session.workspacePath.toLowerCase().includes(term) ||
 					session.type.toLowerCase().includes(term)
 				);
 			}
@@ -146,9 +143,10 @@
 	}
 
 	// Create new session
+	// Sessions are self-contained - cwd passed in options for adapter
 	async function createSession() {
 		if (!selectedDirectory) {
-			error = 'Please select a workspace first';
+			error = 'Please select a directory first';
 			return;
 		}
 
@@ -162,8 +160,7 @@
 		try {
 			const session = await sessionApi.create({
 				type: /** @type {'pty' | 'claude'} */ (sessionType),
-				workspacePath: selectedDirectory,
-				options: {}
+				options: { cwd: selectedDirectory }
 			});
 			await loadAllSessions();
 			selectSession(session);
@@ -181,7 +178,6 @@
 			detail: {
 				id: session?.id,
 				type: session?.type,
-				workspacePath: session?.workspacePath,
 				isActive: session?.isActive || false
 			}
 		});
@@ -215,6 +211,7 @@
 	}
 
 	// Resume a previous session
+	// Sessions are self-contained - server remembers session state
 	async function resumeSession(session) {
 		try {
 			const sessionType = session.type || SESSION_TYPE.PTY;
@@ -224,7 +221,7 @@
 				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					type: sessionType,
-					workspacePath: session.workspacePath,
+					options: {},
 					resume: true,
 					sessionId: session.id
 				})
@@ -243,13 +240,12 @@
 					detail: {
 						id: resumedId,
 						type: sessionType,
-						workspacePath: session.workspacePath,
 						isActive: true,
 						shouldResume: true
 					}
 				});
 				currentTab = 'active';
-			} else {
+			} else{
 				const errorData = await response.text();
 				let errorMessage = 'Failed to resume session';
 

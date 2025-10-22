@@ -24,8 +24,6 @@ export class SessionState {
 		this.lastMessageTimestamps = $state(new SvelteMap());
 
 		// Derived state
-		this.inLayoutSessions = $derived.by(() => this.sessions.filter((s) => s.inLayout));
-
 		this.activeSessions = $derived.by(() => this.sessions.filter((s) => s.isActive));
 
 		this.claudeSessions = $derived.by(() =>
@@ -41,16 +39,13 @@ export class SessionState {
 	}
 
 	// Session CRUD operations
+	// Sessions are completely self-contained - just ID, type, and state
 	loadSessions(sessions) {
 		log.info('[SessionState] Loading sessions:', sessions);
 		this.sessions = sessions.map((session) => ({
 			id: session.id,
-			typeSpecificId: session.typeSpecificId,
-			workspacePath: session.workspacePath,
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
-			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
-			tileId: session.tileId ?? null,
 			title: session.title || `${session.type} session`,
 			createdAt: session.createdAt || new SvelteDate().toISOString(),
 			lastActivity: session.lastActivity || new SvelteDate().toISOString(),
@@ -67,9 +62,7 @@ export class SessionState {
 			...sessionData,
 			createdAt: new SvelteDate().toISOString(),
 			lastActivity: new SvelteDate().toISOString(),
-			isActive: true,
-			inLayout: false,
-			tileId: sessionData.tileId ?? null
+			isActive: true
 		};
 		this.sessions.push(newSession);
 		log.info('Session added', newSession.id);
@@ -101,10 +94,6 @@ export class SessionState {
 	// Query methods
 	getSession(sessionId) {
 		return this.sessions.find((s) => s.id === sessionId) || null;
-	}
-
-	getSessionsByWorkspace(workspacePath) {
-		return this.sessions.filter((s) => s.workspacePath === workspacePath);
 	}
 
 	getSessionsByType(sessionType) {

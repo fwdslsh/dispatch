@@ -274,36 +274,6 @@ export class ThemeService {
 	}
 
 	/**
-	 * Set workspace-specific theme override
-	 * Updates workspace.theme_override
-	 * @param {string} workspaceId - Workspace identifier
-	 * @param {string|null} themeId - Theme identifier (null to clear override)
-	 * @returns {Promise<object>}
-	 */
-	async setWorkspaceTheme(workspaceId, themeId) {
-		try {
-			const response = await fetch(
-				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`,
-				{
-					method: 'PUT',
-					headers: this.getHeaders(),
-					credentials: 'include',
-					body: JSON.stringify({
-						theme_override: themeId
-					})
-				}
-			);
-
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[ThemeService] Failed to set workspace theme:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
 	 * Get theme preferences (global default, etc.)
 	 * @returns {Promise<{globalDefault: string}>}
 	 */

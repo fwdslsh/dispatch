@@ -142,7 +142,7 @@ export async function isAuthenticated(_config = {}) {
 	try {
 		// Try to access a protected API endpoint
 		// If we have a valid session cookie, this will succeed
-		const response = await fetch('/api/workspaces', {
+		const response = await fetch('/api/sessions', {
 			method: 'GET',
 			credentials: 'include'
 		});

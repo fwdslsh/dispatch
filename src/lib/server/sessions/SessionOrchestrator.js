@@ -43,13 +43,12 @@ export class SessionOrchestrator {
 	 * Create new session with event buffering
 	 * @param {string} kind - Session type (pty, claude, file-editor)
 	 * @param {Object} options - Session options
-	 * @param {string} options.workspacePath - Workspace path
-	 * @param {Object} [options.metadata] - Additional metadata
+	 * @param {Object} options.metadata - Session metadata (must include cwd where session runs)
 	 * @param {string} [options.ownerUserId] - Owner user ID
 	 * @returns {Promise<Object>} Created session
 	 */
 	async createSession(kind, options) {
-		const { workspacePath, metadata = {}, ownerUserId = null, ...adapterOptions } = options;
+		const { metadata = {}, ownerUserId = null, ...adapterOptions } = options;
 
 		// Get adapter for session type
 		const adapter = this.#adapterRegistry.getAdapter(kind);
@@ -57,7 +56,6 @@ export class SessionOrchestrator {
 		// Create session metadata in database
 		const session = await this.#sessionRepository.create({
 			kind,
-			workspacePath,
 			metadata,
 			ownerUserId
 		});

@@ -25,51 +25,42 @@ function getSessionTitle(kind) {
 
 export async function GET({ url, request: _request, locals }) {
 	// Require authentication
-	const includeAll = url.searchParams.get('include') === 'all';
-
 	try {
-		console.log('[API DEBUG] Sessions GET request, includeAll:', includeAll);
+		console.log('[API DEBUG] Sessions GET request');
 
-		// Query sessions with layout information joined
+		// Query sessions - no layout JOIN needed
 		const query = `
-			SELECT s.run_id, s.kind, s.status, s.created_at, s.updated_at, s.meta_json,
-			       wl.tile_id, wl.client_id
-			FROM sessions s
-			LEFT JOIN workspace_layout wl ON s.run_id = wl.run_id
-			ORDER BY s.created_at DESC
+			SELECT run_id, kind, status, created_at, updated_at, meta_json
+			FROM sessions
+			ORDER BY created_at DESC
 		`;
 
 		const rows = await locals.services.database.all(query);
 		console.log('[API DEBUG] Found', rows.length, 'sessions in database');
 
-		// Transform to UI-compatible format with isActive field and tile information
+		// Transform to UI-compatible format
+		// Sessions are self-contained - they don't need workspace coupling
 		const sessions = rows.map((row) => {
 			const meta = JSON.parse(row.meta_json || '{}');
 			return {
 				id: row.run_id,
 				type: row.kind,
 				title: getSessionTitle(row.kind),
-				workspacePath: meta.cwd || meta.workspacePath || '',
-				isActive: row.status === 'running', // KEY FIX: Add isActive field
+				cwd: meta.cwd || '',
+				isActive: row.status === 'running',
 				createdAt: row.created_at,
-				lastActivity: row.updated_at,
-				inLayout: !!row.tile_id, // Fix: Set based on whether tile_id exists
-				tileId: row.tile_id, // Fix: Include tileId from database
-				pinned: false
+				lastActivity: row.updated_at
 			};
 		});
 
-		// Filter based on includeAll parameter
-		const filteredSessions = includeAll ? sessions : sessions.filter((s) => s.isActive);
-
 		console.log(
 			'[API DEBUG] Returning',
-			filteredSessions.length,
+			sessions.length,
 			'sessions, active:',
-			filteredSessions.filter((s) => s.isActive).length
+			sessions.filter((s) => s.isActive).length
 		);
 
-		return new Response(JSON.stringify({ sessions: filteredSessions }), {
+		return new Response(JSON.stringify({ sessions }), {
 			headers: { 'content-type': 'application/json' }
 		});
 	} catch (error) {
@@ -118,28 +109,27 @@ export async function POST({ request, locals }) {
 			);
 		}
 
-		// Get default workspace directory from settings
-		let defaultWorkspaceDir = null;
+		// Get default working directory from settings
+		let defaultCwd = null;
 		let workspaceEnvVariables = {};
 		try {
 			const { settingsRepository } = locals.services;
 			const globalSettings = await settingsRepository.getByCategory('global');
-			defaultWorkspaceDir = globalSettings?.defaultWorkspaceDirectory || null;
+			defaultCwd = globalSettings?.defaultWorkspaceDirectory || null;
 
 			// Load workspace environment variables
 			const workspaceSettings = await settingsRepository.getByCategory('workspace');
 			workspaceEnvVariables = workspaceSettings?.envVariables || {};
 		} catch (error) {
-			console.warn('[Sessions API] Failed to load workspace settings:', error);
+			console.warn('[Sessions API] Failed to load settings:', error);
 		}
 
-		// Determine the working directory with user preference override
-		const workingDirectory =
-			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
+		// Determine the working directory - where the session will run
+		const workingDirectory = cwd || defaultCwd || process.env.WORKSPACES_ROOT || process.env.HOME;
 
-		// Create session using SessionOrchestrator with workspace environment variables
+		// Create session using SessionOrchestrator
+		// Sessions are self-contained - they just need a cwd (current working directory)
 		const session = await locals.services.sessionOrchestrator.createSession(sessionKind, {
-			workspacePath: workingDirectory,
 			metadata: {
 				cwd: workingDirectory,
 				options: {
@@ -198,69 +188,4 @@ export async function DELETE({ url, locals }) {
 		console.error('[API] Run session deletion failed:', error);
 		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 	}
-}
-
-// Layout management API for client-specific layouts
-export async function PUT({ request, locals }) {
-	const { action, runId, clientId, tileId } = await request.json();
-
-	if (action === 'setLayout') {
-		if (!runId || !clientId || !tileId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameters: runId, clientId, tileId'
-				}),
-				{ status: 400 }
-			);
-		}
-
-		try {
-			// Update or create layout for this client
-			await locals.services.workspaceRepository.setWorkspaceLayout(runId, clientId, tileId);
-			return new Response(JSON.stringify({ success: true }));
-		} catch (error) {
-			console.error('[API] Layout update failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
-	}
-
-	if (action === 'removeLayout') {
-		if (!runId || !clientId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameters: runId, clientId'
-				}),
-				{ status: 400 }
-			);
-		}
-
-		try {
-			await locals.services.workspaceRepository.removeWorkspaceLayout(runId, clientId);
-			return new Response(JSON.stringify({ success: true }));
-		} catch (error) {
-			console.error('[API] Layout removal failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
-	}
-
-	if (action === 'getLayout') {
-		if (!clientId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameter: clientId'
-				}),
-				{ status: 400 }
-			);
-		}
-
-		try {
-			const layout = await locals.services.workspaceRepository.getWorkspaceLayout(clientId);
-			return new Response(JSON.stringify({ layout }));
-		} catch (error) {
-			console.error('[API] Layout retrieval failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
-	}
-
-	return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400 });
 }

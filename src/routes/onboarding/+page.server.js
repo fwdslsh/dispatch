@@ -84,26 +84,7 @@ export const actions = {
 			// Set session cookie
 			CookieService.setSessionCookie(cookies, session.sessionId);
 
-			// Create workspace if provided
-			let workspace = null;
-			if (workspaceName && workspacePath) {
-				// Type validation for FormDataEntryValue
-				if (typeof workspaceName !== 'string' || typeof workspacePath !== 'string') {
-					logger.warn('ONBOARDING', 'Invalid workspace data types');
-					throw new Error('Invalid workspace information provided');
-				}
-
-				try {
-					workspace = await services.workspaceManager.create({
-						name: workspaceName,
-						path: workspacePath
-					});
-					logger.info('ONBOARDING', `Workspace created: ${workspace.name}`);
-				} catch (err) {
-					logger.warn('ONBOARDING', `Failed to create workspace: ${err.message}`);
-					// Don't fail onboarding if workspace creation fails
-				}
-			}
+			// Workspace creation removed - layouts are stored in localStorage
 
 			// Save preferences if provided
 			if (preferences) {

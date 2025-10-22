@@ -12,20 +12,17 @@ import { SvelteDate } from 'svelte/reactivity';
  * @typedef {Object} Session
  * @property {string} id - Unified session ID
  * @property {string} type - Session kind/type (e.g. 'pty', 'claude', or 'file-editor')
- * @property {string} workspacePath - Associated workspace path (cwd)
  * @property {boolean} isActive - Whether session is currently active
- * @property {boolean} inLayout - Whether session is displayed in layout
- * @property {string} tileId - Optional tile id when placed in layout
  * @property {string} title - Session title
  * @property {string|number|Date} createdAt - Creation timestamp
  * @property {string|number|Date} lastActivity - Last activity timestamp
+ * Note: Sessions are self-contained. Working directory is managed internally by adapters.
  */
 
 /**
  * @typedef {Object} CreateSessionOptions
  * @property {string} type - Session type (pty, claude, or file-editor)
- * @property {string} workspacePath - Workspace for the session
- * @property {Object} [options] - Type-specific options
+ * @property {Object} [options] - Type-specific options (may include cwd for adapters)
  * @property {boolean} [resume] - Whether to resume existing session
  * @property {string} [sessionId] - Session ID when resuming
  */
@@ -99,19 +96,13 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * List sessions with optional filtering
-	 * @param {Object} [options] - List options
-	 * @param {string} [options.workspace] - Filter by workspace path
-	 * @param {boolean} [options.includeAll=false] - Include sessions not in layout
+	 * List all sessions
+	 * Sessions are self-contained - no workspace filtering needed
 	 * @returns {Promise<{sessions: Session[]}>}
 	 */
-	async list({ workspace, includeAll = false } = {}) {
+	async list() {
 		try {
-			const params = new URLSearchParams();
-			if (workspace) params.append('workspace', workspace);
-			if (includeAll) params.append('include', 'all');
-
-			const url = `${this.baseUrl}/api/sessions${params.toString() ? '?' + params : ''}`;
+			const url = `${this.baseUrl}/api/sessions`;
 			console.log('[SessionApiClient] Fetching URL:', url);
 
 			const response = await fetch(url, {
@@ -120,8 +111,7 @@ export class SessionApiClient {
 			});
 
 			const data = await this.handleResponse(response);
-			// Normalize session objects to the shape UI expects. Server may return
-			// fields like `kind`, `cwd`, `tileId`, `created_at`, `last_activity`.
+			// Normalize session objects to the shape UI expects
 			const raw = data.sessions || [];
 			console.log('[SessionApiClient] Raw API data:', data);
 			console.log('[SessionApiClient] Raw sessions array:', raw);
@@ -130,14 +120,11 @@ export class SessionApiClient {
 					if (!s) return null;
 					const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
 					const type = s.type || s.kind || s.sessionType || s.kind_name || SESSION_TYPE.PTY;
-					const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
 					const isActive =
 						s.isActive === true ||
 						s.isLive === true ||
 						s.status === 'running' ||
 						s.status === 'active';
-					const tileIdValue = s.tile_id || s.tileId || (s.inLayout ? s.tileId : undefined);
-					const inLayout = s.inLayout === true || !!tileIdValue || s.in_layout === true;
 					const title = s.title || s.name || `${type} Session`;
 					const createdAt = s.createdAt || s.created_at || s.created || null;
 					const lastActivity =
@@ -146,10 +133,7 @@ export class SessionApiClient {
 					const normalized = {
 						id,
 						type,
-						workspacePath,
 						isActive,
-						inLayout,
-						tileId: tileIdValue, // Convert to camelCase for UI consistency
 						title,
 						createdAt,
 						lastActivity,
@@ -179,9 +163,10 @@ export class SessionApiClient {
 
 	/**
 	 * Create a new session
+	 * Sessions are self-contained - adapter manages working directory internally
 	 * @param {CreateSessionOptions} options
 	 */
-	async create({ type, workspacePath, options = {}, resume = false, sessionId = null }) {
+	async create({ type, options = {}, resume = false, sessionId = null }) {
 		try {
 			// Validate session type
 			if (
@@ -192,8 +177,7 @@ export class SessionApiClient {
 			}
 
 			const body = {
-				kind: type, // API expects 'kind' not 'type'
-				cwd: workspacePath, // API expects 'cwd' not 'workspacePath'
+				kind: type,
 				options
 			};
 
@@ -242,9 +226,7 @@ export class SessionApiClient {
 				// Use validated type consistently
 				type,
 				sessionType: type,
-				workspacePath,
 				isActive: true,
-				inLayout: false,
 				resumed: raw?.resumed ?? (resume && !!sessionId) ?? false,
 				title: raw?.title || getSessionTitle(type),
 				createdAt: raw?.createdAt || new SvelteDate().toISOString(),
@@ -255,50 +237,6 @@ export class SessionApiClient {
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to create session:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Update a session (rename, setLayout, removeLayout)
-	 * @param {Object} options
-	 * @param {'rename'|'setLayout'|'removeLayout'} options.action - Update action
-	 * @param {string} options.sessionId - Session ID
-	 * @param {string} [options.newTitle] - New title (for rename)
-	 * @param {string} [options.tileId] - Tile ID (for layout actions)
-	 * @param {number} [options.position] - Position (for layout actions)
-	 * @param {string} [options.clientId] - Client ID (for layout actions)
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async update({ action, sessionId, newTitle, tileId, position, clientId }) {
-		try {
-			const body = {
-				action,
-				runId: sessionId // Server expects runId parameter
-			};
-
-			if (action === 'rename' && newTitle) {
-				body.newTitle = newTitle;
-			}
-
-			if (action === 'setLayout') {
-				body.tileId = tileId;
-				body.position = position || 0;
-				body.clientId = clientId; // Include required clientId parameter
-			}
-
-			const response = await fetch(`${this.baseUrl}/api/sessions`, {
-				method: 'PUT',
-				headers: this.getHeaders(),
-				credentials: 'include', // Send session cookie
-				body: JSON.stringify(body)
-			});
-
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to update session:', error);
 			}
 			throw error;
 		}
@@ -325,123 +263,6 @@ export class SessionApiClient {
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to delete session:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Rename a session (convenience method)
-	 * @param {string} sessionId
-	 * @param {string} newTitle
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async rename(sessionId, newTitle) {
-		return this.update({
-			action: 'rename',
-			sessionId,
-			newTitle
-		});
-	}
-
-	/**
-	 * Add session to layout (convenience method)
-	 * @param {string} sessionId
-	 * @param {string} tileId
-	 * @param {number} position
-	 * @param {string} clientId
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async setLayout(sessionId, tileId, position = 0, clientId) {
-		return this.update({
-			action: 'setLayout',
-			sessionId,
-			tileId,
-			position,
-			clientId
-		});
-	}
-
-	/**
-	 * Remove session from layout (convenience method)
-	 * @param {string} sessionId
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async removeLayout(sessionId) {
-		return this.update({
-			action: 'removeLayout',
-			sessionId
-		});
-	}
-
-	// ===== LAYOUT MANAGEMENT =====
-
-	/**
-	 * Get current layout (all tile assignments)
-	 * @returns {Promise<{layout: Array}>}
-	 */
-	async getLayout() {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
-				method: 'GET',
-				headers: this.getHeaders(),
-				credentials: 'include' // Send session cookie
-			});
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to get layout:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Set session layout via dedicated endpoint
-	 * @param {string} sessionId
-	 * @param {string} tileId
-	 * @param {number} position
-	 * @param {string} clientId
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async setSessionLayout(sessionId, tileId, position = 0, clientId) {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
-				method: 'POST',
-				headers: this.getHeaders(),
-				body: JSON.stringify({
-					runId: sessionId, // Server expects runId parameter
-					tileId,
-					position,
-					clientId
-				})
-			});
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to set layout:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Remove session from layout via dedicated endpoint
-	 * @param {string} sessionId
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async removeSessionLayout(sessionId) {
-		try {
-			const params = new URLSearchParams({ runId: sessionId }); // Server expects runId parameter
-			const response = await fetch(`${this.baseUrl}/api/sessions/layout?${params}`, {
-				method: 'DELETE',
-				headers: this.getHeaders(),
-				credentials: 'include' // Send session cookie
-			});
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to remove layout:', error);
 			}
 			throw error;
 		}
@@ -523,23 +344,6 @@ export class SessionApiClient {
 			}
 			return { authenticated: false };
 		}
-	}
-
-	/**
-	 * Validate session options
-	 * @param {CreateSessionOptions} options
-	 * @returns {boolean}
-	 */
-	validateSessionOptions(options) {
-		if (!options.type || !options.workspacePath) {
-			return false;
-		}
-
-		if (![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(options.type)) {
-			return false;
-		}
-
-		return true;
 	}
 
 	// ===== ONBOARDING API =====
@@ -771,103 +575,6 @@ export class SessionApiClient {
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to reset preferences:', error);
-			}
-			throw error;
-		}
-	}
-
-	// ===== WORKSPACE MANAGEMENT API =====
-
-	/**
-	 * Get all workspaces
-	 * @returns {Promise<Array>} - Array of workspace objects
-	 */
-	async getWorkspaces() {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
-				headers: this.getHeaders(),
-				credentials: 'include' // Send session cookie
-			});
-
-			const data = await this.handleResponse(response);
-			return data.workspaces || data || [];
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to get workspaces:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Create a new workspace
-	 * @param {object} workspace - Workspace data
-	 * @param {string} workspace.name - Workspace name
-	 * @param {string} workspace.path - Workspace path
-	 * @returns {Promise<object>} - Created workspace
-	 */
-	async createWorkspace(workspace) {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
-				method: 'POST',
-				headers: this.getHeaders(),
-				body: JSON.stringify(workspace)
-			});
-
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to create workspace:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Update workspace metadata
-	 * @param {string} workspaceId - Workspace ID (path)
-	 * @param {object} updates - Updates to apply
-	 * @returns {Promise<object>} - Updated workspace
-	 */
-	async updateWorkspace(workspaceId, updates) {
-		try {
-			const response = await fetch(
-				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`,
-				{
-					method: 'PUT',
-					headers: this.getHeaders(),
-					body: JSON.stringify(updates)
-				}
-			);
-
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to update workspace:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Delete a workspace
-	 * @param {string} workspaceId - Workspace ID (path)
-	 * @returns {Promise<{success: boolean}>}
-	 */
-	async deleteWorkspace(workspaceId) {
-		try {
-			const response = await fetch(
-				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`,
-				{
-					method: 'DELETE',
-					headers: this.getHeaders()
-				}
-			);
-
-			return await this.handleResponse(response);
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to delete workspace:', error);
 			}
 			throw error;
 		}

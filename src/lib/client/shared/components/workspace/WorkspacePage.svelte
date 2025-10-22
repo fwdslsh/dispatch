@@ -6,8 +6,6 @@
 	// Services and ViewModels
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
-	import { workspaceLayoutService } from '$lib/client/shared/services/WorkspaceLayoutService.js';
-	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 	import {
@@ -47,17 +45,15 @@
 
 	// ViewModels and Services
 	const log = createLogger('workspace:page');
-	// workspaceViewModel removed - obsolete in unified architecture
 	let sessionViewModel = $state();
 	let appStateManager = $state();
-	let workspaceState = $state();
 	let bwinHostRef = $state(null);
 
 	// Component references
 	let workspaceViewMode = $state('window-manager');
 	let activeSessionId = $state(null);
 	let editModeEnabled = $state(false);
-	let currentWorkspace = $state(null); // Current workspace path for filtering
+	let openPaneIds = $state(new Set()); // Track which sessions have open panes
 
 	const PWA_INSTALL_GUIDES = {
 		ios: {
@@ -87,55 +83,20 @@
 	// Derived modal open state - simple check against activeModal.type
 	const createSessionModalOpen = $derived(activeModal?.type === 'createSession');
 
-	// Filter sessions by current workspace
-	const sessionsList = $derived.by(() => {
-		const allSessions = sessionViewModel?.sessions ?? [];
-
-		// Filter by BOTH workspace AND isActive status
-		// This prevents closed (inactive) sessions from appearing
-		const filtered = allSessions.filter(s => {
-			// Must be active
-			if (!s.isActive) return false;
-
-			// If we have a workspace selected, filter to that workspace
-			if (currentWorkspace) {
-				// Show sessions with no workspace path (unassigned)
-				if (!s.workspacePath) return true;
-
-				// Exact match
-				if (s.workspacePath === currentWorkspace) return true;
-
-				// Nested path (session is in subdirectory of workspace)
-				if (s.workspacePath.startsWith(currentWorkspace + '/')) return true;
-
-				return false;
-			}
-
-			// No workspace filter - show all active sessions
-			return true;
-		});
-
-		log.info('[WorkspacePage] SessionsList filtered', {
-			workspace: currentWorkspace,
-			total: allSessions.length,
-			active: allSessions.filter(s => s.isActive).length,
-			filtered: filtered.length,
-			filteredSessions: filtered.map(s => ({ id: s.id, path: s.workspacePath, isActive: s.isActive }))
-		});
-		return filtered;
-	});
-	const totalSessions = $derived(sessionsList.length);
+	// All sessions from ViewModel
+	const allSessions = $derived(sessionViewModel?.sessions ?? []);
+	const totalSessions = $derived(allSessions.length);
 	const hasActiveSessions = $derived(totalSessions > 0);
 	const selectedSingleSession = $derived.by(() => {
-		if (!sessionsList.length) return null;
+		if (!allSessions.length) return null;
 		if (activeSessionId) {
-			return sessionsList.find((session) => session.id === activeSessionId) ?? sessionsList[0];
+			return allSessions.find((session) => session.id === activeSessionId) ?? allSessions[0];
 		}
-		return sessionsList[0];
+		return allSessions[0];
 	});
 	const currentSessionIndex = $derived.by(() => {
 		if (!selectedSingleSession) return 0;
-		const index = sessionsList.findIndex((session) => session.id === selectedSingleSession.id);
+		const index = allSessions.findIndex((session) => session.id === selectedSingleSession.id);
 		return index >= 0 ? index : 0;
 	});
 	const isSingleSessionView = $derived(workspaceViewMode === 'single-session');
@@ -157,66 +118,9 @@
 		// 1. Initialize services
 		sessionViewModel = await container.get('sessionViewModel');
 		appStateManager = await container.get('appStateManager');
-		workspaceState = appStateManager.workspaces;
 
 		// 2. Load sessions from API
-		log.info('Loading sessions...');
 		await sessionViewModel.loadSessions();
-		log.info('Sessions loaded:', sessionViewModel.sessions.length);
-
-		// 3. Set workspace filter
-		currentWorkspace = getUserDefaultWorkspace();
-		log.info('Current workspace:', currentWorkspace);
-
-		// 4. Wait for BwinHost to mount, then populate ONCE (imperative, not reactive)
-		await tick();
-		let attempts = 0;
-		while (!bwinHostRef && attempts < 50) {
-			await tick();
-			attempts++;
-		}
-
-		if (!bwinHostRef) {
-			log.error('BwinHost failed to mount after 50 attempts');
-		} else {
-			// Populate sessions once - this should NEVER run again
-			const defaultWorkspace = getUserDefaultWorkspace();
-			const activeSessions = sessionViewModel.sessions.filter(s => s.isActive);
-
-			if (defaultWorkspace) {
-				// Try to load saved layout
-				try {
-					const layout = await workspaceLayoutService.loadWorkspaceLayout(defaultWorkspace);
-					if (layout?.hasSavedLayout && layout.paneConfigs?.length > 0) {
-						log.info('Restoring saved layout:', layout.paneConfigs.length);
-						for (const paneConfig of layout.paneConfigs) {
-							const session = activeSessions.find(s => s.id === paneConfig.sessionId);
-							if (session) {
-								addSessionToPane(session, paneConfig.paneConfig);
-							}
-						}
-					} else {
-						// No saved layout - add all active sessions
-						log.info('No saved layout - adding active sessions:', activeSessions.length);
-						for (const session of activeSessions) {
-							addSessionToPane(session);
-						}
-					}
-				} catch (error) {
-					log.error('Failed to load layout:', error);
-					// Fallback: add all active sessions
-					for (const session of activeSessions) {
-						addSessionToPane(session);
-					}
-				}
-			} else {
-				// No workspace - add all active sessions
-				log.info('No workspace - adding active sessions:', activeSessions.length);
-				for (const session of activeSessions) {
-					addSessionToPane(session);
-				}
-			}
-		}
 
 		// Setup PWA install prompt
 		if (typeof window !== 'undefined') {
@@ -228,8 +132,18 @@
 
 			window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+			// Save session IDs before page unload
+			const handleBeforeUnload = () => {
+				const sessionIds = Array.from(openPaneIds);
+				localStorage.setItem('dispatch-session-ids', JSON.stringify(sessionIds));
+				log.info('Saved session IDs:', sessionIds);
+			};
+
+			window.addEventListener('beforeunload', handleBeforeUnload);
+
 			__removeWorkspacePageListeners = () => {
 				window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+				window.removeEventListener('beforeunload', handleBeforeUnload);
 			};
 		}
 
@@ -250,7 +164,6 @@
 		} catch (err) {
 			log.warn('Error during cleanup of workspace page listeners', err);
 		}
-
 
 		// RunSessionClient handles disconnection automatically
 	});
@@ -306,25 +219,22 @@
 	}
 
 	async function handleCreateSession(type = 'claude') {
-		// For quick-create buttons, create session directly with default workspace and global settings
+		// For quick-create buttons, create session directly with global settings
 		if (sessionViewModel) {
 			try {
-				// Use the global default workspace path
-				const defaultWorkspace = getUserDefaultWorkspace();
+				// Get default cwd from settings or use /workspace
+				const cwd = settingsService.get('global.defaultWorkspaceDirectory', '/workspace');
 
 				// Get global default settings for this session type
 				const defaultOptions = getGlobalDefaultSettings(type);
 
 				await sessionViewModel.createSession({
 					type: type,
-					workspacePath: defaultWorkspace,
+					cwd: cwd,
 					options: defaultOptions
 				});
 
-				log.info(
-					`Created ${type} session directly with workspace: ${defaultWorkspace} and default options:`,
-					defaultOptions
-				);
+				log.info(`Created ${type} session in ${cwd} with default options:`, defaultOptions);
 			} catch (error) {
 				log.error(`Failed to create ${type} session:`, error);
 				// Fall back to opening the modal if direct creation fails
@@ -339,25 +249,6 @@
 	// Function to handle create session button (opens modal)
 	function handleCreateSessionModal(type = 'claude') {
 		openCreateSessionModal(type);
-	}
-
-	// Helper to get user's default workspace using settings service
-	function getUserDefaultWorkspace() {
-		// Try to get from settings first
-		let workspace = settingsService.get('global.defaultWorkspaceDirectory', '');
-
-		// If not configured, try to extract from existing sessions
-		if (!workspace && sessionViewModel?.sessions?.length > 0) {
-			const firstSession = sessionViewModel.sessions[0];
-			workspace = firstSession?.workspacePath || '';
-		}
-
-		// Final fallback to environment workspace root
-		if (!workspace) {
-			workspace = '/workspace'; // Default workspace path
-		}
-
-		return workspace;
 	}
 
 	// Helper to get global default settings for a session type
@@ -446,7 +337,7 @@
 			activeSessionId = id;
 		}
 
-		const index = sessionsList.findIndex((session) => session.id === id);
+		const index = allSessions.findIndex((session) => session.id === id);
 		if (index >= 0) {
 			sessionViewModel?.setMobileSessionIndex?.(index);
 		}
@@ -457,21 +348,21 @@
 	}
 
 	function handleNavigateSession(direction) {
-		if (!sessionsList.length) return;
+		if (!allSessions.length) return;
 
-		const currentIndex = sessionsList.findIndex((session) => session.id === activeSessionId);
+		const currentIndex = allSessions.findIndex((session) => session.id === activeSessionId);
 		const safeIndex = currentIndex >= 0 ? currentIndex : 0;
 
 		if (direction === 'next') {
-			const nextIndex = Math.min(safeIndex + 1, sessionsList.length - 1);
-			const targetSession = sessionsList[nextIndex] ?? sessionsList[safeIndex];
+			const nextIndex = Math.min(safeIndex + 1, allSessions.length - 1);
+			const targetSession = allSessions[nextIndex] ?? allSessions[safeIndex];
 			if (targetSession) {
 				updateActiveSession(targetSession.id);
 			}
 			sessionViewModel?.navigateToNextSession();
 		} else if (direction === 'prev') {
 			const prevIndex = Math.max(safeIndex - 1, 0);
-			const targetSession = sessionsList[prevIndex] ?? sessionsList[safeIndex];
+			const targetSession = allSessions[prevIndex] ?? allSessions[safeIndex];
 			if (targetSession) {
 				updateActiveSession(targetSession.id);
 			}
@@ -486,27 +377,19 @@
 	}
 
 	async function handleSessionClose(sessionId) {
-		const currentSessions = sessionsList;
-		const currentIndex = currentSessions.findIndex((session) => session.id === sessionId);
+		const currentIndex = allSessions.findIndex((session) => session.id === sessionId);
 		const fallbackSession =
-			currentSessions[currentIndex + 1] ?? currentSessions[currentIndex - 1] ?? null;
+			allSessions[currentIndex + 1] ?? allSessions[currentIndex - 1] ?? null;
 
-		// T013: Remove pane before closing session
+		// Remove pane first
 		removeSessionPane(sessionId);
 
-		// Close session in SessionViewModel
-		sessionViewModel.closeSession(sessionId);
+		// Close session
+		await sessionViewModel.closeSession(sessionId);
 
 		if (sessionId === activeSessionId) {
 			updateActiveSession(fallbackSession?.id ?? null);
 		}
-
-		// Save layout after session closes
-		await saveCurrentLayout();
-	}
-
-	function handleSessionAssignToTile(sessionId, tileId) {
-		sessionViewModel.addToLayout(sessionId, tileId);
 	}
 
 	// T011: Pane management for sv-window-manager
@@ -550,52 +433,32 @@
 				component, // Svelte component to render
 				props // Props to pass to component
 			);
-			log.info('Added session to pane:', session.id, sessionType, paneConfig);
+			openPaneIds.add(session.id); // Track open pane
+			log.info('Added session to pane:', session.id, sessionType);
 		} catch (error) {
 			log.error('Failed to add pane for session:', session.id, error);
 		}
 	}
 
-	// T013: Remove pane when session closes
+	// Remove session pane
 	function removeSessionPane(sessionId) {
-		if (!bwinHostRef) {
-			return;
-		}
+		if (!bwinHostRef) return;
 
-		try {
-			// sv-window-manager should handle pane removal via its own API
-			// For now, we rely on the library's internal management
-			// TODO: Check sv-window-manager API for explicit pane removal method
-			log.info('Session closed, pane should be removed by library:', sessionId);
-			bwinHostRef.removePane(sessionId);
-		} catch (error) {
-			log.error('Failed to remove pane:', sessionId, error);
-		}
+		bwinHostRef.removePane(sessionId);
+		openPaneIds.delete(sessionId);
+		log.info('Removed pane:', sessionId);
 	}
 
 	function handleSessionCreate(detail) {
-		const { id, type, workspacePath } = detail;
-		if (!id || !type || !workspacePath) return;
+		const { id, type } = detail;
+		if (!id || !type) return;
 
-		// Session is ALREADY in sessionViewModel.sessions
-		// (because CreateSessionModal now calls sessionViewModel.createSession)
+		// Get session from ViewModel
 		const session = sessionViewModel.getSession(id);
+		if (!session) return;
 
-		if (!session) {
-			log.error('Session not found after creation:', id);
-			return;
-		}
-
-		log.info('Session created, adding to pane:', {
-			id,
-			type,
-			workspacePath
-		});
-
-		// Add to pane immediately (session is already in state)
+		// Add pane
 		addSessionToPane(session);
-
-		// Update active session
 		updateActiveSession(id);
 
 		// Close local create session modal if open
@@ -613,23 +476,56 @@
 		activeModal = null;
 	}
 
+	// Restore saved sessions when BwinHost and sessionViewModel are ready
+	$effect(() => {
+		if (!bwinHostRef || !sessionViewModel) return;
 
-	// Save layout when user explicitly closes a session
-	async function saveCurrentLayout() {
-		const defaultWorkspace = getUserDefaultWorkspace();
-		if (defaultWorkspace && bwinHostRef && sessionsList.length > 0) {
-			try {
-				await workspaceLayoutService.saveWorkspaceLayout(
-					defaultWorkspace,
-					bwinHostRef,
-					sessionsList
-				);
-				log.info('Saved workspace layout');
-			} catch (error) {
-				log.error('Failed to save layout:', error);
-			}
+		// Load session IDs from localStorage
+		const savedSessionIds = localStorage.getItem('dispatch-session-ids');
+		if (!savedSessionIds) {
+			log.info('No saved session IDs found');
+			return;
 		}
-	}
+
+		// Restore sessions asynchronously
+		(async () => {
+			try {
+				const sessionIds = JSON.parse(savedSessionIds);
+				log.info('Restoring sessions:', sessionIds);
+
+				// Use for...of instead of forEach to properly await each operation
+				for (const sessionId of sessionIds) {
+					// Check if session is already loaded
+					let session = sessionViewModel.getSession(sessionId);
+
+					if (!session) {
+						// Session not loaded - try to resume it
+						log.info('Resuming session:', sessionId);
+						try {
+							await sessionViewModel.resumeSession(sessionId);
+							// Reload sessions to pick up the resumed session
+							await sessionViewModel.loadSessions();
+							session = sessionViewModel.getSession(sessionId);
+							log.info('Successfully resumed session:', sessionId);
+						} catch (error) {
+							log.warn('Failed to resume session:', sessionId, error.message);
+							continue;  // Skip to next session
+						}
+					}
+
+					// Add pane for restored/resumed session
+					if (session && !openPaneIds.has(sessionId)) {
+						log.info('Adding session to pane:', sessionId);
+						addSessionToPane(session);
+					}
+				}
+
+				log.info('Session restoration complete');
+			} catch (error) {
+				log.error('Failed to restore sessions:', error);
+			}
+		})();
+	});
 </script>
 
 <Shell>
@@ -669,15 +565,15 @@
 						}}
 						onSessionSelected={async (e) => {
 							const selectedId = e.detail?.id;
-							if (selectedId) {
-								updateActiveSession(selectedId);
+							if (!selectedId) return;
+
+							// Add pane for this session if not already open
+							const session = sessionViewModel.getSession(selectedId);
+							if (session && !openPaneIds.has(selectedId)) {
+								addSessionToPane(session);
 							}
 
-							try {
-								await sessionViewModel.handleSessionSelected(e.detail);
-							} catch {
-								// Session resume failed - error is logged by sessionViewModel
-							}
+							updateActiveSession(selectedId);
 							sessionMenuOpen = false;
 						}}
 					/>

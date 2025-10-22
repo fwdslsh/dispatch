@@ -81,10 +81,13 @@
 		try {
 			// Create the session using SessionViewModel (NOT sessionApi directly)
 			// This ensures the session is immediately added to sessionViewModel.sessions
+			// Pass cwd in options for adapters to use
 			const session = await sessionViewModel.createSession({
 				type: sessionType,
-				workspacePath,
-				options: sessionSettings
+				options: {
+					...sessionSettings,
+					cwd: workspacePath  // Adapters use cwd from options
+				}
 			});
 
 			if (!session) {
@@ -95,7 +98,6 @@
 				oncreated({
 					id: session.id,
 					type: sessionType,
-					workspacePath,
 					typeSpecificId: session.typeSpecificId
 				});
 			}
