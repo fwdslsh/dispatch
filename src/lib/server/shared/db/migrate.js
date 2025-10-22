@@ -585,10 +585,55 @@ export function createMigrationManager(database) {
 		)
 	);
 
+	// Migration 3: Enhanced workspace layout persistence
+	manager.registerMigration(
+		new Migration(
+			3,
+			'Enhanced workspace layout - pane configurations and window state',
+			[
+				// Create workspace_panes table for storing pane configurations
+				`CREATE TABLE IF NOT EXISTS workspace_panes (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					workspace_path TEXT NOT NULL,
+					session_id TEXT NOT NULL,
+					session_type TEXT NOT NULL,
+					pane_config_json TEXT,
+					pane_order INTEGER DEFAULT 0,
+					created_at INTEGER NOT NULL,
+					updated_at INTEGER NOT NULL,
+					FOREIGN KEY (workspace_path) REFERENCES workspaces(path) ON DELETE CASCADE,
+					UNIQUE(workspace_path, session_id)
+				)`,
+
+				// Create workspace_window_state table for storing complete BwinHost state
+				`CREATE TABLE IF NOT EXISTS workspace_window_state (
+					workspace_path TEXT PRIMARY KEY,
+					window_state_json TEXT NOT NULL,
+					created_at INTEGER NOT NULL,
+					updated_at INTEGER NOT NULL,
+					FOREIGN KEY (workspace_path) REFERENCES workspaces(path) ON DELETE CASCADE
+				)`,
+
+				// Create indexes for workspace_panes
+				'CREATE INDEX IF NOT EXISTS ix_workspace_panes_workspace ON workspace_panes(workspace_path)',
+				'CREATE INDEX IF NOT EXISTS ix_workspace_panes_session ON workspace_panes(session_id)',
+				'CREATE INDEX IF NOT EXISTS ix_workspace_panes_order ON workspace_panes(workspace_path, pane_order)'
+			],
+			[
+				// Rollback: Drop indexes and tables in reverse order
+				'DROP INDEX IF EXISTS ix_workspace_panes_order',
+				'DROP INDEX IF EXISTS ix_workspace_panes_session',
+				'DROP INDEX IF EXISTS ix_workspace_panes_workspace',
+				'DROP TABLE IF EXISTS workspace_window_state',
+				'DROP TABLE IF EXISTS workspace_panes'
+			]
+		)
+	);
+
 	// Future migrations can be added here as new Migration instances
 	// Example:
 	// manager.registerMigration(new Migration(
-	//     3,
+	//     4,
 	//     'Add workspace templates table',
 	//     'CREATE TABLE workspace_templates (...)',
 	//     'DROP TABLE workspace_templates'

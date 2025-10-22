@@ -56,11 +56,9 @@
 <style>
 	/* Component-specific sizing only */
 	.workspace-header {
-		min-height: 56px;
+
 		display: flex;
 		align-items: center;
-		padding: var(--space-3) var(--space-4);
-		padding-block: 0;
 		gap: var(--space-3);
 	}
 

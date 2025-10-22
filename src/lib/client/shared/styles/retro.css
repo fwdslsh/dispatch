@@ -196,6 +196,9 @@ textarea {
 	position: relative;
 }
 
+[data-augmented-ui] textarea{
+	border: none;
+}
 /* Enhanced placeholder styling for better visual hierarchy */
 input::placeholder,
 textarea::placeholder,

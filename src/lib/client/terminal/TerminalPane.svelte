@@ -219,14 +219,18 @@
 	}
 
 	.terminal-container {
+		display: flex;
+		flex-direction: column;
 		flex: 1;
 		width: 100%;
+		height: 100%;
 		min-height: 0;
-		overflow: auto;
+		overflow: hidden;
 		position: relative;
 	}
 
 	.xterm-container {
+		display: flex;
 		flex: 1;
 		width: 100%;
 		height: 100%;
@@ -245,7 +249,7 @@
 	}
 
 	.terminal-container :global(.xterm .xterm-screen) {
-		width: 100% !important;
+		
 		height: 100% !important;
 	}
 

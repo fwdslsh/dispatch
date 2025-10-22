@@ -77,10 +77,7 @@
 		min-height: 60px;
 		max-height: 200px;
 		padding: var(--space-3);
-		padding-right: var(--space-7);
 		background: color-mix(in oklab, var(--surface) 85%, var(--bg));
-		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: var(--radius-lg);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 		line-height: 1.4;
@@ -95,14 +92,14 @@
 
 	.message-input:focus {
 		outline: none;
-		border-color: var(--primary);
 		background: color-mix(in oklab, var(--surface) 90%, var(--bg));
+		/* border-color: var(--primary);
 		box-shadow:
 			0 8px 32px -12px var(--primary-glow),
 			inset 0 2px 4px color-mix(in oklab, var(--primary) 10%, transparent),
 			0 0 0 4px var(--primary-glow-20);
 		text-shadow: 0 0 2px var(--primary-glow-10);
-		transform: translateY(-1px);
+		transform: translateY(-1px); */
 	}
 
 	.message-input::placeholder {

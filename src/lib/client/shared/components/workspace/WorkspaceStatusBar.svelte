@@ -124,13 +124,12 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 0.4rem 0.6rem;
-		padding-block: 0;
+
 		box-sizing: border-box;
 		width: 100%;
 		max-width: 100svw;
-		background: var(--bg-panel);
-		border-top: 1px solid var(--primary-dim);
+		/* background: var(--bg-panel);
+		border-top: 1px solid var(--primary-dim); */
 	}
 
 	.status-bar-group {
