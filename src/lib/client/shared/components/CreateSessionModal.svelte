@@ -23,7 +23,7 @@
 	let workspacePath = $state('');
 	let loading = $state(false);
 	let error = $state(null);
-	let sessionApi = $state(null);
+	let sessionViewModel = $state(null);
 	// eslint-disable-next-line svelte/prefer-writable-derived -- sessionSettings is reset in multiple effects, not derived from single source
 	let sessionSettings = $state({});
 
@@ -32,27 +32,25 @@
 		sessionSettings = {};
 	});
 
-	// Get API client from service container
+	// Get SessionViewModel from service container
 	$effect(() => {
-		// Get the service container and initialize the API client
+		// Get the service container and initialize the SessionViewModel
 		try {
 			const container = useServiceContainer();
-			const maybePromise = container.get('sessionApi');
+			const maybePromise = container.get('sessionViewModel');
 			if (maybePromise && typeof maybePromise.then === 'function') {
 				maybePromise
-					.then((api) => {
-						sessionApi = api;
+					.then((viewModel) => {
+						sessionViewModel = viewModel;
 					})
 					.catch((error) => {
-						console.error('Failed to get sessionApi from service container:', error);
-						// Don't fall back to static import - let the service container handle it
+						console.error('Failed to get sessionViewModel from service container:', error);
 					});
 			} else {
-				sessionApi = maybePromise;
+				sessionViewModel = maybePromise;
 			}
 		} catch (e) {
 			console.error('Failed to access service container:', e);
-			// Don't fall back to static import - service container should be available
 		}
 	});
 
@@ -72,8 +70,8 @@
 			return;
 		}
 
-		if (!sessionApi) {
-			error = 'API client not initialized';
+		if (!sessionViewModel) {
+			error = 'SessionViewModel not initialized';
 			return;
 		}
 
@@ -81,12 +79,17 @@
 		error = null;
 
 		try {
-			// Create the session using SessionApiClient
-			const session = await sessionApi.create({
+			// Create the session using SessionViewModel (NOT sessionApi directly)
+			// This ensures the session is immediately added to sessionViewModel.sessions
+			const session = await sessionViewModel.createSession({
 				type: sessionType,
 				workspacePath,
 				options: sessionSettings
 			});
+
+			if (!session) {
+				throw new Error('Session creation failed');
+			}
 
 			if (oncreated) {
 				oncreated({

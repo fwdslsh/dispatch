@@ -234,4 +234,112 @@ export class WorkspaceRepository {
 			status: 'active' // Workspaces don't have explicit status in schema yet
 		};
 	}
+
+	/**
+	 * Save pane configuration for a workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @param {string} sessionId - Session/pane ID
+	 * @param {string} sessionType - Session type (pty, claude, file-editor)
+	 * @param {Object} paneConfig - Pane configuration object
+	 * @param {number} paneOrder - Order in which pane was added
+	 * @returns {Promise<void>}
+	 */
+	async savePaneConfig(workspacePath, sessionId, sessionType, paneConfig, paneOrder = 0) {
+		const now = Date.now();
+		const paneConfigJson = JSON.stringify(paneConfig || {});
+
+		await this.#db.run(
+			`INSERT OR REPLACE INTO workspace_panes
+			 (workspace_path, session_id, session_type, pane_config_json, pane_order, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			[workspacePath, sessionId, sessionType, paneConfigJson, paneOrder, now, now]
+		);
+	}
+
+	/**
+	 * Get all pane configurations for a workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @returns {Promise<Array>} Array of pane configurations
+	 */
+	async getPaneConfigs(workspacePath) {
+		const rows = await this.#db.all(
+			`SELECT session_id, session_type, pane_config_json, pane_order
+			 FROM workspace_panes
+			 WHERE workspace_path = ?
+			 ORDER BY pane_order ASC`,
+			[workspacePath]
+		);
+
+		return rows.map((row) => ({
+			sessionId: row.session_id,
+			sessionType: row.session_type,
+			paneConfig: JSON.parse(row.pane_config_json || '{}'),
+			paneOrder: row.pane_order
+		}));
+	}
+
+	/**
+	 * Remove pane configuration
+	 * @param {string} workspacePath - Workspace path
+	 * @param {string} sessionId - Session/pane ID
+	 * @returns {Promise<void>}
+	 */
+	async removePaneConfig(workspacePath, sessionId) {
+		await this.#db.run(
+			`DELETE FROM workspace_panes WHERE workspace_path = ? AND session_id = ?`,
+			[workspacePath, sessionId]
+		);
+	}
+
+	/**
+	 * Clear all pane configurations for a workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @returns {Promise<void>}
+	 */
+	async clearPaneConfigs(workspacePath) {
+		await this.#db.run(`DELETE FROM workspace_panes WHERE workspace_path = ?`, [workspacePath]);
+	}
+
+	/**
+	 * Save complete window state for a workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @param {Object} windowState - Complete BwinHost state from getInfo()
+	 * @returns {Promise<void>}
+	 */
+	async saveWindowState(workspacePath, windowState) {
+		const now = Date.now();
+		const windowStateJson = JSON.stringify(windowState || {});
+
+		await this.#db.run(
+			`INSERT OR REPLACE INTO workspace_window_state
+			 (workspace_path, window_state_json, created_at, updated_at)
+			 VALUES (?, ?, ?, ?)`,
+			[workspacePath, windowStateJson, now, now]
+		);
+	}
+
+	/**
+	 * Get window state for a workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @returns {Promise<Object|null>} Window state object or null
+	 */
+	async getWindowState(workspacePath) {
+		const row = await this.#db.get(
+			`SELECT window_state_json FROM workspace_window_state WHERE workspace_path = ?`,
+			[workspacePath]
+		);
+
+		return row ? JSON.parse(row.window_state_json) : null;
+	}
+
+	/**
+	 * Clear window state for a workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @returns {Promise<void>}
+	 */
+	async clearWindowState(workspacePath) {
+		await this.#db.run(`DELETE FROM workspace_window_state WHERE workspace_path = ?`, [
+			workspacePath
+		]);
+	}
 }
