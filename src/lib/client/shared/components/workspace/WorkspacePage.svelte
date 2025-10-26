@@ -12,7 +12,7 @@
 		getComponentForSessionType,
 		getClientSessionModule
 	} from '$lib/client/shared/session-modules/index.js';
-	import { BwinHost } from 'sv-window-manager';
+	import { BinaryWindow } from 'sv-window-manager';
 
 	let windowManagerLoadError = $state(null);
 
@@ -427,11 +427,17 @@
 		const props = module?.prepareProps ? module.prepareProps(session) : { sessionId: session.id };
 
 		try {
+			// New sv-window-manager signature: addPane(targetSashId, paneProps)
 			bwinHostRef.addPane(
-				session.id, // Use sessionId as pane ID
-				paneConfig, // Use saved pane config or defaults
-				component, // Svelte component to render
-				props // Props to pass to component
+				'root', // Target sash to split (use 'root' for main container)
+				{
+					id: session.id, // Custom ID for the new pane
+					position: paneConfig.position || 'right', // Default to right split
+					title: paneConfig.title || `${sessionType} - ${session.id}`, // Pane title
+					component: component, // Svelte component to render
+					componentProps: props, // Props to pass to component
+					size: paneConfig.size // Optional size (e.g., '50%', '300px')
+				}
 			);
 			openPaneIds.add(session.id); // Track open pane
 			log.info('Added session to pane:', session.id, sessionType);
@@ -608,7 +614,7 @@
 					</div>
 				</div>
 			{:else if isWindowManagerView}
-				<BwinHost bind:this={bwinHostRef} config={{ fitContainer: true }} />
+				<BinaryWindow bind:this={bwinHostRef} settings={{ id: 'root', fitContainer: true }} />
 			{:else}
 				<SingleSessionView
 					session={selectedSingleSession}
