@@ -23,10 +23,10 @@ export class ClaudeAdapter {
 		// Lazy load Claude Code SDK
 		let query;
 		try {
-			const claudeCode = await import('@anthropic-ai/claude-code');
+			const claudeCode = await import("@anthropic-ai/claude-agent-sdk");
 			query = claudeCode.query;
 		} catch (error) {
-			logger.error('CLAUDE_ADAPTER', 'Failed to load @anthropic-ai/claude-code:', error);
+			logger.error('CLAUDE_ADAPTER', 'Failed to load @anthropic-ai/claude-agent-sdk:', error);
 			throw new Error(`Claude Code functionality not available: ${error.message}`);
 		}
 

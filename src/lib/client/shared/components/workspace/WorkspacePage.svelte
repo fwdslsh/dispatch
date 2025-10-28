@@ -378,8 +378,7 @@
 
 	async function handleSessionClose(sessionId) {
 		const currentIndex = allSessions.findIndex((session) => session.id === sessionId);
-		const fallbackSession =
-			allSessions[currentIndex + 1] ?? allSessions[currentIndex - 1] ?? null;
+		const fallbackSession = allSessions[currentIndex + 1] ?? allSessions[currentIndex - 1] ?? null;
 
 		// Remove pane first
 		removeSessionPane(sessionId);
@@ -515,7 +514,7 @@
 							log.info('Successfully resumed session:', sessionId);
 						} catch (error) {
 							log.warn('Failed to resume session:', sessionId, error.message);
-							continue;  // Skip to next session
+							continue; // Skip to next session
 						}
 					}
 
@@ -587,44 +586,41 @@
 			</div>
 		{/if}
 
-		<!-- Main Content -->
-		<div class="workspace-content">
-			{#if windowManagerLoadError}
-				<!-- T001a: Error UI when sv-window-manager fails to load -->
-				<div class="window-manager-error">
-					<div class="error-content surface-raised border border-danger radius p-4">
-						<h2 class="text-danger mb-2">Window Manager Load Error</h2>
-						<p class="text-muted mb-3">
-							Failed to load the sv-window-manager library. Workspace operations are unavailable
-							until this is resolved.
-						</p>
-						<details>
-							<summary class="cursor-pointer text-sm opacity-70">Error Details</summary>
-							<pre
-								class="mt-2 p-2 surface radius text-xs overflow-auto">{windowManagerLoadError}</pre>
-						</details>
-						<div class="mt-4 flex gap-2">
-							<button class="btn-primary" onclick={() => window.location.reload()}>
-								Reload Page
-							</button>
-							<button class="btn-secondary" onclick={() => goto('/settings')}>
-								Go to Settings
-							</button>
-						</div>
+		{#if windowManagerLoadError}
+			<!-- T001a: Error UI when sv-window-manager fails to load -->
+			<div class="window-manager-error">
+				<div class="error-content surface-raised border border-danger radius p-4">
+					<h2 class="text-danger mb-2">Window Manager Load Error</h2>
+					<p class="text-muted mb-3">
+						Failed to load the sv-window-manager library. Workspace operations are unavailable until
+						this is resolved.
+					</p>
+					<details>
+						<summary class="cursor-pointer text-sm opacity-70">Error Details</summary>
+						<pre
+							class="mt-2 p-2 surface radius text-xs overflow-auto">{windowManagerLoadError}</pre>
+					</details>
+					<div class="mt-4 flex gap-2">
+						<button class="btn-primary" onclick={() => window.location.reload()}>
+							Reload Page
+						</button>
+						<button class="btn-secondary" onclick={() => goto('/settings')}>
+							Go to Settings
+						</button>
 					</div>
 				</div>
-			{:else if isWindowManagerView}
-				<BinaryWindow bind:this={bwinHostRef} settings={{ id: 'root', fitContainer: true }} />
-			{:else}
-				<SingleSessionView
-					session={selectedSingleSession}
-					sessionIndex={currentSessionIndex}
-					onSessionFocus={handleSessionFocus}
-					onSessionClose={handleSessionClose}
-					onCreateSession={handleCreateSession}
-				/>
-			{/if}
-		</div>
+			</div>
+		{:else if isWindowManagerView}
+			<BinaryWindow bind:this={bwinHostRef} settings={{ id: 'root', fitContainer: true }} />
+		{:else}
+			<SingleSessionView
+				session={selectedSingleSession}
+				sessionIndex={currentSessionIndex}
+				onSessionFocus={handleSessionFocus}
+				onSessionClose={handleSessionClose}
+				onCreateSession={handleCreateSession}
+			/>
+		{/if}
 	</div>
 
 	{#snippet footer()}
@@ -713,23 +709,12 @@
 		--bw-minimized-glass-height: 10px;
 		--bw-minimized-glass-basis: 10%;
 
-		:global(.bw-glass-action){
+		:global(.bw-glass-action) {
 			background: transparent;
 			border: none;
 			color: var(--primary);
 		}
 	}
-	/* Workspace-specific layout */
-	/* .dispatch-workspace {
-		position: relative;
-		display: grid;
-		overflow: hidden;
-		height: stretch;
-		width: stretch;
-		.workspace-content {
-			overflow: hidden;
-		}
-	} */
 
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {

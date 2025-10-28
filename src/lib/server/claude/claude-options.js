@@ -58,7 +58,9 @@ export function buildClaudeOptions(options = {}) {
 		mcpServers: mcpServers ? { ...mcpServers } : {},
 		hooks: hooks ? { ...hooks } : {},
 		includePartialMessages: includePartialMessages ?? false,
-		env: mergedEnv
+		env: mergedEnv,
+		systemPrompt: { type: "preset", preset: "claude_code" },
+		settingSources: ["user", "project", "local"]
 	};
 }
 
