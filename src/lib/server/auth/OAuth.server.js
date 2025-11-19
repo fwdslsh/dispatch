@@ -6,6 +6,7 @@
 import { logger } from '../shared/utils/logger.js';
 import { randomBytes } from 'crypto';
 import { encryptionService } from '../shared/EncryptionService.js';
+import { config } from '../config/environment.js';
 // import { AuthProvider } from '../../shared/auth-types.js';
 
 /**
@@ -309,19 +310,16 @@ export class OAuthManager {
 	 * Build authorization URL for OAuth provider
 	 * @private
 	 */
-	buildAuthorizationUrl(provider, config, state, customRedirectUri) {
-		let redirectUri = customRedirectUri || config.redirectUri;
+	buildAuthorizationUrl(provider, providerConfig, state, customRedirectUri) {
+		let redirectUri = customRedirectUri || providerConfig.redirectUri;
 
 		if (!redirectUri.startsWith('http')) {
-			// prepend with the current protocol and host
-			// In production, this should use the actual domain
-			// For now, use a placeholder that will be replaced by environment config
-			const baseUrl = 'https://localhost:5173'; // Replace with actual base URL in production
-			redirectUri = new URL(redirectUri, baseUrl).toString();
+			// Prepend with the configured base URL
+			redirectUri = new URL(redirectUri, config.baseUrl).toString();
 		}
 
 		const params = new URLSearchParams({
-			client_id: config.clientId,
+			client_id: providerConfig.clientId,
 			redirect_uri: redirectUri,
 			state,
 			scope: this.getProviderScopes(provider)

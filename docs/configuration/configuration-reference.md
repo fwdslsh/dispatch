@@ -36,6 +36,7 @@ These variables control core container and deployment behavior:
 | ----------------- | ------------------------------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
 | **TERMINAL_KEY**  | `testkey12345` (dev), `change-me-to-a-strong-password` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
 | **ENCRYPTION_KEY** | `none` (dev - WARNING: insecure), **REQUIRED** (prod) | **Container/Host** | Container Environment | AES-256-GCM master key for encrypting OAuth secrets | No - requires restart |
+| **PUBLIC_BASE_URL** | Auto-detected (dev), **REQUIRED** (prod) | **Container/Host** | Container Environment | Public base URL for OAuth redirects (e.g., `https://dispatch.example.com`) | No - requires restart |
 | **PORT**          | `3030`                                                        | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
 | **ENABLE_TUNNEL** | `false`                                                       | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
 | **LT_SUBDOMAIN**  | `''`                                                          | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |
