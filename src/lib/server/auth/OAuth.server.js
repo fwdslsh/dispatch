@@ -5,6 +5,7 @@
 
 import { logger } from '../shared/utils/logger.js';
 import { randomBytes } from 'crypto';
+import { encryptionService } from '../shared/EncryptionService.js';
 // import { AuthProvider } from '../../shared/auth-types.js';
 
 /**
@@ -63,7 +64,7 @@ export class OAuthManager {
 				name: provider,
 				enabled: config.enabled || false,
 				clientId: config.clientId || null,
-				clientSecret: config.clientSecret || null, // Only used server-side
+				clientSecret: config.clientSecret ? encryptionService.decrypt(config.clientSecret) : null, // Decrypted for server-side use
 				redirectUri: config.redirectUri || this.getDefaultRedirectUri(provider),
 				displayName: this.getProviderDisplayName(provider)
 			};
@@ -222,10 +223,20 @@ export class OAuthManager {
 			const settings = await this.settingsManager.getByCategory('oauth');
 			const providers = settings?.providers || {};
 
+			// Warn if encryption is unavailable
+			if (!encryptionService.isAvailable()) {
+				logger.warn(
+					'OAUTH',
+					`Storing ${provider} client secret in PLAINTEXT. Set ENCRYPTION_KEY for production!`
+				);
+			}
+
 			providers[provider] = {
 				enabled: true,
 				clientId,
-				clientSecret, // TODO: Encrypt in production
+				clientSecret: encryptionService.isAvailable()
+				? encryptionService.encrypt(clientSecret)
+				: clientSecret, // Encrypted at rest
 				redirectUri: redirectUri || this.getDefaultRedirectUri(provider),
 				updatedAt: Date.now()
 			};
