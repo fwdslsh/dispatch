@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { stat, readdir, mkdir, copyFile, access } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { constants } from 'node:fs';
+import { BadRequestError, NotFoundError, ForbiddenError, ConflictError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
@@ -59,11 +60,11 @@ export async function POST({ request }) {
 		const { sourcePath, targetPath, overwrite = false } = await request.json();
 
 		if (!sourcePath) {
-			return json({ error: 'Source path is required' }, { status: 400 });
+			throw new BadRequestError('Source path is required', 'MISSING_SOURCE_PATH');
 		}
 
 		if (!targetPath) {
-			return json({ error: 'Target path is required' }, { status: 400 });
+			throw new BadRequestError('Target path is required', 'MISSING_TARGET_PATH');
 		}
 
 		// Resolve and validate paths
@@ -71,22 +72,22 @@ export async function POST({ request }) {
 		const resolvedTarget = resolve(targetPath);
 
 		if (!isPathAllowed(resolvedSource)) {
-			return json({ error: 'Access denied to source directory' }, { status: 403 });
+			throw new ForbiddenError('Access denied to source directory');
 		}
 
 		if (!isPathAllowed(resolvedTarget)) {
-			return json({ error: 'Access denied to target location' }, { status: 403 });
+			throw new ForbiddenError('Access denied to target location');
 		}
 
 		// Validate source exists and is a directory
 		try {
 			const sourceStat = await stat(resolvedSource);
 			if (!sourceStat.isDirectory()) {
-				return json({ error: 'Source path is not a directory' }, { status: 400 });
+				throw new BadRequestError('Source path is not a directory', 'NOT_A_DIRECTORY');
 			}
 		} catch (error) {
 			if (error.code === 'ENOENT') {
-				return json({ error: 'Source directory does not exist' }, { status: 404 });
+				throw new NotFoundError('Source directory does not exist');
 			}
 			throw error;
 		}
@@ -95,7 +96,7 @@ export async function POST({ request }) {
 		try {
 			await access(resolvedTarget, constants.F_OK);
 			if (!overwrite) {
-				return json({ error: 'Target directory already exists' }, { status: 409 });
+				throw new ConflictError('Target directory already exists');
 			}
 		} catch (_error) {
 			// Target doesn't exist, which is what we want (unless overwrite is enabled)
@@ -106,18 +107,12 @@ export async function POST({ request }) {
 		try {
 			await access(targetParent, constants.W_OK);
 		} catch (_error) {
-			return json(
-				{ error: 'Target parent directory does not exist or is not writable' },
-				{ status: 403 }
-			);
+			throw new ForbiddenError('Target parent directory does not exist or is not writable');
 		}
 
 		// Prevent copying a directory into itself or a subdirectory
 		if (resolvedTarget.startsWith(resolvedSource + '/') || resolvedTarget === resolvedSource) {
-			return json(
-				{ error: 'Cannot copy directory into itself or its subdirectory' },
-				{ status: 400 }
-			);
+			throw new BadRequestError('Cannot copy directory into itself or its subdirectory', 'INVALID_TARGET');
 		}
 
 		// Perform the directory copy
@@ -129,8 +124,7 @@ export async function POST({ request }) {
 			targetPath: resolvedTarget,
 			message: 'Directory cloned successfully'
 		});
-	} catch (error) {
-		console.error('Directory clone error:', error);
-		return json({ error: error.message || 'Failed to clone directory' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/browse/clone');
 	}
 }
