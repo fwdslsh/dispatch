@@ -678,6 +678,13 @@ validateRequiredFields(body, ['field1', 'field2']);
 - 🚧 Phase 2: 4/25 routes - In progress (16%)
 - ⏳ Phase 3: 0/18 routes
 
+**⚠️ CRITICAL BUG FIX (2025-01-19)**:
+**Issue**: Session DELETE endpoint was crashing due to error validation outside try-catch block
+**Root Cause**: `BadRequestError` for missing `runId` parameter was thrown outside the try-catch block in `DELETE /api/sessions`, preventing proper error handling by `handleApiError()`
+**Fix**: Moved `runId` validation inside try-catch block (commit: 0c9c027)
+**Impact**: Prevents unhandled errors and ensures consistent error responses
+**Lesson Learned**: ALL validation and error throwing must occur inside try-catch blocks when using `handleApiError()` pattern
+
 **Migration Details**:
 
 **Completed Routes**:
@@ -685,6 +692,7 @@ validateRequiredFields(body, ['field1', 'field2']);
    - Replaced manual error responses with error classes
    - Added error codes: INVALID_SESSION_TYPE, PTY_UNAVAILABLE, CLAUDE_UNAVAILABLE, UNSUPPORTED_SESSION_TYPE, MISSING_RUN_ID, MISSING_LAYOUT_PARAMS, MISSING_CLIENT_ID, INVALID_ACTION
    - Reduced error handling code: 66 → 51 lines
+   - ⚠️ CRITICAL FIX (commit 0c9c027): Moved validation inside try-catch in DELETE handler to prevent crashes
 
 2. `/api/workspaces` (2 handlers: GET, POST):
    - Replaced SvelteKit error() calls with error classes
