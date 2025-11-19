@@ -8,6 +8,8 @@ import { homedir } from 'node:os';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { logger } from '$lib/server/shared/utils/logger.js';
+import { handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * GET - Retrieve server environment information
@@ -29,7 +31,7 @@ export async function GET() {
 			const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 			appVersion = packageJson.version;
 		} catch (error) {
-			console.warn('[API] Failed to read app version from package.json:', error.message);
+			logger.warn('ENVIRONMENT_API', 'Failed to read app version from package.json', { error: error.message });
 		}
 
 		return json({
@@ -39,8 +41,7 @@ export async function GET() {
 			nodeVersion: process.version,
 			appVersion
 		});
-	} catch (error) {
-		console.error('[API] Failed to get environment information:', error);
-		return json({ error: 'Failed to get environment information' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/environment');
 	}
 }
