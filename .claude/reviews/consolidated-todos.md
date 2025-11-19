@@ -673,9 +673,12 @@ validateRequiredFields(body, ['field1', 'field2']);
 2. `src/routes/api/sessions/+server.js` - Migrated (✅ Phase 1)
 3. `src/routes/api/workspaces/+server.js` - Migrated (✅ Phase 1)
 
-**Migration Progress**: 22 / 55 routes completed (40%)
+**Migration Progress**: 23 / 55 routes completed (42%)
 - ✅ Phase 1: 11/12 routes - Nearly complete! (92%)
-- 🚧 Phase 2: 11/25 routes - In progress (44%)
+- 🚧 Phase 2: 12/26 routes - In progress (46%)
+  - ✅ Settings: 4/4 routes complete
+  - ✅ Claude: 8/8 routes complete
+  - ⏳ Git: 0/14 routes
 - ⏳ Phase 3: 0/18 routes
 
 **⚠️ CRITICAL BUG FIX (2025-01-19)**:
@@ -754,59 +757,66 @@ validateRequiredFields(body, ['field1', 'field2']);
    - Consistent error handling across all handlers
    - Removed console.error, using handleApiError for standardization
 
-12. `/api/settings/workspace` (3 handlers: GET, POST, DELETE):
+12. `/api/settings` (2 handlers: GET, OPTIONS):
+   - Main settings endpoint for retrieving all or category-filtered settings
+   - Wrapped in try-catch with handleApiError
+   - Uses UnauthorizedError for authentication
+   - Proper CORS handling in OPTIONS handler
+   - Cache-Control headers for settings freshness
+
+13. `/api/settings/workspace` (3 handlers: GET, POST, DELETE):
    - Wrapped all handlers in try-catch with handleApiError
    - Added validation for environment variables (name format, value type)
    - Error codes: INVALID_ENV_FORMAT, INVALID_ENV_NAME, INVALID_ENV_VALUE
    - Consistent error handling across workspace settings operations
 
-13. `/api/settings/[category]` (2 handlers: PUT, OPTIONS):
+14. `/api/settings/[category]` (2 handlers: PUT, OPTIONS):
    - Replaced manual error responses with error classes
    - Added error codes: INVALID_SETTINGS_OBJECT
    - Proper CORS handling in OPTIONS handler
    - Consistent error logging with context
 
-14. `/api/settings/oauth` (handler details from commit 4d6c44b):
+15. `/api/settings/oauth` (handler details from commit 4d6c44b):
    - Refactored to use standardized error handling
    - Consistent with other settings routes
    - Part of Phase 2 settings migration group
 
-15. `/api/claude/auth` (handler from commit 37de68a):
+16. `/api/claude/auth` (handler from commit 37de68a):
    - Refactored to use standardized error handling
    - Part of Phase 2 Claude integration group
    - Consistent error responses for Claude authentication
 
-16. `/api/claude/session/[id]` (handler from commit 37de68a):
+17. `/api/claude/session/[id]` (handler from commit 37de68a):
    - Refactored to use standardized error handling
    - Part of Phase 2 Claude integration group
    - Consistent error handling for Claude session management
 
-17. `/api/claude/projects` (1 handler: GET):
+18. `/api/claude/projects` (1 handler: GET):
    - Wrapped handler in try-catch with handleApiError
    - Lists all Claude projects with session counts
    - Consistent error handling for project enumeration
 
-18. `/api/claude/sessions/[project]` (1 handler: GET):
+19. `/api/claude/sessions/[project]` (1 handler: GET):
    - Replaced SvelteKit error() with NotFoundError
    - Lists sessions for specific project
    - Proper 404 handling for missing projects
 
-19. `/api/claude/sessions/[project]/[id]` (1 handler: GET):
+20. `/api/claude/sessions/[project]/[id]` (1 handler: GET):
    - Replaced error(404) with NotFoundError
    - Session detail retrieval with JSONL parsing
    - Consistent error handling for session not found
 
-20. `/api/claude/projects/[project]/sessions` (1 handler: GET):
+21. `/api/claude/projects/[project]/sessions` (1 handler: GET):
    - Replaced error(404) with NotFoundError
    - Alternative endpoint for project session listing
    - Duplicate route with consistent error handling
 
-21. `/api/claude/sessions/[project]/[id]/peek` (1 handler: GET):
+22. `/api/claude/sessions/[project]/[id]/peek` (1 handler: GET):
    - Replaced error(404) with NotFoundError
    - Head/tail preview of session content
    - Supports both forward and tail reading modes
 
-22. `/api/claude/projects/[project]/sessions/[id]/head` (1 handler: GET):
+23. `/api/claude/projects/[project]/sessions/[id]/head` (1 handler: GET):
    - Replaced error(404) with NotFoundError
    - Efficient session content preview with streaming
    - 512KB max buffer for responsive previews
@@ -822,7 +832,7 @@ validateRequiredFields(body, ['field1', 'field2']);
 - [x] ApiError classes created
 - [x] handleApiError utility implemented
 - [x] Validation helper functions created
-- [ ] All API routes refactored to use utility (22/55 complete - 40%)
+- [ ] All API routes refactored to use utility (23/55 complete - 42%)
 - [ ] Consistent error response format across all routes
 - [ ] All errors logged with proper context and levels
 - [ ] Integration tests verify error handling
