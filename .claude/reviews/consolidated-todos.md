@@ -670,6 +670,27 @@ validateRequiredFields(body, ['field1', 'field2']);
 
 **Files Modified**:
 1. `src/lib/server/shared/utils/api-errors.js` - Created (280 lines)
+2. `src/routes/api/sessions/+server.js` - Migrated (✅ Phase 1)
+3. `src/routes/api/workspaces/+server.js` - Migrated (✅ Phase 1)
+
+**Migration Progress**: 2 / 55 routes completed (4%)
+- ✅ Phase 1: 2/12 routes (sessions, workspaces)
+- ⏳ Phase 2: 0/25 routes
+- ⏳ Phase 3: 0/18 routes
+
+**Migration Details**:
+
+**Completed Routes**:
+1. `/api/sessions` (4 handlers: GET, POST, DELETE, PUT):
+   - Replaced manual error responses with error classes
+   - Added error codes: INVALID_SESSION_TYPE, PTY_UNAVAILABLE, CLAUDE_UNAVAILABLE, UNSUPPORTED_SESSION_TYPE, MISSING_RUN_ID, MISSING_LAYOUT_PARAMS, MISSING_CLIENT_ID, INVALID_ACTION
+   - Reduced error handling code: 66 → 51 lines
+
+2. `/api/workspaces` (2 handlers: GET, POST):
+   - Replaced SvelteKit error() calls with error classes
+   - Added error codes: MISSING_PATH, INVALID_PATH
+   - Consistent error responses across all endpoints
+   - Reduced error handling code: 17 → 15 lines
 
 **Next Steps**:
 1. Refactor Phase 1 routes (12 files) - Estimated 4-6 hours
