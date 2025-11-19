@@ -673,13 +673,13 @@ validateRequiredFields(body, ['field1', 'field2']);
 2. `src/routes/api/sessions/+server.js` - Migrated (✅ Phase 1)
 3. `src/routes/api/workspaces/+server.js` - Migrated (✅ Phase 1)
 
-**Migration Progress**: 23 / 55 routes completed (42%)
+**Migration Progress**: 37 / 55 routes completed (67%)
 - ✅ Phase 1: 11/12 routes - Nearly complete! (92%)
-- 🚧 Phase 2: 12/26 routes - In progress (46%)
+- ✅ Phase 2: 26/26 routes - **COMPLETE!** (100%) 🎉
   - ✅ Settings: 4/4 routes complete
   - ✅ Claude: 8/8 routes complete
-  - ⏳ Git: 0/14 routes
-- ⏳ Phase 3: 0/18 routes
+  - ✅ Git: 14/14 routes complete
+- ⏳ Phase 3: 0/18 routes (next focus)
 
 **⚠️ CRITICAL BUG FIX (2025-01-19)**:
 **Issue**: Session DELETE endpoint was crashing due to error validation outside try-catch block
@@ -821,6 +821,77 @@ validateRequiredFields(body, ['field1', 'field2']);
    - Efficient session content preview with streaming
    - 512KB max buffer for responsive previews
 
+24. `/api/git/status` (1 handler: GET):
+   - Replaced manual error responses with BadRequestError and NotFoundError
+   - Git status parsing with ahead/behind tracking
+   - Error codes: MISSING_PATH
+
+25. `/api/git/branch` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError
+   - Create branch with optional checkout
+   - Error codes: MISSING_PARAMS
+
+26. `/api/git/commit` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError
+   - Git commit with message validation
+   - Error codes: MISSING_PARAMS
+
+27. `/api/git/stage` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError
+   - Stage/unstage files with action validation
+   - Error codes: MISSING_PARAMS, INVALID_ACTION
+
+28. `/api/git/push` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError
+   - Push to remote with branch detection
+   - Error codes: MISSING_PATH
+
+29. `/api/git/pull` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError
+   - Pull from remote with branch detection
+   - Error codes: MISSING_PATH
+
+30. `/api/git/log` (1 handler: GET):
+   - Replaced manual error responses with BadRequestError
+   - Git log with format options (oneline, pretty)
+   - Error codes: MISSING_PATH
+
+31. `/api/git/diff` (1 handler: GET):
+   - Replaced manual error responses with BadRequestError
+   - Git diff for files (staged/unstaged)
+   - Error codes: MISSING_PATH
+
+32. `/api/git/checkout` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError
+   - Branch checkout with validation
+   - Error codes: MISSING_PARAMS
+
+33. `/api/git/branches` (1 handler: GET):
+   - Replaced manual error responses with BadRequestError
+   - List all local and remote branches with deduplication
+   - Error codes: MISSING_PATH
+
+34. `/api/git/worktree/add` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError, NotFoundError, ConflictError
+   - Create worktree with comprehensive path validation
+   - Error codes: MISSING_PARAMS, MISSING_BRANCH, INVALID_PATH, INVALID_WORKTREE_PATH, INVALID_BRANCH_NAME
+
+35. `/api/git/worktree/list` (1 handler: GET):
+   - Replaced manual error responses with BadRequestError and NotFoundError
+   - List worktrees with porcelain format parsing
+   - Error codes: MISSING_PATH
+
+36. `/api/git/worktree/remove` (1 handler: POST):
+   - Replaced manual error responses with BadRequestError and NotFoundError
+   - Remove worktree with force option
+   - Error codes: MISSING_PARAMS
+
+37. `/api/git/worktree/init-detect` (2 handlers: GET, POST):
+   - Replaced manual error responses with BadRequestError and NotFoundError
+   - Detect initialization commands from project files
+   - Save initialization scripts to .dispatchrc
+   - Error codes: MISSING_PATH, MISSING_PARAMS
+
 **Next Steps**:
 1. Refactor Phase 1 routes (12 files) - Estimated 4-6 hours
 2. Refactor Phase 2 routes (25 files) - Estimated 6-8 hours
@@ -832,7 +903,7 @@ validateRequiredFields(body, ['field1', 'field2']);
 - [x] ApiError classes created
 - [x] handleApiError utility implemented
 - [x] Validation helper functions created
-- [ ] All API routes refactored to use utility (23/55 complete - 42%)
+- [ ] All API routes refactored to use utility (37/55 complete - 67%)
 - [ ] Consistent error response format across all routes
 - [ ] All errors logged with proper context and levels
 - [ ] Integration tests verify error handling
