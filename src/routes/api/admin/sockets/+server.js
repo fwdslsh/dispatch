@@ -1,12 +1,13 @@
 import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
+import { ServiceUnavailableError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function GET({ url: _url, locals: _locals, request: _request }) {
 	try {
 		const io = getActiveSocketIO();
 
 		if (!io) {
-			return json({ error: 'Socket.IO server not available' }, { status: 500 });
+			throw new ServiceUnavailableError('Socket.IO server not available');
 		}
 
 		// Get all connected sockets
@@ -33,8 +34,7 @@ export async function GET({ url: _url, locals: _locals, request: _request }) {
 			total: sockets.length,
 			timestamp: Date.now()
 		});
-	} catch (error) {
-		console.error('Error getting active sockets:', error);
-		return json({ error: 'Failed to get active sockets' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/admin/sockets');
 	}
 }
