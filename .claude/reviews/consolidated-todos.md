@@ -572,49 +572,120 @@ npm update @sveltejs/kit vite js-yaml
 
 ---
 
-### H7. [REFACTOR] Standardize Error Handling Across API Routes
+### H7. [REFACTOR] Standardize Error Handling Across API Routes 🚧 IN PROGRESS
 
 **Source**: Refactoring Review #4, Validation Review #12
-**Files**: Multiple API routes
+**Files**: 55 API route files in `src/routes/api/`
 **Assigned**: refactoring-specialist
 **Effort**: 2-3 days
+**Status**: 🚧 **FOUNDATION COMPLETE** (2025-11-19) - Migration phase pending
 
 **Issue**: 3 different error handling patterns across API routes. Inconsistent response formats, logging, status codes.
 
-**Required Fix**: Create error utility
+**Current Error Patterns Found**:
+1. `return new Response(JSON.stringify({ error: err.message }), { status: 500 })`
+2. `throw error(400, { message: '...' })` (SvelteKit - partial adoption)
+3. `return json({ error: '...' }, { status: 401 })` (manual json response)
+4. Manual status code selection based on error message parsing
+
+**Implementation Summary**:
+
+Created comprehensive `src/lib/server/shared/utils/api-errors.js` (280 lines) with:
+
+**Error Class Hierarchy**:
+- `ApiError` - Base class with status, code, message
+- `BadRequestError` (400) - Invalid/malformed requests
+- `UnauthorizedError` (401) - Authentication required
+- `ForbiddenError` (403) - Insufficient permissions
+- `NotFoundError` (404) - Resource not found
+- `ConflictError` (409) - Resource conflicts
+- `ValidationError` (422) - Validation failures with field errors
+- `InternalServerError` (500) - Unexpected server errors
+- `ServiceUnavailableError` (503) - Temporary unavailability
+
+**Utility Functions**:
+- `handleApiError(err, context)` - Standardized error handling with logging
+- `validateRequiredFields(body, fields)` - Required field validation
+- `validateEnum(fieldName, value, allowedValues)` - Enum validation
+
+**Error Handling Features**:
+- Consistent error response format: `{ message, code, [fields] }`
+- Smart logging: 4xx = warn, 5xx = error with stack traces
+- SvelteKit error integration
+- Validation field errors in response body
+
+**Migration Plan for 55 API Routes**:
+
+**Phase 1: Critical Routes (Priority 1)**:
+- `/api/sessions` - Session management (4 handlers)
+- `/api/auth/*` - Authentication routes (6 files)
+- `/api/workspaces` - Workspace CRUD (2 files)
+
+**Phase 2: High Traffic Routes (Priority 2)**:
+- `/api/settings/*` - Settings management (4 files)
+- `/api/claude/*` - Claude integration (9 files)
+- `/api/git/*` - Git operations (12 files)
+
+**Phase 3: Admin & Utility Routes (Priority 3)**:
+- `/api/admin/*` - Admin endpoints (6 files)
+- `/api/browse/*` - Directory browsing (3 files)
+- `/api/files/*` - File operations (2 files)
+- `/api/themes/*` - Theme management (4 files)
+- Remaining routes (7 files)
+
+**Migration Pattern** (apply to each route):
 ```javascript
-// src/lib/server/shared/utils/api-errors.js
-export class ApiError extends Error {
-    constructor(message, status = 500, code = 'INTERNAL_ERROR') {
-        super(message);
-        this.status = status;
-        this.code = code;
-    }
+// 1. Import error utilities at top
+import {
+    BadRequestError,
+    NotFoundError,
+    handleApiError,
+    validateRequiredFields
+} from '$lib/server/shared/utils/api-errors.js';
+
+// 2. Replace validation errors
+if (!requiredParam) {
+    // BEFORE: return new Response(JSON.stringify({ error: 'Missing param' }), { status: 400 });
+    // AFTER:
+    throw new BadRequestError('Missing required parameter', 'MISSING_PARAMETER');
 }
 
-export class BadRequestError extends ApiError {
-    constructor(message, code = 'BAD_REQUEST') {
-        super(message, 400, code);
-    }
+// 3. Replace not found errors
+if (!resource) {
+    // BEFORE: return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    // AFTER:
+    throw new NotFoundError('Resource not found');
 }
 
-export function handleApiError(err, context = '') {
-    if (err?.status && err?.body) throw err;
-    if (err instanceof ApiError) {
-        logger.error(context, err.message, { code: err.code, status: err.status });
-        throw error(err.status, { message: err.message, code: err.code });
-    }
-    logger.error(context, 'Unexpected error:', err);
-    throw error(500, { message: 'An unexpected error occurred', code: 'INTERNAL_ERROR' });
+// 4. Wrap catch blocks
+} catch (err) {
+    // BEFORE: console.error('[API]', err); return new Response(..., { status: 500 });
+    // AFTER:
+    handleApiError(err, 'GET /api/endpoint');
 }
+
+// 5. Use validation helpers
+validateRequiredFields(body, ['field1', 'field2']);
 ```
 
+**Files Modified**:
+1. `src/lib/server/shared/utils/api-errors.js` - Created (280 lines)
+
+**Next Steps**:
+1. Refactor Phase 1 routes (12 files) - Estimated 4-6 hours
+2. Refactor Phase 2 routes (25 files) - Estimated 6-8 hours
+3. Refactor Phase 3 routes (18 files) - Estimated 4-6 hours
+4. Integration testing across all routes - Estimated 2-3 hours
+5. Documentation update - Estimated 1 hour
+
 **Acceptance Criteria**:
-- [ ] ApiError classes created
-- [ ] handleApiError utility implemented
-- [ ] All API routes refactored to use utility
-- [ ] Consistent error response format
-- [ ] All errors logged properly
+- [x] ApiError classes created
+- [x] handleApiError utility implemented
+- [x] Validation helper functions created
+- [ ] All API routes refactored to use utility (0/55 complete)
+- [ ] Consistent error response format across all routes
+- [ ] All errors logged with proper context and levels
+- [ ] Integration tests verify error handling
 
 ---
 
