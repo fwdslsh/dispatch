@@ -63,7 +63,7 @@
 			? layoutAvailableOAuthProviders
 			: fallbackAvailableOAuthProviders
 	);
-	const terminalKeySet = $derived(() => {
+	const terminalKeySet = $derived.by(() => {
 		const key = authenticationSettings.terminal_key;
 		return typeof key === 'string' && key.trim().length > 0;
 	});
@@ -172,6 +172,7 @@
 
 					<div class="oauth-buttons">
 						{#each availableOAuthProviders as provider (provider.name)}
+							{@const Icon = iconByProvider[provider.name]}
 							<IconButton
 								type="button"
 								class={`oauth-button oauth-${provider.name}`}
@@ -179,7 +180,7 @@
 								disabled={isSubmitting}
 								aria-label={`Log in with ${provider.displayName || provider.name}`}
 							>
-								<svelte:component this={iconByProvider[provider.name]} />
+								<Icon />
 							</IconButton>
 						{/each}
 					</div>

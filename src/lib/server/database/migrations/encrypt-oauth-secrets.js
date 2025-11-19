@@ -9,7 +9,7 @@
  */
 
 import { DatabaseManager } from '../DatabaseManager.js';
-import { SettingsManager } from '../../settings/SettingsManager.js';
+import { SettingsRepository } from '../SettingsRepository.js';
 import { encryptionService } from '../../shared/EncryptionService.js';
 import { logger } from '../../shared/utils/logger.js';
 
@@ -27,17 +27,16 @@ async function migrateOAuthSecrets() {
 	try {
 		// Initialize database
 		const dbPath = process.env.DATABASE_PATH || '.testing-home/dispatch/data/workspace.db';
-		const db = new DatabaseManager(dbPath);
-		await db.connect();
+		const db = new DatabaseManager({ dbPath });
+		await db.init();
 
-		const settingsManager = new SettingsManager(db);
+		const settingsRepository = new SettingsRepository(db);
 
 		// Get OAuth settings
-		const oauthSettings = await settingsManager.getByCategory('oauth');
+		const oauthSettings = await settingsRepository.getByCategory('oauth');
 
 		if (!oauthSettings || !oauthSettings.providers) {
 			logger.info('MIGRATION', 'No OAuth providers found. Nothing to migrate.');
-			await db.close();
 			return;
 		}
 
@@ -81,7 +80,7 @@ async function migrateOAuthSecrets() {
 
 		// Save updated settings if any were migrated
 		if (migratedCount > 0) {
-			await settingsManager.setByCategory(
+			await settingsRepository.setByCategory(
 				'oauth',
 				{ providers },
 				'Encrypted OAuth client secrets (migration)'
@@ -97,8 +96,6 @@ async function migrateOAuthSecrets() {
 				`Migration complete! No secrets needed encryption. Skipped ${skippedCount}.`
 			);
 		}
-
-		await db.close();
 
 		// Exit with error code if any failures
 		if (errorCount > 0) {

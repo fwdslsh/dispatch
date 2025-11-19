@@ -91,7 +91,8 @@ export class EncryptionService {
 			let encrypted = cipher.update(plaintext, 'utf8', 'hex');
 			encrypted += cipher.final('hex');
 
-			// Get authentication tag
+			// Get authentication tag (GCM mode specific)
+			// @ts-ignore - getAuthTag() exists for GCM mode ciphers
 			const authTag = cipher.getAuthTag();
 
 			// Combine salt:iv:ciphertext:authTag
@@ -153,6 +154,7 @@ export class EncryptionService {
 
 			// Create decipher
 			const decipher = createDecipheriv(this.algorithm, key, iv);
+			// @ts-ignore - setAuthTag() exists for GCM mode ciphers
 			decipher.setAuthTag(authTag);
 
 			// Decrypt

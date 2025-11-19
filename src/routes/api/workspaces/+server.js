@@ -37,7 +37,7 @@ export async function GET({ url, locals }) {
 	`);
 
 	// Build workspace objects with session counts
-	workspaces = workspacesWithCounts.map((row) => {
+	let workspaces = workspacesWithCounts.map((row) => {
 		const workspace = {
 			path: row.path,
 			name: row.name,

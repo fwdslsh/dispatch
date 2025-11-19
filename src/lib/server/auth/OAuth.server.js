@@ -9,6 +9,25 @@ import { encryptionService } from '../shared/EncryptionService.js';
 // import { AuthProvider } from '../../shared/auth-types.js';
 
 /**
+ * Custom error class for OAuth profile fetch failures
+ */
+class OAuthProfileFetchError extends Error {
+	/**
+	 * @param {string} message - Error message
+	 * @param {string} provider - OAuth provider name
+	 * @param {number} status - HTTP status code
+	 * @param {string} body - Response body
+	 */
+	constructor(message, provider, status, body) {
+		super(message);
+		this.name = 'OAuthProfileFetchError';
+		this.provider = provider;
+		this.status = status;
+		this.body = body;
+	}
+}
+
+/**
  * OAuth.server.js
  * Centralized OAuth provider management for cookie-based authentication
  */
@@ -372,12 +391,12 @@ export class OAuthManager {
 			errorBody
 		);
 
-		const error = new Error(`OAuth user fetch failed: ${response.statusText}`);
-		error.name = 'OAuthProfileFetchError';
-		error.provider = provider;
-		error.status = response.status;
-		error.body = errorBody;
-		return error;
+		return new OAuthProfileFetchError(
+			`OAuth user fetch failed: ${response.statusText}`,
+			provider,
+			response.status,
+			errorBody
+		);
 	}
 
 	getUserRequestHeaders(provider, accessToken, tokenType = 'Bearer') {
