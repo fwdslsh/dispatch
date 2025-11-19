@@ -1,14 +1,14 @@
 # Consolidated RC1 Review Todos
 
 **Generated**: 2025-11-19
-**Last Updated**: 2025-11-19 00:50 UTC
+**Last Updated**: 2025-11-19 01:15 UTC
 **Source Reviews**: MVVM Architecture, Code Refactoring, SvelteKit Validation
 **Total Items**: 42 unique actionable items
 **Estimated Total Effort**: 2-3 weeks (80-120 hours)
 
-**Progress**: 8 / 42 items completed (19.0%)
+**Progress**: 9 / 42 items completed (21.4%)
 - ✅ Critical: 2/3 completed (66.7%)
-- ⏳ High: 6/15 completed (40.0%)
+- ⏳ High: 7/15 completed (46.7%)
 - ⏳ Medium: 0/14 completed (0%)
 - ⏳ Low: 0/10 completed (0%)
 
@@ -385,12 +385,13 @@ export class CreateSessionViewModel {
 
 ---
 
-### H4. [MVVM] Remove UI Concerns from ClaudePaneViewModel
+### H4. [MVVM] Remove UI Concerns from ClaudePaneViewModel ✅ COMPLETED
 
 **Source**: MVVM Review #H1
 **File**: `src/lib/client/claude/viewmodels/ClaudePaneViewModel.svelte.js:118-123`
 **Assigned**: svelte-mvvm-architect
 **Effort**: 2-3 hours
+**Status**: ✅ **COMPLETED** (2025-11-19)
 
 **Issue**: ViewModel contains DOM manipulation and scrolling logic.
 
@@ -428,11 +429,21 @@ $effect(() => {
 ```
 
 **Acceptance Criteria**:
-- [ ] DOM references removed from ViewModel
-- [ ] Signal pattern implemented
-- [ ] Scrolling handled in View layer
-- [ ] Tests updated
-- [ ] Functionality preserved
+- [x] DOM references removed from ViewModel
+- [x] Signal pattern implemented
+- [x] Scrolling handled in View layer
+- [x] Tests updated
+- [x] Functionality preserved
+
+**Implementation Summary**:
+- Removed `import { tick } from 'svelte'` (no longer needed)
+- Removed `scrollToBottom()` method (118 lines)
+- Removed `setMessagesContainer()` method (DOM reference setter)
+- Added `shouldScrollToBottom = $state(false)` signal
+- Replaced 5 calls to `this.scrollToBottom()` with `this.shouldScrollToBottom = true`
+- Updated `MessageList.svelte` to handle signal with `$effect`
+- Type check passed (0 errors, 0 warnings)
+- Follows signal pattern documented in mvvm-patterns.md
 
 ---
 
