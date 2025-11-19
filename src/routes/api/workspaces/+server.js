@@ -18,36 +18,52 @@ export async function GET({ url, locals }) {
 		const limit = parseInt(url.searchParams.get('limit') || '50', 10);
 		const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
-		// Get workspaces with session counts
-		let workspaces = await workspaceRepository.findAll();
+	// Get workspaces with session counts in a single query (fixes N+1 problem)
+	const workspacesWithCounts = await database.all(`
+		SELECT
+			w.path,
+			w.name,
+			w.created_at,
+			w.last_active,
+			w.updated_at,
+			COUNT(CASE WHEN s.status = 'running' THEN 1 END) as running_count,
+			COUNT(CASE WHEN s.status = 'stopped' THEN 1 END) as stopped_count,
+			COUNT(CASE WHEN s.status = 'error' THEN 1 END) as error_count,
+			COUNT(s.run_id) as total_count
+		FROM workspaces w
+		LEFT JOIN sessions s ON JSON_EXTRACT(s.meta_json, '$.workspacePath') = w.path
+		GROUP BY w.path, w.name, w.created_at, w.last_active, w.updated_at
+		ORDER BY w.last_active DESC NULLS LAST
+	`);
 
-		// Get session counts for each workspace
-		for (const workspace of workspaces) {
-			const sessions = await database.all(
-				`SELECT COUNT(*) as count, status
-				 FROM sessions
-				 WHERE JSON_EXTRACT(meta_json, '$.workspacePath') = ?
-				 GROUP BY status`,
-				[workspace.path]
-			);
-
-			workspace.sessionCounts = {
-				total: sessions.reduce((sum, s) => sum + s.count, 0),
-				running: sessions.find((s) => s.status === 'running')?.count || 0,
-				stopped: sessions.find((s) => s.status === 'stopped')?.count || 0,
-				error: sessions.find((s) => s.status === 'error')?.count || 0
-			};
-
-			// Add derived status based on activity and session state
-			if (workspace.sessionCounts.running > 0) {
-				workspace.status = 'active';
-			} else if (workspace.lastActive) {
-				const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
-				workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
-			} else {
-				workspace.status = 'new';
+	// Build workspace objects with session counts
+	workspaces = workspacesWithCounts.map((row) => {
+		const workspace = {
+			path: row.path,
+			name: row.name,
+			createdAt: row.created_at,
+			lastActive: row.last_active,
+			updatedAt: row.updated_at,
+			sessionCounts: {
+				total: row.total_count,
+				running: row.running_count,
+				stopped: row.stopped_count,
+				error: row.error_count
 			}
+		};
+
+		// Add derived status based on activity and session state
+		if (workspace.sessionCounts.running > 0) {
+			workspace.status = 'active';
+		} else if (workspace.lastActive) {
+			const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
+			workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
+		} else {
+			workspace.status = 'new';
 		}
+
+		return workspace;
+	});
 
 		// Filter by status if specified
 		if (status && ['active', 'inactive', 'archived', 'new'].includes(status)) {
