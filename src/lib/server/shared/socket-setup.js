@@ -6,10 +6,14 @@ import { createErrorHandlingMiddleware } from '../socket/middleware/errorHandlin
 import { createSessionHandlers } from '../socket/handlers/sessionHandlers.js';
 import { CookieService } from '../auth/CookieService.server.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
+import { createSocketRateLimiter } from '../auth/RateLimiter.js';
 
 // Admin event tracking
 let socketEvents = [];
 let activeIO = null;
+
+// Rate limiter for Socket.IO authentication (5 attempts per minute per IP)
+const socketAuthRateLimiter = createSocketRateLimiter();
 
 /**
  * Get the active Socket.IO instance
@@ -69,6 +73,7 @@ function parseCookies(cookieHeader) {
 /**
  * Validate authentication for Socket.IO connections
  * Supports both session cookies and API keys
+ * Includes rate limiting to prevent brute-force attacks
  *
  * @param {object} socket - Socket.IO socket instance
  * @param {string} token - API key or session ID from client
@@ -79,6 +84,25 @@ function parseCookies(cookieHeader) {
 async function requireValidAuth(socket, token, callback, services) {
 	const { auth: authService, sessionManager: _sessionManager } = services;
 
+	// Rate limiting: Check authentication attempts per IP address
+	const clientIp = socket.handshake.address || 'unknown';
+	const rateLimitResult = socketAuthRateLimiter.check(clientIp);
+
+	if (!rateLimitResult.allowed) {
+		logger.warn('SOCKET', `Rate limit exceeded for socket auth from IP ${clientIp}`, {
+			socketId: socket.id,
+			retryAfter: rateLimitResult.retryAfter
+		});
+		if (callback) {
+			callback({
+				success: false,
+				error: 'Too many authentication attempts. Please try again later.',
+				retryAfter: rateLimitResult.retryAfter
+			});
+		}
+		return false;
+	}
+
 	// Validate using AuthService (supports both API keys and OAuth sessions)
 	const authResult = await authService.validateAuth(token);
 
@@ -87,6 +111,9 @@ async function requireValidAuth(socket, token, callback, services) {
 		if (callback) callback({ success: false, error: 'Invalid authentication token' });
 		return false;
 	}
+
+	// Reset rate limit on successful authentication
+	socketAuthRateLimiter.reset(clientIp);
 
 	// Store auth context in socket data
 	socket.data.authenticated = true;

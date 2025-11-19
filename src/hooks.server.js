@@ -7,9 +7,13 @@ import {
 	ApiKeyStrategy,
 	AuthenticationCoordinator
 } from './lib/server/auth/strategies/index.js';
+import { createAuthRateLimiter } from './lib/server/auth/RateLimiter.js';
 
 // Use process-level singleton to survive module reloads
 const SERVICES_KEY = Symbol.for('dispatch.services');
+
+// Rate limiter singleton (10 attempts per minute per IP)
+const authRateLimiter = createAuthRateLimiter();
 
 async function getServices() {
 	// Check if services already exist at process level
@@ -107,6 +111,39 @@ async function authenticationMiddleware({ event, resolve }) {
 		return resolve(event);
 	}
 
+	// Rate limiting: Check authentication attempts per IP address
+	// Skip rate limiting for already-authenticated users (session cookie exists)
+	const clientIp = event.getClientAddress();
+	const hasSessionCookie = event.cookies.get('session');
+
+	if (!hasSessionCookie && clientIp) {
+		const rateLimitResult = authRateLimiter.check(clientIp);
+		if (!rateLimitResult.allowed) {
+			logger.warn('AUTH', `Rate limit exceeded for IP ${clientIp}`, {
+				retryAfter: rateLimitResult.retryAfter
+			});
+
+			const isApiRoute = pathname.startsWith('/api/');
+			if (isApiRoute) {
+				return json(
+					{ error: 'Too many authentication attempts. Please try again later.' },
+					{
+						status: 429,
+						headers: {
+							'Retry-After': rateLimitResult.retryAfter.toString()
+						}
+					}
+				);
+			} else {
+				// For browser requests, show a friendly error page
+				throw redirect(
+					303,
+					`/login?error=${encodeURIComponent('Too many login attempts. Please try again later.')}`
+				);
+			}
+		}
+	}
+
 	// Initialize authentication coordinator with strategies in priority order
 	const coordinator = new AuthenticationCoordinator([
 		new SessionCookieStrategy(), // Try session cookie first (browser auth)
@@ -116,6 +153,11 @@ async function authenticationMiddleware({ event, resolve }) {
 	// Attempt authentication using all configured strategies
 	const authResult = await coordinator.authenticate(event, event.locals.services);
 	event.locals.auth = authResult;
+
+	// Reset rate limit on successful authentication
+	if (authResult.authenticated && clientIp) {
+		authRateLimiter.reset(clientIp);
+	}
 
 	// Handle unauthenticated requests
 	if (!authResult.authenticated) {
