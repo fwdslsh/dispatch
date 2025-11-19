@@ -673,9 +673,9 @@ validateRequiredFields(body, ['field1', 'field2']);
 2. `src/routes/api/sessions/+server.js` - Migrated (✅ Phase 1)
 3. `src/routes/api/workspaces/+server.js` - Migrated (✅ Phase 1)
 
-**Migration Progress**: 2 / 55 routes completed (4%)
-- ✅ Phase 1: 2/12 routes (sessions, workspaces)
-- ⏳ Phase 2: 0/25 routes
+**Migration Progress**: 12 / 55 routes completed (22%)
+- ✅ Phase 1: 11/12 routes - Nearly complete! (92%)
+- 🚧 Phase 2: 1/25 routes - Started (4%)
 - ⏳ Phase 3: 0/18 routes
 
 **Migration Details**:
@@ -691,6 +691,60 @@ validateRequiredFields(body, ['field1', 'field2']);
    - Added error codes: MISSING_PATH, INVALID_PATH
    - Consistent error responses across all endpoints
    - Reduced error handling code: 17 → 15 lines
+
+3. `/api/auth/keys` (2 handlers: GET, POST):
+   - Replaced manual error responses with error classes (UnauthorizedError, BadRequestError, ForbiddenError)
+   - Added error codes: CSRF_VIOLATION, MISSING_LABEL
+   - Improved CSRF protection with origin validation
+   - All errors consistently logged and handled
+
+4. `/api/auth/keys/[keyId]` (2 handlers: DELETE, PATCH):
+   - Replaced manual error responses with error classes (UnauthorizedError, BadRequestError, NotFoundError)
+   - Added error codes: INVALID_DISABLED
+   - Consistent error handling for API key operations
+   - Proper 404 handling for missing keys
+
+5. `/api/auth/logout` (1 handler: POST):
+   - Implemented best-effort session cleanup pattern
+   - Always redirects to login even if session invalidation fails
+   - Prevents users from being stuck in broken auth state
+   - Special handling: logout should never fail from user perspective
+
+6. `/api/auth/config` (2 handlers: GET, PUT):
+   - Replaced manual error responses with error classes (UnauthorizedError, BadRequestError)
+   - Added error codes: MISSING_AUTH_SETTINGS, INVALID_TERMINAL_KEY
+   - Replaced console.error with logger for consistent logging
+   - Consistent error handling across GET and PUT handlers
+
+7. `/api/auth/oauth/initiate` (1 handler: POST):
+   - Replaced SvelteKit error() with error classes
+   - Added error codes: OAUTH_NOT_INITIALIZED, MISSING_PROVIDER, PROVIDER_NOT_CONFIGURED
+   - Uses ServiceUnavailableError for missing OAuth manager
+   - Wraps OAuthManager errors with appropriate error classes
+
+8. `/api/auth/callback` (1 handler: GET):
+   - Documented redirect-based error handling pattern
+   - Added clarifying comment about why it uses redirects instead of handleApiError()
+   - OAuth callbacks must redirect to login page, never return JSON errors
+   - Pattern already correct, no functional changes needed
+
+9. `/api/workspaces/[workspaceId]` (3 handlers: GET, PUT, DELETE):
+   - Replaced all SvelteKit error() calls with error classes
+   - Added error codes: EMPTY_WORKSPACE_NAME, ACTIVE_SESSIONS_EXIST
+   - Used validateEnum helper for status validation
+   - Consistent error handling across all three handlers (GET, PUT, DELETE)
+
+10. `/api/sessions/[id]/history` (1 handler: GET):
+   - Replaced Error with ServiceUnavailableError for EventStore unavailable
+   - Added error code: EVENTSTORE_UNAVAILABLE
+   - Replaced console.error with logger.warn for consistency
+   - Maintains graceful degradation by returning empty events array on error (non-critical endpoint)
+
+11. `/api/sessions/layout` (3 handlers: GET, POST, DELETE):
+   - Replaced manual Response construction with json() and error classes
+   - Added error codes: MISSING_LAYOUT_PARAMS, MISSING_RUN_ID
+   - Consistent error handling across all handlers
+   - Removed console.error, using handleApiError for standardization
 
 **Next Steps**:
 1. Refactor Phase 1 routes (12 files) - Estimated 4-6 hours
