@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { resolve, normalize } from 'path';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, locals }) {
@@ -190,17 +191,51 @@ function extractWorkspaceName(path) {
 }
 
 /**
- * Validate workspace path format and constraints
+ * Validate workspace path format and constraints with comprehensive security checks
+ * @param {string} path - Path to validate
+ * @param {string} [allowedRoot] - Allowed workspace root directory (defaults to WORKSPACES_ROOT)
+ * @returns {boolean} True if path is valid and safe
  */
-function isValidWorkspacePath(path) {
+function isValidWorkspacePath(path, allowedRoot = null) {
 	if (!path || typeof path !== 'string') return false;
-
-	// Basic path validation
-	if (path.includes('..') || path.includes('~')) return false;
 	if (path.length > 500) return false;
 
-	// Must be absolute path
-	if (!path.startsWith('/')) return false;
+	try {
+		// Decode any URL-encoded characters (防止 %2e%2e 等编码绕过)
+		const decoded = decodeURIComponent(path);
 
-	return true;
+		// Normalize path to resolve . and .. segments
+		const normalized = normalize(decoded);
+
+		// Resolve to absolute path (handles symlinks and relative paths)
+		const resolved = resolve(normalized);
+
+		// Must be absolute path
+		if (!resolved.startsWith('/')) return false;
+
+		// Check for path traversal attempts after normalization
+		if (normalized.includes('..') || normalized.includes('~')) {
+			logger.warn('WORKSPACE_API', `Path traversal attempt blocked: ${path}`);
+			return false;
+		}
+
+		// Validate against allowed workspace root if provided
+		const workspaceRoot = allowedRoot || process.env.WORKSPACES_ROOT;
+		if (workspaceRoot) {
+			const resolvedRoot = resolve(workspaceRoot);
+			if (!resolved.startsWith(resolvedRoot)) {
+				logger.warn(
+					'WORKSPACE_API',
+					`Path outside workspace root blocked: ${resolved} (root: ${resolvedRoot})`
+				);
+				return false;
+			}
+		}
+
+		return true;
+	} catch (err) {
+		// Handle decodeURIComponent errors or other path processing errors
+		logger.warn('WORKSPACE_API', `Path validation error for "${path}":`, err);
+		return false;
+	}
 }
