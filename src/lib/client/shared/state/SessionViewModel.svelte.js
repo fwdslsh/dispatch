@@ -36,10 +36,12 @@ export class SessionViewModel {
 	/**
 	 * @param {import('../state/AppState.svelte.js').AppState} appStateManager
 	 * @param {import('../services/SessionApiClient.js').SessionApiClient} sessionApi
+	 * @param {import('../services/SettingsService.svelte.js').SettingsService} [settingsService] - Settings service for accessing configuration
 	 */
-	constructor(appStateManager, sessionApi) {
+	constructor(appStateManager, sessionApi, settingsService = null) {
 		this.appStateManager = appStateManager;
 		this.sessionApi = sessionApi;
+		this.settingsService = settingsService;
 
 		// Pure business state - no UI concerns
 		this.operationState = $state({
@@ -613,6 +615,104 @@ export class SessionViewModel {
 	 */
 	getCurrentError() {
 		return this.operationState.error || this.appStateManager.ui.errors.sessions;
+	}
+
+	// =================================================================
+	// SETTINGS AND DEFAULTS
+	// =================================================================
+
+	/**
+	 * Get the default workspace directory from settings
+	 * @returns {string} Default workspace path
+	 */
+	getDefaultWorkspace() {
+		if (!this.settingsService) {
+			log.warn('Settings service not available, returning empty string');
+			return '';
+		}
+		return this.settingsService.get('global.defaultWorkspaceDirectory', '');
+	}
+
+	/**
+	 * Get default session options for a given session type
+	 * Processes settings the same way session-specific settings components do
+	 * @param {string} sessionType - Session type (e.g., 'claude', 'pty')
+	 * @returns {Object} Processed session options
+	 */
+	getDefaultSessionOptions(sessionType) {
+		if (!this.settingsService) {
+			log.warn('Settings service not available, returning empty options');
+			return {};
+		}
+
+		switch (sessionType) {
+			case SESSION_TYPE.CLAUDE: {
+				// Get raw values from settings service
+				const model = this.settingsService.get('claude.model', '');
+				const customSystemPrompt = this.settingsService.get('claude.customSystemPrompt', '');
+				const appendSystemPrompt = this.settingsService.get('claude.appendSystemPrompt', '');
+				const maxTurns = this.settingsService.get('claude.maxTurns', null);
+				const maxThinkingTokens = this.settingsService.get('claude.maxThinkingTokens', null);
+				const fallbackModel = this.settingsService.get('claude.fallbackModel', '');
+				const includePartialMessages = this.settingsService.get(
+					'claude.includePartialMessages',
+					false
+				);
+				const continueConversation = this.settingsService.get('claude.continueConversation', false);
+				const permissionMode = this.settingsService.get('claude.permissionMode', 'default');
+				const executable = this.settingsService.get('claude.executable', 'auto');
+				const executableArgs = this.settingsService.get('claude.executableArgs', '');
+				const allowedTools = this.settingsService.get('claude.allowedTools', '');
+				const disallowedTools = this.settingsService.get('claude.disallowedTools', '');
+				const additionalDirectories = this.settingsService.get('claude.additionalDirectories', '');
+				const strictMcpConfig = this.settingsService.get('claude.strictMcpConfig', false);
+
+				// Process settings the same way ClaudeSettings component does for session mode
+				const cleanSettings = {
+					model: model.trim() || undefined,
+					customSystemPrompt: customSystemPrompt.trim() || undefined,
+					appendSystemPrompt: appendSystemPrompt.trim() || undefined,
+					maxTurns: maxTurns || undefined,
+					maxThinkingTokens: maxThinkingTokens || undefined,
+					fallbackModel: fallbackModel.trim() || undefined,
+					includePartialMessages: includePartialMessages || undefined,
+					continue: continueConversation || undefined,
+					permissionMode: permissionMode !== 'default' ? permissionMode : undefined,
+					executable: executable !== 'auto' ? executable : undefined,
+					executableArgs: executableArgs.trim()
+						? executableArgs
+								.split(',')
+								.map((arg) => arg.trim())
+								.filter(Boolean)
+						: undefined,
+					allowedTools: allowedTools.trim()
+						? allowedTools
+								.split(',')
+								.map((tool) => tool.trim())
+								.filter(Boolean)
+						: undefined,
+					disallowedTools: disallowedTools.trim()
+						? disallowedTools
+								.split(',')
+								.map((tool) => tool.trim())
+								.filter(Boolean)
+						: undefined,
+					additionalDirectories: additionalDirectories.trim()
+						? additionalDirectories
+								.split(',')
+								.map((dir) => dir.trim())
+								.filter(Boolean)
+						: undefined,
+					strictMcpConfig: strictMcpConfig || undefined
+				};
+
+				// Filter out undefined values to keep payload clean
+				return Object.fromEntries(Object.entries(cleanSettings).filter(([_, v]) => v !== undefined));
+			}
+
+			default:
+				return {};
+		}
 	}
 
 	// =================================================================

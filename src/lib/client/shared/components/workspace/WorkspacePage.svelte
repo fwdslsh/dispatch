@@ -5,7 +5,6 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	// Services and ViewModels
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
@@ -264,83 +263,15 @@
 		openCreateSessionModal(type);
 	}
 
-	// Helper to get user's default workspace using settings service
+	// Helper to get user's default workspace via ViewModel (MVVM pattern)
 	function getUserDefaultWorkspace() {
-		return settingsService.get('global.defaultWorkspaceDirectory', '');
+		return sessionViewModel?.getDefaultWorkspace() || '';
 	}
 
-	// Helper to get global default settings for a session type
-	// This processes settings the same way ClaudeSettings component does for session mode
+	// Helper to get global default settings for a session type via ViewModel (MVVM pattern)
+	// Delegates to SessionViewModel which processes settings the same way session components do
 	function getGlobalDefaultSettings(sessionType) {
-		switch (sessionType) {
-			case SESSION_TYPE.CLAUDE: {
-				// Get raw values from settings service
-				const model = settingsService.get('claude.model', '');
-				const customSystemPrompt = settingsService.get('claude.customSystemPrompt', '');
-				const appendSystemPrompt = settingsService.get('claude.appendSystemPrompt', '');
-				const maxTurns = settingsService.get('claude.maxTurns', null);
-				const maxThinkingTokens = settingsService.get('claude.maxThinkingTokens', null);
-				const fallbackModel = settingsService.get('claude.fallbackModel', '');
-				const includePartialMessages = settingsService.get('claude.includePartialMessages', false);
-				const continueConversation = settingsService.get('claude.continueConversation', false);
-				const permissionMode = settingsService.get('claude.permissionMode', 'default');
-				const executable = settingsService.get('claude.executable', 'auto');
-				const executableArgs = settingsService.get('claude.executableArgs', '');
-				const allowedTools = settingsService.get('claude.allowedTools', '');
-				const disallowedTools = settingsService.get('claude.disallowedTools', '');
-				const additionalDirectories = settingsService.get('claude.additionalDirectories', '');
-				const strictMcpConfig = settingsService.get('claude.strictMcpConfig', false);
-
-				// Process settings the same way ClaudeSettings component does for session mode
-				const cleanSettings = {
-					model: model.trim() || undefined,
-					customSystemPrompt: customSystemPrompt.trim() || undefined,
-					appendSystemPrompt: appendSystemPrompt.trim() || undefined,
-					maxTurns: maxTurns || undefined,
-					maxThinkingTokens: maxThinkingTokens || undefined,
-					fallbackModel: fallbackModel.trim() || undefined,
-					includePartialMessages: includePartialMessages || undefined,
-					continue: continueConversation || undefined,
-					permissionMode: permissionMode !== 'default' ? permissionMode : undefined,
-					executable: executable !== 'auto' ? executable : undefined,
-					executableArgs: executableArgs.trim()
-						? executableArgs
-								.split(',')
-								.map((arg) => arg.trim())
-								.filter(Boolean)
-						: undefined,
-					allowedTools: allowedTools.trim()
-						? allowedTools
-								.split(',')
-								.map((tool) => tool.trim())
-								.filter(Boolean)
-						: undefined,
-					disallowedTools: disallowedTools.trim()
-						? disallowedTools
-								.split(',')
-								.map((tool) => tool.trim())
-								.filter(Boolean)
-						: undefined,
-					additionalDirectories: additionalDirectories.trim()
-						? additionalDirectories
-								.split(',')
-								.map((dir) => dir.trim())
-								.filter(Boolean)
-						: undefined,
-					strictMcpConfig: strictMcpConfig || undefined
-				};
-
-				// Remove undefined values (only include overrides)
-				return Object.fromEntries(
-					Object.entries(cleanSettings).filter(([_, value]) => value !== undefined)
-				);
-			}
-			case SESSION_TYPE.PTY:
-			case SESSION_TYPE.FILE_EDITOR:
-			default:
-				// PTY and File Editor don't have configurable global settings yet
-				return {};
-		}
+		return sessionViewModel?.getDefaultSessionOptions(sessionType) || {};
 	}
 
 	function updateActiveSession(id) {

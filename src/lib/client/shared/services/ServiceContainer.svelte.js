@@ -93,7 +93,8 @@ class ServiceContainer {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');
 			const appStateManager = await this.get('appStateManager');
 			const sessionApi = await this.get('sessionApi');
-			return new SessionViewModel(appStateManager, sessionApi);
+			const settingsService = await this.get('settingsService');
+			return new SessionViewModel(appStateManager, sessionApi, settingsService);
 		});
 	}
 

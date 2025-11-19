@@ -13,7 +13,6 @@
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 
 	// Props
 	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();
@@ -24,6 +23,7 @@
 	let loading = $state(false);
 	let error = $state(null);
 	let sessionApi = $state(null);
+	let sessionViewModel = $state(null);
 	// eslint-disable-next-line svelte/prefer-writable-derived -- sessionSettings is reset in multiple effects, not derived from single source
 	let sessionSettings = $state({});
 
@@ -32,36 +32,52 @@
 		sessionSettings = {};
 	});
 
-	// Get API client from service container
+	// Derived default workspace (MVVM pattern - access via ViewModel)
+	const defaultWorkspace = $derived(sessionViewModel?.getDefaultWorkspace() || '');
+
+	// Get API client and ViewModel from service container
 	$effect(() => {
-		// Get the service container and initialize the API client
+		// Get the service container and initialize the API client and ViewModel
 		try {
 			const container = useServiceContainer();
-			const maybePromise = container.get('sessionApi');
-			if (maybePromise && typeof maybePromise.then === 'function') {
-				maybePromise
+
+			// Get session API
+			const apiPromise = container.get('sessionApi');
+			if (apiPromise && typeof apiPromise.then === 'function') {
+				apiPromise
 					.then((api) => {
 						sessionApi = api;
 					})
 					.catch((error) => {
 						console.error('Failed to get sessionApi from service container:', error);
-						// Don't fall back to static import - let the service container handle it
 					});
 			} else {
-				sessionApi = maybePromise;
+				sessionApi = apiPromise;
+			}
+
+			// Get session ViewModel
+			const viewModelPromise = container.get('sessionViewModel');
+			if (viewModelPromise && typeof viewModelPromise.then === 'function') {
+				viewModelPromise
+					.then((vm) => {
+						sessionViewModel = vm;
+					})
+					.catch((error) => {
+						console.error('Failed to get sessionViewModel from service container:', error);
+					});
+			} else {
+				sessionViewModel = viewModelPromise;
 			}
 		} catch (e) {
 			console.error('Failed to access service container:', e);
-			// Don't fall back to static import - service container should be available
 		}
 	});
 
 	// Set default workspace path (will be set when modal opens)
 	async function setDefaultWorkspace() {
-		// Use the global defaultWorkspaceDirectory setting if available
-		if (!workspacePath) {
-			const defaultWorkspaceDirectory = settingsService.get('global.defaultWorkspaceDirectory', '');
-			workspacePath = defaultWorkspaceDirectory;
+		// Use the global defaultWorkspaceDirectory setting via ViewModel (MVVM pattern)
+		if (!workspacePath && sessionViewModel) {
+			workspacePath = sessionViewModel.getDefaultWorkspace();
 		}
 	}
 
@@ -189,7 +205,7 @@
 			<div class="directory-browser-container surface border-2 border-primary-dim p-4">
 				<DirectoryBrowser
 					bind:selected={workspacePath}
-					startPath={workspacePath || settingsService.get('global.defaultWorkspaceDirectory', '')}
+					startPath={workspacePath || defaultWorkspace}
 					onSelect={handleDirectorySelect}
 				/>
 			</div>
