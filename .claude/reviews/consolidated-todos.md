@@ -1,14 +1,14 @@
 # Consolidated RC1 Review Todos
 
 **Generated**: 2025-11-19
-**Last Updated**: 2025-11-19 01:15 UTC
+**Last Updated**: 2025-11-19 01:45 UTC
 **Source Reviews**: MVVM Architecture, Code Refactoring, SvelteKit Validation
 **Total Items**: 42 unique actionable items
 **Estimated Total Effort**: 2-3 weeks (80-120 hours)
 
-**Progress**: 9 / 42 items completed (21.4%)
+**Progress**: 10 / 42 items completed (23.8%)
 - ✅ Critical: 2/3 completed (66.7%)
-- ⏳ High: 7/15 completed (46.7%)
+- ⏳ High: 8/15 completed (53.3%)
 - ⏳ Medium: 0/14 completed (0%)
 - ⏳ Low: 0/10 completed (0%)
 
@@ -1052,12 +1052,13 @@ export class StandardViewModel {
 
 ---
 
-### H15. [MVVM] Fix Direct Service Usage in Components
+### H15. [MVVM] Fix Direct Service Usage in Components ✅ COMPLETED
 
 **Source**: MVVM Review #H4
 **Files**: WorkspacePage.svelte, CreateSessionModal.svelte
 **Assigned**: svelte-mvvm-architect
 **Effort**: 3-4 hours
+**Status**: ✅ **COMPLETED** (2025-11-19)
 
 **Issue**: Components accessing services directly instead of through ViewModels.
 
@@ -1097,10 +1098,22 @@ export class WorkspaceViewModel {
 ```
 
 **Acceptance Criteria**:
-- [ ] No direct service imports in components
-- [ ] All service access through ViewModels
-- [ ] Tests updated
-- [ ] Functionality unchanged
+- [x] No direct service imports in components
+- [x] All service access through ViewModels
+- [x] Tests updated
+- [x] Functionality unchanged
+
+**Implementation Summary**:
+- Extended SessionViewModel with settingsService dependency
+- Added `getDefaultWorkspace()` method to SessionViewModel
+- Added `getDefaultSessionOptions(sessionType)` method (handles Claude settings)
+- Updated ServiceContainer to inject settingsService into SessionViewModel
+- WorkspacePage.svelte: Removed settingsService import, delegates to ViewModel
+- CreateSessionModal.svelte: Removed settingsService import, uses ViewModel via container
+- Reduced WorkspacePage settings logic from 70+ lines to 2-line delegation
+- Added derived `defaultWorkspace` for template bindings
+- Type check passed (0 errors, 0 warnings)
+- Clean MVVM separation maintained
 
 ---
 
