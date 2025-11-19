@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { BadRequestError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Expand tilde (~) in paths
 function expandTilde(filepath) {
@@ -56,7 +57,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {
-			return json({ error: 'Path parameter is required' }, { status: 400 });
+			throw new BadRequestError('Path parameter is required', 'MISSING_PATH');
 		}
 
 		const resolvedPath = resolvePath(path);
@@ -65,7 +66,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
 		} catch (_error) {
-			return json({ error: 'Not a git repository' }, { status: 404 });
+			throw new NotFoundError('Not a git repository');
 		}
 
 		// List worktrees
@@ -73,8 +74,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 		const worktrees = parseWorktreeList(worktreeOutput);
 
 		return json({ worktrees });
-	} catch (error) {
-		console.error('Git worktree list error:', error);
-		return json({ error: error.message || 'Failed to list worktrees' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/git/worktree/list');
 	}
 }

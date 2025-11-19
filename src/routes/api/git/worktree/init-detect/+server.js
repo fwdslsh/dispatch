@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { resolve, join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { BadRequestError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Expand tilde (~) in paths
 function expandTilde(filepath) {
@@ -123,14 +124,14 @@ export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {
-			return json({ error: 'Path parameter is required' }, { status: 400 });
+			throw new BadRequestError('Path parameter is required', 'MISSING_PATH');
 		}
 
 		const resolvedPath = resolvePath(path);
 
 		// Check if directory exists
 		if (!existsSync(resolvedPath)) {
-			return json({ error: 'Directory does not exist' }, { status: 404 });
+			throw new NotFoundError('Directory does not exist');
 		}
 
 		// Detect initialization patterns
@@ -157,9 +158,8 @@ export async function GET({ url, request: _request, locals: _locals }) {
 			suggestedCommands: [...new Set(allCommands)], // Remove duplicates
 			hasDispatchrc: !!existingScript
 		});
-	} catch (error) {
-		console.error('Init detection error:', error);
-		return json({ error: error.message || 'Failed to detect initialization' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/git/worktree/init-detect');
 	}
 }
 
@@ -168,14 +168,14 @@ export async function POST({ request, locals: _locals }) {
 		const { path, commands } = await request.json();
 
 		if (!path || !commands || !Array.isArray(commands)) {
-			return json({ error: 'Path and commands array are required' }, { status: 400 });
+			throw new BadRequestError('Path and commands array are required', 'MISSING_PARAMS');
 		}
 
 		const resolvedPath = resolvePath(path);
 
 		// Check if directory exists
 		if (!existsSync(resolvedPath)) {
-			return json({ error: 'Directory does not exist' }, { status: 404 });
+			throw new NotFoundError('Directory does not exist');
 		}
 
 		// Save as .dispatchrc in the root
@@ -200,11 +200,7 @@ export async function POST({ request, locals: _locals }) {
 			commands,
 			message: `Initialization script saved to ${savePath}`
 		});
-	} catch (error) {
-		console.error('Save .dispatchrc error:', error);
-		return json(
-			{ error: error.message || 'Failed to save initialization script' },
-			{ status: 500 }
-		);
+	} catch (err) {
+		handleApiError(err, 'POST /api/git/worktree/init-detect');
 	}
 }
