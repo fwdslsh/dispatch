@@ -96,6 +96,13 @@ class ServiceContainer {
 			const settingsService = await this.get('settingsService');
 			return new SessionViewModel(appStateManager, sessionApi, settingsService);
 		});
+
+		this.registerFactory('createSessionViewModel', async () => {
+			const { CreateSessionViewModel } = await import('../state/CreateSessionViewModel.svelte.js');
+			const sessionViewModel = await this.get('sessionViewModel');
+			const sessionApi = await this.get('sessionApi');
+			return new CreateSessionViewModel(sessionViewModel, sessionApi);
+		});
 	}
 
 	/**
