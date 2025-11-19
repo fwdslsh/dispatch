@@ -1,4 +1,6 @@
 import { json } from '@sveltejs/kit';
+import { ServiceUnavailableError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import { logger } from '$lib/server/shared/utils/logger.js';
 
 export async function GET({ params, request: _request, locals }) {
 	const { id } = params;
@@ -6,14 +8,16 @@ export async function GET({ params, request: _request, locals }) {
 	try {
 		const eventStore = locals.services?.eventStore;
 		if (!eventStore) {
-			throw new Error('EventStore not available');
+			throw new ServiceUnavailableError('EventStore not available', 'EVENTSTORE_UNAVAILABLE');
 		}
 
 		// Get all session events from sequence 0
 		const events = await eventStore.getEvents(id, 0);
 		return json({ events });
 	} catch (err) {
-		console.error('Failed to read terminal history from database:', err);
-		return json({ events: [] }); // Return empty events on error
+		// Log the error but return empty events gracefully for better UX
+		// Session history is non-critical and should degrade gracefully
+		logger.warn('SESSION_HISTORY', `Failed to read session history for ${id}:`, err);
+		return json({ events: [] });
 	}
 }
