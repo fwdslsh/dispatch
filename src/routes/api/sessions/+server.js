@@ -188,13 +188,13 @@ export async function POST({ request, locals }) {
 }
 
 export async function DELETE({ url, locals }) {
-	const runId = url.searchParams.get('runId');
-
-	if (!runId) {
-		throw new BadRequestError('Missing runId parameter', 'MISSING_RUN_ID');
-	}
-
 	try {
+		const runId = url.searchParams.get('runId');
+
+		if (!runId) {
+			throw new BadRequestError('Missing runId parameter', 'MISSING_RUN_ID');
+		}
+
 		// Close session using SessionOrchestrator
 		await locals.services.sessionOrchestrator.closeSession(runId);
 
