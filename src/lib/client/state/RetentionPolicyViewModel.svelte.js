@@ -119,12 +119,15 @@ export class RetentionPolicyViewModel {
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to generate preview');
+				this.error = errorData.error || 'Failed to generate preview';
+				console.error('Failed to generate preview:', this.error);
+				return null;
 			}
 
 			const data = await response.json();
 			this.previewSummary = data.preview.summary;
 			this.error = null;
+			return data.preview;
 		} catch (err) {
 			this.error = err.message || 'Failed to generate preview';
 			console.error('Failed to generate preview:', err);
@@ -161,7 +164,7 @@ export class RetentionPolicyViewModel {
 		} catch (err) {
 			this.error = err.message || 'Failed to save retention policy';
 			console.error('Failed to save retention policy:', err);
-			throw err;
+			return null;
 		} finally {
 			this.isSaving = false;
 		}
@@ -186,15 +189,18 @@ export class RetentionPolicyViewModel {
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to execute cleanup');
+				this.error = errorData.error || 'Failed to execute cleanup';
+				console.error('Failed to execute cleanup:', this.error);
+				return null;
 			}
 
 			const data = await response.json();
+			this.error = null;
 			return data.cleanup;
 		} catch (err) {
 			this.error = err.message || 'Failed to execute cleanup';
 			console.error('Failed to execute cleanup:', err);
-			throw err;
+			return null;
 		}
 	}
 

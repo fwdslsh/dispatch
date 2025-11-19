@@ -311,7 +311,10 @@ export class SessionViewModel {
 			// Get session to obtain workspacePath for API call
 			const session = this.getSession(sessionId);
 			if (!session) {
-				throw new Error(`Session ${sessionId} not found`);
+				this.operationState.error = `Session ${sessionId} not found`;
+				log.error('Session not found for close operation', sessionId);
+				this.appStateManager.sessions.setError(this.operationState.error);
+				return false;
 			}
 
 			// Ensure workspacePath is valid
@@ -340,12 +343,14 @@ export class SessionViewModel {
 			this.appStateManager.removeSession(sessionId);
 
 			log.info('Session closed successfully', sessionId);
+			return true;
 		} catch (error) {
 			log.error('Failed to close session', error);
 			this.operationState.error = error.message || 'Failed to close session';
 
 			// Dispatch error
 			this.appStateManager.sessions.setError(error.message);
+			return false;
 		} finally {
 			this.sessionOperations.delete(sessionId);
 		}

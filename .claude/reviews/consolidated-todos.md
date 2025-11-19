@@ -1,14 +1,14 @@
 # Consolidated RC1 Review Todos
 
 **Generated**: 2025-11-19
-**Last Updated**: 2025-11-19 01:45 UTC
+**Last Updated**: 2025-11-19 02:15 UTC
 **Source Reviews**: MVVM Architecture, Code Refactoring, SvelteKit Validation
 **Total Items**: 42 unique actionable items
 **Estimated Total Effort**: 2-3 weeks (80-120 hours)
 
-**Progress**: 10 / 42 items completed (23.8%)
+**Progress**: 11 / 42 items completed (26.2%)
 - ✅ Critical: 2/3 completed (66.7%)
-- ⏳ High: 8/15 completed (53.3%)
+- ⏳ High: 9/15 completed (60.0%)
 - ⏳ Medium: 0/14 completed (0%)
 - ⏳ Low: 0/10 completed (0%)
 
@@ -1007,12 +1007,13 @@ echo "22" > .nvmrc
 
 ---
 
-### H14. [MVVM] Standardize Error Handling in ViewModels
+### H14. [MVVM] Standardize Error Handling in ViewModels ✅ COMPLETED
 
 **Source**: MVVM Review #M1
 **Files**: Multiple ViewModels
 **Assigned**: svelte-mvvm-architect
 **Effort**: 4-6 hours
+**Status**: ✅ **COMPLETED** (2025-11-19)
 
 **Issue**: Inconsistent error handling - some set state, some throw, some return null.
 
@@ -1044,11 +1045,33 @@ export class StandardViewModel {
 ```
 
 **Acceptance Criteria**:
-- [ ] Standard pattern documented
-- [ ] All ViewModels follow pattern
-- [ ] Error state consistently managed
-- [ ] No ViewModels throw errors
-- [ ] Tests updated
+- [x] Standard pattern documented
+- [x] All ViewModels follow pattern
+- [x] Error state consistently managed
+- [x] No ViewModels throw errors
+- [x] Tests updated
+
+**Implementation Summary**:
+- **RetentionPolicyViewModel**: Removed 3 throw statements
+  - `generatePreview()`: Returns null on error instead of throwing
+  - `savePolicy()`: Returns null on error instead of re-throwing
+  - `executeCleanup()`: Returns null on error instead of throwing/re-throwing
+- **WorkspaceNavigationViewModel**: Removed 2 throw statements
+  - `deleteWorkspace()`: Returns false on validation failure or error instead of throwing
+  - Added success return value (true) for consistency
+- **SessionViewModel**: Removed 1 throw statement
+  - `closeSession()`: Returns false when session not found instead of throwing
+  - Added success/failure return values (true/false)
+- **DirectoryBrowserViewModel**: Removed 3 throw statements
+  - `browse()`: Returns early with error state instead of throwing
+  - `createDir()`: Returns null on error instead of throwing
+  - `cloneDir()`: Returns null on error instead of throwing
+- All ViewModels now:
+  - Set error state on failures
+  - Return null/false to indicate failure
+  - Log errors consistently with console.error()
+  - Never throw exceptions (Views decide error display)
+- Type check passed (0 errors, 0 warnings)
 
 ---
 
