@@ -1,6 +1,12 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
 import { resolve, normalize } from 'path';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	ConflictError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, locals }) {
@@ -8,7 +14,7 @@ export async function GET({ url, locals }) {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
 			logger.info('WORKSPACE_API', 'Unauthenticated request to list workspaces');
-			return json({ error: 'Authentication required to list workspaces' }, { status: 401 });
+			throw new UnauthorizedError('Authentication required to list workspaces');
 		}
 
 		const { workspaceRepository, database } = locals.services;
@@ -103,11 +109,7 @@ export async function GET({ url, locals }) {
 		);
 		return json(response);
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to list workspaces:', err);
-		throw error(500, { message: 'Failed to retrieve workspaces' });
+		handleApiError(err, 'GET /api/workspaces');
 	}
 }
 
@@ -119,17 +121,17 @@ export async function POST({ request, locals }) {
 
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			throw error(401, { message: 'Authentication required for workspace creation' });
+			throw new UnauthorizedError('Authentication required for workspace creation');
 		}
 
 		// Validate required fields
 		if (!path) {
-			throw error(400, { message: 'Workspace path is required' });
+			throw new BadRequestError('Workspace path is required', 'MISSING_PATH');
 		}
 
 		// Validate path format and accessibility
 		if (!isValidWorkspacePath(path)) {
-			throw error(400, { message: 'Invalid workspace path format' });
+			throw new BadRequestError('Invalid workspace path format', 'INVALID_PATH');
 		}
 
 		const { workspaceRepository } = locals.services;
@@ -137,7 +139,7 @@ export async function POST({ request, locals }) {
 		// Check if workspace already exists
 		const existing = await workspaceRepository.findById(path);
 		if (existing) {
-			throw error(409, { message: 'Workspace already exists at this path' });
+			throw new ConflictError('Workspace already exists at this path');
 		}
 
 		const displayName =
@@ -149,7 +151,7 @@ export async function POST({ request, locals }) {
 			workspace = await workspaceRepository.create({ path, name: displayName });
 		} catch (err) {
 			if (err?.message?.includes('already exists')) {
-				throw error(409, { message: 'Workspace already exists at this path' });
+				throw new ConflictError('Workspace already exists at this path');
 			}
 			throw err;
 		}
@@ -173,11 +175,7 @@ export async function POST({ request, locals }) {
 		logger.info('WORKSPACE_API', `Created workspace: ${path}`);
 		return json(response, { status: 201 });
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to create workspace:', err);
-		throw error(500, { message: 'Failed to create workspace' });
+		handleApiError(err, 'POST /api/workspaces');
 	}
 }
 
