@@ -11,9 +11,7 @@
  */
 
 import { error } from '@sveltejs/kit';
-import { createLogger } from './logger.js';
-
-const log = createLogger('api:errors');
+import { logger } from './logger.js';
 
 /**
  * Base API error class
@@ -166,6 +164,7 @@ export class ServiceUnavailableError extends ApiError {
  */
 export function handleApiError(err, context = '') {
 	// If already a SvelteKit error (has status and body), re-throw as-is
+	// @ts-ignore - SvelteKit errors have status and body properties
 	if (err?.status && err?.body) {
 		throw err;
 	}
@@ -187,9 +186,9 @@ export function handleApiError(err, context = '') {
 
 		// 4xx errors are client errors (warn), 5xx are server errors (error)
 		if (err.status >= 500) {
-			log.error(logMessage, logMeta, err.stack);
+			logger.error('API', logMessage, logMeta, err.stack);
 		} else {
-			log.warn(logMessage, logMeta);
+			logger.warn('API', logMessage, logMeta);
 		}
 
 		// Throw SvelteKit error with consistent format
@@ -208,17 +207,14 @@ export function handleApiError(err, context = '') {
 
 	// Handle unknown errors
 	const logMessage = context ? `[${context}] Unexpected error` : 'Unexpected error';
-	log.error(logMessage, {
+	logger.error('API', logMessage, {
 		errorName: err?.name,
 		errorMessage: err?.message,
 		stack: err?.stack
 	});
 
 	// Return generic 500 error for unknown errors (don't leak internal details)
-	throw error(500, {
-		message: 'An unexpected error occurred',
-		code: 'INTERNAL_ERROR'
-	});
+	throw error(500, 'An unexpected error occurred');
 }
 
 /**
