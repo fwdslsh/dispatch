@@ -62,17 +62,24 @@ export class SessionOrchestrator {
 			ownerUserId
 		});
 
+		let process = null;
+		let cleanupRequired = false;
+
 		try {
 			// Start buffering events during initialization
 			this.#eventRecorder.startBuffering(session.id);
+			cleanupRequired = true;
 
-			// Create process with onEvent callback
-			const process = await adapter.create({
+			// Create process with onEvent callback that has error handling
+			process = await adapter.create({
 				...adapterOptions,
 				...metadata,
 				onEvent: (ev) => {
 					// Events are buffered or queued by EventRecorder
-					this.#eventRecorder.recordEvent(session.id, ev);
+					// Add error handling to prevent callback failures from crashing adapter
+					this.#eventRecorder.recordEvent(session.id, ev).catch((err) => {
+						logger.error('SESSION', `Event recording failed for ${session.id}:`, err);
+					});
 				}
 			});
 
@@ -85,16 +92,20 @@ export class SessionOrchestrator {
 			// Update status
 			await this.#sessionRepository.updateStatus(session.id, 'running');
 
+			// Successfully initialized - no cleanup needed
+			cleanupRequired = false;
+
 			logger.info('SESSION', `Created ${kind} session: ${session.id}`);
 
 			return { ...session, status: 'running' };
 		} catch (error) {
-			// Cleanup on error
-			await this.#sessionRepository.updateStatus(session.id, 'error');
-			this.#eventRecorder.clearBuffer(session.id);
-
 			logger.error('SESSION', `Failed to create ${kind} session ${session.id}:`, error);
 			throw error;
+		} finally {
+			// Cleanup on error using safe cleanup method
+			if (cleanupRequired) {
+				await this.#safeCleanup(session.id, process);
+			}
 		}
 	}
 
@@ -158,6 +169,7 @@ export class SessionOrchestrator {
 	 * @returns {Promise<void>}
 	 */
 	async closeSession(sessionId) {
+		const errors = [];
 		const activeSession = this.#activeSessions.get(sessionId);
 
 		if (activeSession) {
@@ -169,6 +181,7 @@ export class SessionOrchestrator {
 					process.close();
 				}
 			} catch (error) {
+				errors.push({ operation: 'process.close', error });
 				logger.warn('SESSION', `Error closing process for ${sessionId}:`, error.message);
 			}
 
@@ -176,14 +189,37 @@ export class SessionOrchestrator {
 			this.#activeSessions.delete(sessionId);
 		}
 
-		// Clear event recorder buffer and sequence counter
-		this.#eventRecorder.clearBuffer(sessionId);
-		this.#eventRecorder.eventStore.clearSequence(sessionId);
+		// Clear event recorder buffer
+		try {
+			this.#eventRecorder.clearBuffer(sessionId);
+		} catch (error) {
+			errors.push({ operation: 'clearBuffer', error });
+			logger.warn('SESSION', `Error clearing buffer for ${sessionId}:`, error.message);
+		}
+
+		// Clear sequence counter
+		try {
+			this.#eventRecorder.eventStore.clearSequence(sessionId);
+		} catch (error) {
+			errors.push({ operation: 'clearSequence', error });
+			logger.warn('SESSION', `Error clearing sequence for ${sessionId}:`, error.message);
+		}
 
 		// Update session status
-		await this.#sessionRepository.updateStatus(sessionId, 'stopped');
+		try {
+			await this.#sessionRepository.updateStatus(sessionId, 'stopped');
+		} catch (error) {
+			errors.push({ operation: 'updateStatus', error });
+			logger.error('SESSION', `Failed to update status for ${sessionId}:`, error);
+		}
 
-		logger.info('SESSION', `Closed session: ${sessionId}`);
+		if (errors.length > 0) {
+			logger.warn('SESSION', `Closed session ${sessionId} with ${errors.length} error(s)`, {
+				errors
+			});
+		} else {
+			logger.info('SESSION', `Closed session: ${sessionId}`);
+		}
 	}
 
 	/**
@@ -206,19 +242,28 @@ export class SessionOrchestrator {
 			return { sessionId, resumed: false, reason: 'Already active in memory' };
 		}
 
-		// Start buffering
-		this.#eventRecorder.startBuffering(sessionId);
+		let process = null;
+		let cleanupRequired = false;
 
 		try {
+			// Start buffering
+			this.#eventRecorder.startBuffering(sessionId);
+			cleanupRequired = true;
+
 			const adapter = this.#adapterRegistry.getAdapter(session.kind);
 
 			// Parse metadata
 			const metadata =
 				typeof session.metadata === 'string' ? JSON.parse(session.metadata) : session.metadata;
 
-			const process = await adapter.create({
+			// Create process with error-handled onEvent callback
+			process = await adapter.create({
 				...metadata,
-				onEvent: (/** @type {any} */ ev) => this.#eventRecorder.recordEvent(sessionId, ev)
+				onEvent: (/** @type {any} */ ev) => {
+					this.#eventRecorder.recordEvent(sessionId, ev).catch((err) => {
+						logger.error('SESSION', `Event recording failed for ${sessionId}:`, err);
+					});
+				}
 			});
 
 			this.#activeSessions.set(sessionId, { adapter, process });
@@ -228,6 +273,9 @@ export class SessionOrchestrator {
 
 			// Update status
 			await this.#sessionRepository.updateStatus(sessionId, 'running');
+
+			// Successfully resumed - no cleanup needed
+			cleanupRequired = false;
 
 			// Get recent events for replay context
 			const recentEvents = await this.#eventRecorder.getEvents(sessionId, 0);
@@ -242,9 +290,13 @@ export class SessionOrchestrator {
 				recentEventsCount: last10.length
 			};
 		} catch (error) {
-			this.#eventRecorder.clearBuffer(sessionId);
 			logger.error('SESSION', `Failed to resume ${sessionId}:`, error);
 			throw error;
+		} finally {
+			// Cleanup on error using safe cleanup method
+			if (cleanupRequired) {
+				await this.#safeCleanup(sessionId, process);
+			}
 		}
 	}
 
@@ -276,6 +328,54 @@ export class SessionOrchestrator {
 			registeredAdapters: this.#adapterRegistry.getRegisteredTypes().length,
 			supportedKinds: this.#adapterRegistry.getRegisteredTypes()
 		};
+	}
+
+	/**
+	 * Safely cleanup resources on error without throwing
+	 * Collects all errors and logs them, but never throws
+	 * @param {string} sessionId - Session ID to cleanup
+	 * @param {Object|null} process - Process to close (if created)
+	 * @returns {Promise<void>}
+	 */
+	async #safeCleanup(sessionId, process) {
+		const errors = [];
+
+		// Close process if it was created
+		if (process) {
+			try {
+				if (typeof process.close === 'function') {
+					process.close();
+				}
+			} catch (err) {
+				errors.push({ operation: 'process.close', error: err });
+			}
+		}
+
+		// Remove from active sessions map
+		try {
+			this.#activeSessions.delete(sessionId);
+		} catch (err) {
+			errors.push({ operation: 'activeSessions.delete', error: err });
+		}
+
+		// Update session status to error
+		try {
+			await this.#sessionRepository.updateStatus(sessionId, 'error');
+		} catch (err) {
+			errors.push({ operation: 'updateStatus', error: err });
+		}
+
+		// Clear event recorder buffer
+		try {
+			this.#eventRecorder.clearBuffer(sessionId);
+		} catch (err) {
+			errors.push({ operation: 'clearBuffer', error: err });
+		}
+
+		// Log all errors encountered during cleanup
+		if (errors.length > 0) {
+			logger.error('SESSION', `Cleanup errors for ${sessionId}:`, errors);
+		}
 	}
 
 	/**

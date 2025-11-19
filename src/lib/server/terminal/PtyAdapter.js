@@ -106,13 +106,17 @@ export class PtyAdapter {
 			throw new Error(`Failed to spawn terminal: ${error.message}`);
 		}
 
-		// Set up event handlers
+		// Set up event handlers with error boundaries
 		term.onData((data) => {
-			onEvent({
-				channel: 'pty:stdout',
-				type: 'chunk',
-				payload: ptyOptions.encoding === null ? data : new TextEncoder().encode(data)
-			});
+			try {
+				onEvent({
+					channel: 'pty:stdout',
+					type: 'chunk',
+					payload: ptyOptions.encoding === null ? data : new TextEncoder().encode(data)
+				});
+			} catch (error) {
+				logger.error('PTY_ADAPTER', 'Error in onData event handler:', error);
+			}
 		});
 
 		term.onExit((exitInfo) => {
@@ -120,14 +124,18 @@ export class PtyAdapter {
 				'PTY_ADAPTER',
 				`Process exited with code ${exitInfo.exitCode}, signal ${exitInfo.signal}`
 			);
-			onEvent({
-				channel: 'system:status',
-				type: 'closed',
-				payload: {
-					exitCode: exitInfo.exitCode,
-					signal: exitInfo.signal
-				}
-			});
+			try {
+				onEvent({
+					channel: 'system:status',
+					type: 'closed',
+					payload: {
+						exitCode: exitInfo.exitCode,
+						signal: exitInfo.signal
+					}
+				});
+			} catch (error) {
+				logger.error('PTY_ADAPTER', 'Error in onExit event handler:', error);
+			}
 		});
 
 		// Return adapter interface
@@ -141,11 +149,15 @@ export class PtyAdapter {
 			},
 			resize(cols, rows) {
 				term.resize(cols, rows);
-				onEvent({
-					channel: 'pty:resize',
-					type: 'dimensions',
-					payload: { cols, rows }
-				});
+				try {
+					onEvent({
+						channel: 'pty:resize',
+						type: 'dimensions',
+						payload: { cols, rows }
+					});
+				} catch (error) {
+					logger.error('PTY_ADAPTER', 'Error in resize event handler:', error);
+				}
 			},
 			clear() {
 				if (term.clear) {
