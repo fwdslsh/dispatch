@@ -11,7 +11,7 @@
  * - Testable: Can test coordinator with mock strategies
  */
 
-import { logger } from '$lib/server/shared/utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 export class AuthenticationCoordinator {
 	/**

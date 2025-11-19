@@ -11,7 +11,7 @@
  * - No Duplication: Common patterns abstracted to base class
  */
 
-import { logger } from '$lib/server/shared/utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 /**
  * Base authentication strategy

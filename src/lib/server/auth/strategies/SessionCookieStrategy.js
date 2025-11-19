@@ -13,7 +13,7 @@
 
 import { AuthStrategy } from './AuthStrategy.js';
 import { CookieService } from '../CookieService.server.js';
-import { logger } from '$lib/server/shared/utils/logger.js';
+import { logger } from '../../shared/utils/logger.js';
 
 export class SessionCookieStrategy extends AuthStrategy {
 	constructor() {
