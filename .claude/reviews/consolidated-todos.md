@@ -6,9 +6,9 @@
 **Total Items**: 42 unique actionable items
 **Estimated Total Effort**: 2-3 weeks (80-120 hours)
 
-**Progress**: 7 / 42 items completed (16.7%)
+**Progress**: 8 / 42 items completed (19.0%)
 - ✅ Critical: 2/3 completed (66.7%)
-- ⏳ High: 5/15 completed (33.3%)
+- ⏳ High: 6/15 completed (40.0%)
 - ⏳ Medium: 0/14 completed (0%)
 - ⏳ Low: 0/10 completed (0%)
 
@@ -211,12 +211,13 @@ const workspacesWithCounts = await database.all(`
 
 ## High Priority (Must Fix Before RC1)
 
-### H1. [MVVM] Create Missing MVVM Patterns Documentation
+### H1. [MVVM] Create Missing MVVM Patterns Documentation ✅ COMPLETED
 
 **Source**: MVVM Review #C1
-**File**: `src/docs/architecture/mvvm-patterns.md` (missing)
+**File**: `src/docs/architecture/mvvm-patterns.md`
 **Assigned**: svelte-mvvm-architect
 **Effort**: 4-6 hours
+**Status**: ✅ **COMPLETED** (2025-11-19)
 
 **Issue**: CLAUDE.md references comprehensive MVVM guide that doesn't exist. No guidance for developers on MVVM implementation.
 
@@ -232,11 +233,30 @@ const workspacesWithCounts = await database.all(`
 9. Decision trees for architectural choices
 
 **Acceptance Criteria**:
-- [ ] Comprehensive markdown document created
-- [ ] Code examples for each pattern
-- [ ] Anti-patterns documented with fixes
-- [ ] Decision trees for common scenarios
-- [ ] Links from CLAUDE.md verified
+- [x] Comprehensive markdown document created
+- [x] Code examples for each pattern
+- [x] Anti-patterns documented with fixes
+- [x] Decision trees for common scenarios
+- [x] Links from CLAUDE.md verified
+
+**Implementation Summary**:
+- Created 1276-line comprehensive guide at `src/docs/architecture/mvvm-patterns.md`
+- Covered all 9 required content areas:
+  1. Overview of MVVM in Dispatch with architecture diagrams
+  2. Runes-in-classes pattern ($state, $derived, $effect in classes)
+  3. Decision tree for ViewModels vs simple modules
+  4. Complete state management patterns guide
+  5. Three-layer separation (View/ViewModel/Service) with examples
+  6. ServiceContainer dependency injection patterns
+  7. Seven common anti-patterns with ✅/❌ examples and solutions
+  8. Testing strategies for ViewModels and components with Vitest
+  9. Three decision trees for architectural choices
+- Included 3 complete real-world examples (list, form, coordinator ViewModels)
+- Added quick reference template for developers
+- Documented when to use $derived vs $derived.by()
+- Explained when to use onMount vs $effect
+- Provided testing examples with mocks and ServiceContainer
+- Commit: 3f4d761
 
 ---
 
