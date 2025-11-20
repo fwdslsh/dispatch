@@ -46,6 +46,7 @@ const PUBLIC_ROUTES = [
 	'/',
 	'/login',
 	'/onboarding',
+	'/api-docs',
 	'/api/auth/oauth/initiate',
 	'/api/auth/callback',
 	'/api/auth/config',
@@ -200,9 +201,11 @@ async function servicesMiddleware({ event, resolve }) {
 async function onboardingMiddleware({ event, resolve }) {
 	const { pathname } = event.url;
 
-	// Allow onboarding routes without redirection
+	// Allow onboarding and login routes without redirection
 	const isOnboardingRoute = pathname === '/onboarding' || pathname.startsWith('/onboarding/');
-	if (isOnboardingRoute) {
+	const isLoginRoute = pathname === '/login'; // Only exempt explicit /login, not root /
+	const isApiDocsRoute = pathname === '/api-docs';
+	if (isOnboardingRoute || isLoginRoute || isApiDocsRoute) {
 		return resolve(event);
 	}
 
