@@ -20,6 +20,16 @@
 	// Component state
 	let apiKey = $state('');
 	let isSubmitting = $state(false);
+	let showError = $state(true); // Controls whether to display form error
+	let initialApiKey = $state(''); // Track initial value after error
+
+	// Clear error when apiKey changes after an error is shown
+	$effect(() => {
+		// If we have an error showing and apiKey changed from initial value, clear error
+		if (showError && apiKey !== initialApiKey) {
+			showError = false;
+		}
+	});
 
 	onMount(async () => {
 		// Check if already authenticated
@@ -46,6 +56,8 @@
 				/* eslint-enable svelte/no-navigation-without-resolve */
 			} else if (result.type === 'failure') {
 				// Error handled via form.error below
+				initialApiKey = apiKey; // Capture current value before showing error
+				showError = true; // Show the new error message
 				await update();
 			} else {
 				// For any other result type, reset state
@@ -72,7 +84,6 @@
 			<!-- API Key Login Form -->
 			<form method="POST" action="?/login" use:enhance={handleEnhance} class="login-form">
 				<div class="form-group">
-					<label for="api-key" class="form-label">API Key</label>
 					<input
 						id="api-key"
 						name="key"
@@ -83,11 +94,11 @@
 						disabled={isSubmitting}
 						required
 						class="form-input"
-						aria-describedby={form?.error ? 'login-error' : undefined}
+						aria-describedby={form?.error && showError ? 'login-error' : undefined}
 					/>
 				</div>
 
-				{#if form?.error}
+				{#if form?.error && showError}
 					<div id="login-error" class="error-message" role="alert">
 						{form.error}
 					</div>
@@ -374,3 +385,4 @@
 		}
 	}
 </style>
+ 
