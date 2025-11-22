@@ -1,0 +1,104 @@
+name: Build Release Candidate Docker Image
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-rc:
+    name: Build and Push RC Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "rc_tag=${VERSION}-rc" >> $GITHUB_OUTPUT
+          echo "Building release candidate: ${VERSION}-rc"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: fwdslsh/dispatch:${{ steps.version.outputs.rc_tag }}
+          cache-from: type=registry,ref=fwdslsh/dispatch:latest
+          cache-to: type=inline
+
+      - name: Image published
+        run: |
+          echo "✅ Release candidate image published to Docker Hub"
+          echo "🐳 Image: fwdslsh/dispatch:${{ steps.version.outputs.rc_tag }}"
+          echo ""
+          echo "Test with:"
+          echo "docker pull fwdslsh/dispatch:${{ steps.version.outputs.rc_tag }}"
+          echo "docker run -d -p 3030:3030 -e TERMINAL_KEY=test fwdslsh/dispatch:${{ steps.version.outputs.rc_tag }}"
+
+      - name: Add PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const rcTag = '${{ steps.version.outputs.rc_tag }}';
+            const body = `## 🐳 Release Candidate Docker Image Published
+
+            A release candidate Docker image has been built and pushed to Docker Hub for testing.
+
+            **Image Tag:** \`fwdslsh/dispatch:${rcTag}\`
+
+            ### Test this PR
+
+            \`\`\`bash
+            # Pull the RC image
+            docker pull fwdslsh/dispatch:${rcTag}
+
+            # Run the container
+            docker run -d -p 3030:3030 \\
+              -e TERMINAL_KEY=test-password \\
+              fwdslsh/dispatch:${rcTag}
+
+            # Open http://localhost:3030
+            \`\`\`
+
+            ### Using the CLI
+
+            \`\`\`bash
+            # Pull specific RC version
+            docker pull fwdslsh/dispatch:${rcTag}
+
+            # Tag it as latest for CLI to use
+            docker tag fwdslsh/dispatch:${rcTag} fwdslsh/dispatch:latest
+
+            # Run dispatch CLI normally
+            dispatch start
+            \`\`\`
+
+            ---
+
+            *This image is for testing purposes only and will not be tagged as \`latest\`.*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
