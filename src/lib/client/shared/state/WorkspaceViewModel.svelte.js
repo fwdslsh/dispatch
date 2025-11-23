@@ -334,12 +334,12 @@ export class WorkspaceViewModel {
 	}
 
 	/**
-	 * Add session to BwinHost pane
+	 * Add session to BinaryWindow pane (sv-window-manager v0.2.2)
 	 * @param {Object} session - Session object
 	 */
 	addSessionToPane(session) {
 		if (!this.bwinHostRef) {
-			log.warn('Cannot add pane: BwinHost not available', {
+			log.warn('Cannot add pane: BinaryWindow not available', {
 				hasWorkspaceState: !!this.workspaceState,
 				hasRef: !!this.workspaceState?.windowManager?.bwinHostRef,
 				hasBwinHost: !!this.bwinHostRef
@@ -370,22 +370,17 @@ export class WorkspaceViewModel {
 		const module = getClientSessionModule(sessionType);
 		const props = module?.prepareProps ? module.prepareProps(session) : { sessionId: session.id };
 
-		// Prepare pane config with title and close handler
-		const paneConfig = {
-			title: session.title || sessionType || 'Session',
-			onClose: async () => {
-				log.info('Pane close button clicked, closing session:', session.id);
-				// Close the session (skip pane removal since it's already happening)
-				await this.handleSessionClose(session.id, true);
-			}
-		};
-
 		try {
+			// New API: addPane(targetSashId, { position, component, componentProps, title, id })
 			this.bwinHostRef.addPane(
-				session.id, // Use sessionId as pane ID
-				paneConfig, // Pane config with title and close handler
-				component, // Svelte component to render
-				props // Props to pass to component
+				'root', // targetSashId - add to root sash
+				{
+					id: session.id, // Use sessionId as pane ID
+					position: 'right', // Split position
+					title: session.title || sessionType || 'Session',
+					component: component, // Svelte component to render
+					componentProps: props // Props to pass to component
+				}
 			);
 			log.info('Added session to pane:', session.id, sessionType);
 			return true;

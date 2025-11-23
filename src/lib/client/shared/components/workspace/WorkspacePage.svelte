@@ -4,7 +4,7 @@
 	import { innerWidth } from 'svelte/reactivity/window';
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
-	import { BwinHost } from 'sv-window-manager';
+	import { BinaryWindow, addEventHandler, removeEventHandler } from 'sv-window-manager';
 
 	let windowManagerLoadError = $state(null);
 
@@ -88,7 +88,15 @@
 			// No need to manually remove pane here
 		});
 
-		// Populate BwinHost with existing sessions once after initialization
+		// Set up global pane removal event handler (sv-window-manager v0.2.2)
+		const handlePaneRemoved = async (evt) => {
+			log.info('Pane removed by user, closing session:', evt.pane.id);
+			// Skip pane removal since pane is already removed (that's why this event fired)
+			await workspaceViewModel.handleSessionClose(evt.pane.id, true);
+		};
+		addEventHandler('onpaneremoved', handlePaneRemoved);
+
+		// Populate BinaryWindow with existing sessions once after initialization
 		if (workspaceViewModel.bwinHostRef) {
 			workspaceViewModel.populateBwinHost();
 		}
@@ -105,6 +113,7 @@
 
 			__removeWorkspacePageListeners = () => {
 				window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+				removeEventHandler('onpaneremoved', handlePaneRemoved);
 			};
 		}
 
@@ -207,14 +216,9 @@
 					</div>
 				</div>
 			{:else if workspaceViewModel?.isWindowManagerView}
-				<BwinHost
+				<BinaryWindow
 					bind:this={workspaceViewModel.bwinHostRef}
-					config={{ fitContainer: true }}
-					onpaneremoved={async (paneId) => {
-						log.info('Pane removed by user, closing session:', paneId);
-						// Skip pane removal since pane is already removed (that's why this event fired)
-						await workspaceViewModel.handleSessionClose(paneId, true);
-					}}
+					settings={{ id: 'root', fitContainer: true }}
 				/>
 			{:else}
 				<SingleSessionView
@@ -313,6 +317,12 @@
 		--bw-action-gap: var(--space-0);
 		--bw-minimized-glass-height: 10px;
 		--bw-minimized-glass-basis: 10%;
+	}
+
+	.workspace-content {
+		height: var(--bw-container-height);
+		width: 100%;
+		position: relative;
 	}
 
 	:global(.bw-glass-action) {
