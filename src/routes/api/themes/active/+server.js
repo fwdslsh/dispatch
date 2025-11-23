@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { ThemeManager } from '$lib/server/themes/ThemeManager.js';
 import { XtermThemeParser } from '$lib/server/themes/XtermThemeParser.js';
+import { logger } from '$lib/server/shared/utils/logger.js';
+import { handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 const parser = new XtermThemeParser();
 const themeManager = new ThemeManager(parser);
@@ -38,7 +40,7 @@ async function resolveActiveTheme(
 				}
 			}
 		} catch (error) {
-			console.error('[ThemeActive] Failed to check workspace override:', error);
+			logger.warn('THEMES', 'Failed to check workspace override', { workspaceId, error: error.message });
 		}
 	}
 
@@ -56,7 +58,7 @@ async function resolveActiveTheme(
 			}
 		}
 	} catch (error) {
-		console.error('[ThemeActive] Failed to check global default:', error);
+		logger.warn('THEMES', 'Failed to check global default', { error: error.message });
 	}
 
 	// 3. Fallback to hardcoded theme
@@ -64,23 +66,27 @@ async function resolveActiveTheme(
 }
 
 export async function GET({ url, locals }) {
-	// Get optional workspaceId from query params
-	const workspaceId = url.searchParams.get('workspaceId');
+	try {
+		// Get optional workspaceId from query params
+		const workspaceId = url.searchParams.get('workspaceId');
 
-	// Get repositories from locals
-	const { workspaceRepository, settingsRepository } = locals.services;
+		// Get repositories from locals
+		const { workspaceRepository, settingsRepository } = locals.services;
 
-	// Initialize theme manager
-	await themeManager.initialize();
+		// Initialize theme manager
+		await themeManager.initialize();
 
-	// Resolve active theme using hierarchy
-	const theme = await resolveActiveTheme(
-		workspaceRepository,
-		settingsRepository,
-		themeManager,
-		workspaceId
-	);
+		// Resolve active theme using hierarchy
+		const theme = await resolveActiveTheme(
+			workspaceRepository,
+			settingsRepository,
+			themeManager,
+			workspaceId
+		);
 
-	// Return resolved theme
-	return json({ theme });
+		// Return resolved theme
+		return json({ theme });
+	} catch (err) {
+		handleApiError(err, 'GET /api/themes/active');
+	}
 }

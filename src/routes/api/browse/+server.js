@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { BadRequestError, NotFoundError, ForbiddenError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Get the base directory for browsing (can be configured via environment)
 function getBaseDirectory() {
@@ -34,17 +35,17 @@ export async function GET({ url }) {
 		const resolvedPath = resolve(requestedPath);
 
 		if (!isPathAllowed(resolvedPath)) {
-			return json({ error: 'Access denied to this directory' }, { status: 403 });
+			throw new ForbiddenError('Access denied to this directory');
 		}
 
 		// Check if the path exists and is a directory
 		const pathStat = await stat(resolvedPath).catch(() => null);
 		if (!pathStat) {
-			return json({ error: 'Path does not exist' }, { status: 404 });
+			throw new NotFoundError('Path does not exist');
 		}
 
 		if (!pathStat.isDirectory()) {
-			return json({ error: 'Path is not a directory' }, { status: 400 });
+			throw new BadRequestError('Path is not a directory', 'NOT_A_DIRECTORY');
 		}
 
 		// Read directory contents
@@ -88,8 +89,7 @@ export async function GET({ url }) {
 			entries,
 			parent: resolvedPath !== '/' ? resolve(resolvedPath, '..') : null
 		});
-	} catch (error) {
-		console.error('Directory browse error:', error);
-		return json({ error: error.message || 'Failed to browse directory' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/browse');
 	}
 }

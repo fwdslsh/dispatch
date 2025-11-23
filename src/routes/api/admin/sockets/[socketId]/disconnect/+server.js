@@ -1,35 +1,36 @@
 import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
+import { logger } from '$lib/server/shared/utils/logger.js';
+import { ServiceUnavailableError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function POST({ params, request: _request, locals: _locals }) {
-	const { socketId } = params;
-
 	try {
+		const { socketId } = params;
+
 		const io = getActiveSocketIO();
 
 		if (!io) {
-			return json({ error: 'Socket.IO server not available' }, { status: 500 });
+			throw new ServiceUnavailableError('Socket.IO server not available');
 		}
 
 		// Find and disconnect the specific socket
 		const socket = io.sockets.sockets.get(socketId);
 
 		if (!socket) {
-			return json({ error: 'Socket not found' }, { status: 404 });
+			throw new NotFoundError('Socket not found');
 		}
 
 		// Disconnect the socket
 		socket.disconnect(true);
 
-		console.log(`[ADMIN] Socket ${socketId} disconnected by admin`);
+		logger.info('ADMIN', `Socket ${socketId} disconnected by admin`);
 
 		return json({
 			success: true,
 			message: `Socket ${socketId} disconnected successfully`,
 			timestamp: Date.now()
 		});
-	} catch (error) {
-		console.error('Error disconnecting socket:', error);
-		return json({ error: 'Failed to disconnect socket' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/admin/sockets/[socketId]/disconnect');
 	}
 }

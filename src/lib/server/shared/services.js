@@ -24,6 +24,7 @@ import { createMigrationManager } from './db/migrate.js';
 import os from 'node:os';
 import { logger } from './utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
+import { validateEnvironment } from './utils/env-validation.js';
 
 // Adapters
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
@@ -195,6 +196,16 @@ export async function initializeServices(config = {}) {
 	}
 
 	try {
+		// Validate environment variables before initializing services
+		const envValidation = await validateEnvironment();
+		if (!envValidation.valid) {
+			// Log errors and exit - critical configuration issues prevent startup
+			logger.error('SERVICES', 'Environment validation failed. Cannot start server.');
+			throw new Error(
+				'Environment validation failed:\n' + envValidation.errors.map((e) => `  - ${e}`).join('\n')
+			);
+		}
+
 		logger.info('SERVICES', 'Initializing services...');
 
 		services = await createServices(config);

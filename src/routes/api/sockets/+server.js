@@ -3,23 +3,16 @@
  * GET /api/sockets - Returns list of active socket connections
  */
 
+import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
+import { ServiceUnavailableError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const io = getActiveSocketIO();
 
 		if (!io) {
-			return new Response(
-				JSON.stringify({
-					error: 'Socket.IO server not available',
-					sockets: []
-				}),
-				{
-					status: 503,
-					headers: { 'content-type': 'application/json' }
-				}
-			);
+			throw new ServiceUnavailableError('Socket.IO server not available');
 		}
 
 		// Get all connected sockets
@@ -45,27 +38,12 @@ export async function GET({ url, request: _request, locals: _locals }) {
 		const room = url.searchParams.get('room');
 		const filteredSockets = room ? socketInfo.filter((s) => s.rooms.includes(room)) : socketInfo;
 
-		return new Response(
-			JSON.stringify({
-				sockets: filteredSockets,
-				total: filteredSockets.length,
-				timestamp: new Date().toISOString()
-			}),
-			{
-				headers: { 'content-type': 'application/json' }
-			}
-		);
-	} catch (error) {
-		console.error('[API] Error fetching sockets:', error);
-		return new Response(
-			JSON.stringify({
-				error: error.message,
-				sockets: []
-			}),
-			{
-				status: 500,
-				headers: { 'content-type': 'application/json' }
-			}
-		);
+		return json({
+			sockets: filteredSockets,
+			total: filteredSockets.length,
+			timestamp: new Date().toISOString()
+		});
+	} catch (err) {
+		handleApiError(err, 'GET /api/sockets');
 	}
 }

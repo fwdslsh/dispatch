@@ -1,20 +1,19 @@
 import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
+import { BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function POST({ request, locals: _locals }) {
-	let action = 'unknown'; // Define in outer scope for error handler
 	try {
 		const data = await request.json();
-		const { path, files } = data;
-		action = data.action;
+		const { path, files, action } = data;
 
 		if (!path || !files || !Array.isArray(files) || !action) {
-			return json({ error: 'Path, files array, and action are required' }, { status: 400 });
+			throw new BadRequestError('Path, files array, and action are required', 'MISSING_PARAMS');
 		}
 
 		if (!['stage', 'unstage'].includes(action)) {
-			return json({ error: 'Action must be "stage" or "unstage"' }, { status: 400 });
+			throw new BadRequestError('Action must be "stage" or "unstage"', 'INVALID_ACTION');
 		}
 
 		const resolvedPath = resolve(path);
@@ -29,8 +28,7 @@ export async function POST({ request, locals: _locals }) {
 		}
 
 		return json({ success: true, action, files });
-	} catch (error) {
-		console.error('Git stage error:', error);
-		return json({ error: error.message || `Failed to ${action} files` }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/git/stage');
 	}
 }

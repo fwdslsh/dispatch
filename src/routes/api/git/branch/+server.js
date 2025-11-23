@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
+import { BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Create new branch
 export async function POST({ request, locals: _locals }) {
@@ -8,7 +9,7 @@ export async function POST({ request, locals: _locals }) {
 		const { path, name, checkout = false } = await request.json();
 
 		if (!path || !name) {
-			return json({ error: 'Path and name are required' }, { status: 400 });
+			throw new BadRequestError('Path and name are required', 'MISSING_PARAMS');
 		}
 
 		const resolvedPath = resolve(path);
@@ -18,8 +19,7 @@ export async function POST({ request, locals: _locals }) {
 		const result = await execGit(args, resolvedPath);
 
 		return json({ success: true, branch: name, checkout, message: result });
-	} catch (error) {
-		console.error('Git branch error:', error);
-		return json({ error: error.message || 'Failed to create branch' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/git/branch');
 	}
 }

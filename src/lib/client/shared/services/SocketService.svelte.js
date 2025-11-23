@@ -117,7 +117,16 @@ export class SocketService {
 	setupCoreHandlers() {
 		if (!this.socket) return;
 
-		// Connection events
+		this.setupConnectionHandlers();
+		this.setupReconnectionHandlers();
+		this.setupErrorHandlers();
+	}
+
+	/**
+	 * Setup connection lifecycle handlers
+	 * @private
+	 */
+	setupConnectionHandlers() {
 		this.socket.on('connect', () => {
 			console.log('[SocketService] Connected:', this.socket.id);
 			this.connected = true;
@@ -135,14 +144,13 @@ export class SocketService {
 			this.authenticated = false;
 			this.connectionId = null;
 		});
+	}
 
-		this.socket.on('connect_error', (error) => {
-			console.error('[SocketService] Connection error:', error);
-			this.lastError = error.message;
-			this.connecting = false;
-		});
-
-		// Reconnection events
+	/**
+	 * Setup reconnection handlers
+	 * @private
+	 */
+	setupReconnectionHandlers() {
 		this.socket.on('reconnect', (attemptNumber) => {
 			console.log('[SocketService] Reconnected after', attemptNumber, 'attempts');
 			this.reconnectAttempt = 0;
@@ -157,8 +165,19 @@ export class SocketService {
 			console.error('[SocketService] Reconnection failed');
 			this.lastError = 'Reconnection failed';
 		});
+	}
 
-		// Error handling
+	/**
+	 * Setup error handlers
+	 * @private
+	 */
+	setupErrorHandlers() {
+		this.socket.on('connect_error', (error) => {
+			console.error('[SocketService] Connection error:', error);
+			this.lastError = error.message;
+			this.connecting = false;
+		});
+
 		this.socket.on('error', (error) => {
 			console.error('[SocketService] Socket error:', error);
 			this.lastError = error.message || 'Socket error';

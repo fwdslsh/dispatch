@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { createHistoryManager } from '$lib/server/shared/history-manager.js';
+import { handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function GET({ url: _url, locals }) {
 	try {
@@ -11,8 +12,7 @@ export async function GET({ url: _url, locals }) {
 			total: histories.length,
 			timestamp: Date.now()
 		});
-	} catch (error) {
-		console.error('Error getting socket histories:', error);
-		return json({ error: 'Failed to get socket histories' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/admin/history');
 	}
 }

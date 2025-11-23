@@ -31,7 +31,6 @@
 
 	// State
 	let sessionType = $state('all');
-	let allSessions = $state([]);
 	let selectedDirectory = $state('');
 	let showDirectoryPicker = $state(false);
 	let currentTab = $state('active'); // 'active', 'create', 'browse', 'workspaces'
@@ -39,21 +38,36 @@
 	let error = $state(null);
 	let searchTerm = $state('');
 	let sessionApi = $state(null);
+	let sessionViewModel = $state(null);
 	let workspaceNavigation = $state(null);
 	let showWorkspaceCreate = $state(false);
 	let newWorkspaceName = $state('');
 	let newWorkspacePath = $state('');
 
-	// Get API client and workspace navigation from service container
+	// Get services from service container
 	$effect(() => {
 		// Get the service container and initialize the services
 		try {
 			const container = useServiceContainer();
 
+			// Initialize session ViewModel (reactive source of truth)
+			const viewModelPromise = container.get('sessionViewModel');
+			if (viewModelPromise && typeof viewModelPromise.then === 'function') {
+				viewModelPromise
+					.then((vm) => {
+						sessionViewModel = vm;
+					})
+					.catch((error) => {
+						console.error('Failed to get sessionViewModel from service container:', error);
+					});
+			} else {
+				sessionViewModel = viewModelPromise;
+			}
+
 			// Initialize session API
-			const maybePromise = container.get('sessionApi');
-			if (maybePromise && typeof maybePromise.then === 'function') {
-				maybePromise
+			const apiPromise = container.get('sessionApi');
+			if (apiPromise && typeof apiPromise.then === 'function') {
+				apiPromise
 					.then((api) => {
 						sessionApi = api;
 						// Initialize workspace navigation with API client
@@ -65,10 +79,10 @@
 						console.error('Failed to get sessionApi from service container:', error);
 					});
 			} else {
-				sessionApi = maybePromise;
+				sessionApi = apiPromise;
 				// Initialize workspace navigation with API client
-				if (maybePromise) {
-					workspaceNavigation = new WorkspaceNavigationViewModel(maybePromise);
+				if (apiPromise) {
+					workspaceNavigation = new WorkspaceNavigationViewModel(apiPromise);
 				}
 			}
 		} catch (e) {
@@ -76,44 +90,14 @@
 		}
 	});
 
-	// Load all sessions (both active and inactive)
-	async function loadAllSessions() {
-		if (!sessionApi) return;
-		loading = true;
-		error = null;
-		try {
-			const data = await sessionApi.list({ includeAll: true });
-			const sessions = data.sessions || [];
-			allSessions = sessions
-				.filter((s) => s && s.id)
-				.map((session) => ({
-					id: session.id,
-					type: session.type,
-					workspacePath: session.workspacePath,
-					title: session.title || `${session.type} Session`,
-					isActive: session.isActive || false,
-					inLayout: session.inLayout === true || !!session.tileId,
-					createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
-					lastActivity: session.lastActivity ? new Date(session.lastActivity) : new Date()
-				}))
-				.sort((a, b) => {
-					// Sort by active first, then by last activity
-					if (a.isActive && !b.isActive) return -1;
-					if (!a.isActive && b.isActive) return 1;
-					return b.lastActivity.getTime() - a.lastActivity.getTime();
-				});
-		} catch (err) {
-			error = 'Error loading sessions: ' + err.message;
-		}
-		loading = false;
-	}
+	// Use SessionViewModel.sessions as source of truth (reactive)
+	const allSessions = $derived(sessionViewModel?.sessions ?? []);
 
 	// Filter sessions based on search term and session type
-
 	const filteredSessions = $derived(
 		allSessions.filter((session) => {
 			// Filter by session type
-			if (sessionType !== 'all' && session.type !== sessionType) {
+			if (sessionType !== 'all' && session.sessionType !== sessionType) {
 				return false;
 			}
 			// Filter by search term
@@ -122,7 +106,7 @@
 				return (
 					session.title.toLowerCase().includes(term) ||
 					session.workspacePath.toLowerCase().includes(term) ||
-					session.type.toLowerCase().includes(term)
+					session.sessionType.toLowerCase().includes(term)
 				);
 			}
 			return true;
@@ -165,7 +149,7 @@
 				workspacePath: selectedDirectory,
 				options: {}
 			});
-			await loadAllSessions();
+			// Session automatically added to SessionViewModel via socket event
 			selectSession(session);
 			onNewSession?.({ detail: { ...session } });
 		} catch (err) {
@@ -235,9 +219,7 @@
 				// Update our session with resume flag
 				const resumedId = resumedSession.id || session.id;
 
-				// Small delay to ensure server has finished updating session status
-				await new Promise((resolve) => setTimeout(resolve, 500));
-				await loadAllSessions();
+				// SessionViewModel will be updated reactively
 				selectedSession = resumedId;
 				onSessionSelected?.({
 					detail: {
@@ -288,7 +270,7 @@
 			selectedWorkspace = workspace;
 			selectedDirectory = workspace.path;
 			currentTab = 'active'; // Switch to active sessions after workspace change
-			await loadAllSessions();
+			// Sessions will update reactively from SessionViewModel
 		} catch (err) {
 			error = err.message;
 		}
@@ -307,28 +289,14 @@
 
 	// Initialize
 	onMount(async () => {
-		// Wait for sessionApi to be initialized
-		while (!sessionApi) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
-		}
-		await loadAllSessions();
-
 		// Load workspaces if navigation is available
 		if (workspaceNavigation) {
 			await loadWorkspaces();
 		}
 
+		// Sessions are automatically loaded via SessionViewModel
 		// DirectoryBrowser will now default to WORKSPACES_ROOT when no startPath is provided
 	});
-
-	// Public refresh method
-	export async function refresh() {
-		// Wait for sessionApi to be initialized
-		while (!sessionApi) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
-		}
-		return loadAllSessions();
-	}
 </script>
 
 <div class="menu-root" role="navigation" aria-label="Session and workspace management">

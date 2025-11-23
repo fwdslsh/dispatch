@@ -74,21 +74,17 @@ describe('Settings Registry', () => {
 			expect(sections[0].category).toBe('sessions');
 		});
 
-		it('should warn and skip invalid sections', () => {
-			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-			// @ts-expect-error - Testing invalid section (missing required fields)
-			registerSettingsSection({
-				id: 'test-section',
-				label: 'Test Section'
-				// Missing required 'component' field
-			});
-
-			expect(consoleWarnSpy).toHaveBeenCalled();
-			expect(getSettingsSections()).toHaveLength(0);
-
-			consoleWarnSpy.mockRestore();
+	it('should silently skip invalid sections', () => {
+		// @ts-expect-error - Testing invalid section (missing required fields)
+		registerSettingsSection({
+			id: 'test-section',
+			label: 'Test Section'
+			// Missing required 'component' field
 		});
+
+		// Should skip invalid section without warning (silent in production)
+		expect(getSettingsSections()).toHaveLength(0);
+	});
 	});
 
 	describe('getSettingsSections', () => {

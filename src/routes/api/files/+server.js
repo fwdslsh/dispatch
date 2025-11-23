@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { readFile, writeFile, stat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
+import { ApiError, BadRequestError, ForbiddenError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
@@ -28,30 +29,30 @@ export async function GET({ url }) {
 		const requestedPath = url.searchParams.get('path');
 
 		if (!requestedPath) {
-			return json({ error: 'Path parameter is required' }, { status: 400 });
+			throw new BadRequestError('Path parameter is required', 'MISSING_PATH');
 		}
 
 		// Resolve and validate the path
 		const resolvedPath = resolve(requestedPath);
 
 		if (!isPathAllowed(resolvedPath)) {
-			return json({ error: 'Access denied to this file' }, { status: 403 });
+			throw new ForbiddenError('Access denied to this file');
 		}
 
 		// Check if the path exists and is a file
 		const pathStat = await stat(resolvedPath).catch(() => null);
 		if (!pathStat) {
-			return json({ error: 'File does not exist' }, { status: 404 });
+			throw new NotFoundError('File does not exist');
 		}
 
 		if (!pathStat.isFile()) {
-			return json({ error: 'Path is not a file' }, { status: 400 });
+			throw new BadRequestError('Path is not a file', 'NOT_A_FILE');
 		}
 
 		// Check file size (limit to 10MB for safety)
 		const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 		if (pathStat.size > MAX_FILE_SIZE) {
-			return json({ error: 'File too large to edit (max 10MB)' }, { status: 413 });
+			throw new ApiError('File too large to edit (max 10MB)', 413, 'FILE_TOO_LARGE');
 		}
 
 		// Read file content
@@ -64,22 +65,19 @@ export async function GET({ url }) {
 			modified: pathStat.mtime.toISOString(),
 			readonly: false // Could be determined by file permissions
 		});
-	} catch (error) {
-		console.error('[API] Failed to read file:', error);
-
-		if (error.code === 'EACCES') {
-			return json({ error: 'Permission denied' }, { status: 403 });
+	} catch (err) {
+		// Handle filesystem errors
+		if (err.code === 'EACCES') {
+			throw new ForbiddenError('Permission denied');
+		}
+		if (err.code === 'ENOENT') {
+			throw new NotFoundError('File not found');
+		}
+		if (err.code === 'EISDIR') {
+			throw new BadRequestError('Path is a directory', 'IS_DIRECTORY');
 		}
 
-		if (error.code === 'ENOENT') {
-			return json({ error: 'File not found' }, { status: 404 });
-		}
-
-		if (error.code === 'EISDIR') {
-			return json({ error: 'Path is a directory' }, { status: 400 });
-		}
-
-		return json({ error: error.message }, { status: 500 });
+		handleApiError(err, 'GET /api/files');
 	}
 }
 
@@ -89,18 +87,18 @@ export async function PUT({ request, url }) {
 		const { content } = await request.json();
 
 		if (!requestedPath) {
-			return json({ error: 'Path parameter is required' }, { status: 400 });
+			throw new BadRequestError('Path parameter is required', 'MISSING_PATH');
 		}
 
 		if (typeof content !== 'string') {
-			return json({ error: 'Content must be a string' }, { status: 400 });
+			throw new BadRequestError('Content must be a string', 'INVALID_CONTENT_TYPE');
 		}
 
 		// Resolve and validate the path
 		const resolvedPath = resolve(requestedPath);
 
 		if (!isPathAllowed(resolvedPath)) {
-			return json({ error: 'Access denied to this file' }, { status: 403 });
+			throw new ForbiddenError('Access denied to this file');
 		}
 
 		// Check if directory exists, create if it doesn't
@@ -109,7 +107,7 @@ export async function PUT({ request, url }) {
 			await stat(dir);
 		} catch (error) {
 			if (error.code === 'ENOENT') {
-				return json({ error: 'Directory does not exist' }, { status: 400 });
+				throw new BadRequestError('Directory does not exist', 'DIRECTORY_NOT_FOUND');
 			}
 			throw error;
 		}
@@ -127,17 +125,15 @@ export async function PUT({ request, url }) {
 			size: pathStat.size,
 			modified: pathStat.mtime.toISOString()
 		});
-	} catch (error) {
-		console.error('[API] Failed to write file:', error);
-
-		if (error.code === 'EACCES') {
-			return json({ error: 'Permission denied' }, { status: 403 });
+	} catch (err) {
+		// Handle filesystem errors
+		if (err.code === 'EACCES') {
+			throw new ForbiddenError('Permission denied');
+		}
+		if (err.code === 'ENOSPC') {
+			throw new ApiError('No space left on device', 507, 'INSUFFICIENT_STORAGE');
 		}
 
-		if (error.code === 'ENOSPC') {
-			return json({ error: 'No space left on device' }, { status: 507 });
-		}
-
-		return json({ error: error.message }, { status: 500 });
+		handleApiError(err, 'PUT /api/files');
 	}
 }

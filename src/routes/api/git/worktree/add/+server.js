@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { validateAndResolvePath } from '$lib/server/shared/path-validation.js';
 import { existsSync } from 'node:fs';
+import { BadRequestError, NotFoundError, ConflictError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * Add a new git worktree
@@ -17,11 +18,11 @@ export async function POST({ request, locals: _locals }) {
 
 		// Validate required parameters
 		if (!path || !worktreePath) {
-			return json({ error: 'Path and worktreePath are required' }, { status: 400 });
+			throw new BadRequestError('Path and worktreePath are required', 'MISSING_PARAMS');
 		}
 
 		if (!branch && !newBranch) {
-			return json({ error: 'Either branch or newBranch is required' }, { status: 400 });
+			throw new BadRequestError('Either branch or newBranch is required', 'MISSING_BRANCH');
 		}
 
 		// Validate and resolve repository path
@@ -31,7 +32,7 @@ export async function POST({ request, locals: _locals }) {
 		});
 
 		if (!repoValidation.valid) {
-			return json({ error: `Invalid repository path: ${repoValidation.error}` }, { status: 400 });
+			throw new BadRequestError(`Invalid repository path: ${repoValidation.error}`, 'INVALID_PATH');
 		}
 
 		const resolvedPath = repoValidation.resolvedPath;
@@ -43,7 +44,7 @@ export async function POST({ request, locals: _locals }) {
 		});
 
 		if (!worktreeValidation.valid) {
-			return json({ error: `Invalid worktree path: ${worktreeValidation.error}` }, { status: 400 });
+			throw new BadRequestError(`Invalid worktree path: ${worktreeValidation.error}`, 'INVALID_WORKTREE_PATH');
 		}
 
 		const resolvedWorktreePath = worktreeValidation.resolvedPath;
@@ -52,12 +53,12 @@ export async function POST({ request, locals: _locals }) {
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
 		} catch (_error) {
-			return json({ error: 'Not a git repository' }, { status: 404 });
+			throw new NotFoundError('Not a git repository');
 		}
 
 		// Check if worktree path already exists
 		if (existsSync(resolvedWorktreePath)) {
-			return json({ error: 'Worktree path already exists' }, { status: 400 });
+			throw new ConflictError('Worktree path already exists');
 		}
 
 		// Build git worktree add command
@@ -66,7 +67,7 @@ export async function POST({ request, locals: _locals }) {
 		if (newBranch) {
 			// Validate branch name to prevent injection
 			if (!newBranch.match(/^[a-zA-Z0-9_\-/.]+$/)) {
-				return json({ error: 'Invalid branch name format' }, { status: 400 });
+				throw new BadRequestError('Invalid branch name format', 'INVALID_BRANCH_NAME');
 			}
 			args.push('-b', newBranch);
 		}
@@ -76,7 +77,7 @@ export async function POST({ request, locals: _locals }) {
 		if (branch && !newBranch) {
 			// Validate branch name to prevent injection
 			if (!branch.match(/^[a-zA-Z0-9_\-/.]+$/)) {
-				return json({ error: 'Invalid branch name format' }, { status: 400 });
+				throw new BadRequestError('Invalid branch name format', 'INVALID_BRANCH_NAME');
 			}
 			args.push(branch);
 		}
@@ -92,8 +93,7 @@ export async function POST({ request, locals: _locals }) {
 			securityNotice:
 				'Automatic command execution disabled. Please run initialization commands manually.'
 		});
-	} catch (error) {
-		console.error('Git worktree add error:', error);
-		return json({ error: error.message || 'Failed to add worktree' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/git/worktree/add');
 	}
 }

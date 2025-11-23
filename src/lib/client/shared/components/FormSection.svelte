@@ -1,8 +1,39 @@
 <script>
 	/**
-	 * FormSection Component
-	 * Consistent form section with label and content
-	 * Supports both 'label' (simple) and 'title'+'description' (detailed) modes
+	 * @component FormSection
+	 * @description
+	 * Consistent form section container with label/title and optional description.
+	 * Provides structured layout for form fields with semantic heading and content areas.
+	 * Supports both simple label mode and detailed title+description mode.
+	 *
+	 * @typedef {Object} FormSectionProps
+	 * @property {string} [label=''] - Simple label text (deprecated, use title)
+	 * @property {string} [title=''] - Section title (preferred over label)
+	 * @property {string} [description=''] - Optional description text
+	 * @property {import('svelte').Snippet} [icon] - Optional icon snippet
+	 * @property {boolean} [required=false] - Show required indicator (*)
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic form section -->
+	 * <FormSection title="User Information">
+	 *   <Input label="Name" bind:value={name} />
+	 *   <Input label="Email" type="email" bind:value={email} />
+	 * </FormSection>
+	 *
+	 * <!-- With description and icon -->
+	 * <FormSection
+	 *   title="Workspace Settings"
+	 *   description="Configure how your workspace behaves"
+	 *   required
+	 * >
+	 *   {#snippet icon()}
+	 *     <IconSettings size={18} />
+	 *   {/snippet}
+	 *   <Input label="Workspace Name" bind:value={workspaceName} />
+	 * </FormSection>
+	 * ```
 	 */
 
 	// Props

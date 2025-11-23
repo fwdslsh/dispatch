@@ -93,7 +93,24 @@ class ServiceContainer {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');
 			const appStateManager = await this.get('appStateManager');
 			const sessionApi = await this.get('sessionApi');
-			return new SessionViewModel(appStateManager, sessionApi);
+			const settingsService = await this.get('settingsService');
+			return new SessionViewModel(appStateManager, sessionApi, settingsService);
+		});
+
+		this.registerFactory('createSessionViewModel', async () => {
+			const { CreateSessionViewModel } = await import('../state/CreateSessionViewModel.svelte.js');
+			const sessionViewModel = await this.get('sessionViewModel');
+			const sessionApi = await this.get('sessionApi');
+			return new CreateSessionViewModel(sessionViewModel, sessionApi);
+		});
+
+		this.registerFactory('workspaceViewModel', async () => {
+			const { WorkspaceViewModel } = await import('../state/WorkspaceViewModel.svelte.js');
+			const sessionViewModel = await this.get('sessionViewModel');
+			const appStateManager = await this.get('appStateManager');
+			// Import goto dynamically to avoid SSR issues
+			const { goto } = await import('$app/navigation');
+			return new WorkspaceViewModel(sessionViewModel, appStateManager, goto);
 		});
 	}
 

@@ -42,7 +42,16 @@ describe('AuthViewModel', () => {
 				ok: true,
 				json: async () => ({
 					terminal_key_set: true,
-					oauth_configured: false
+					oauth_configured: false,
+					oauth_providers: []
+				})
+			});
+
+			// Mock status response
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					onboarding: { isComplete: true }
 				})
 			});
 
@@ -66,7 +75,16 @@ describe('AuthViewModel', () => {
 				ok: true,
 				json: async () => ({
 					terminal_key_set: true,
-					oauth_configured: false
+					oauth_configured: false,
+					oauth_providers: []
+				})
+			});
+
+			// Mock status response
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					onboarding: { isComplete: true }
 				})
 			});
 
@@ -82,8 +100,15 @@ describe('AuthViewModel', () => {
 			const mockConfig = {
 				terminal_key_set: true,
 				oauth_configured: true,
-				oauth_client_id: 'test-client-id',
-				oauth_redirect_uri: 'http://localhost:5173/auth/callback'
+				oauth_providers: [
+					{
+						name: 'github',
+						displayName: 'GitHub',
+						enabled: true,
+						hasClientId: true,
+						available: true
+					}
+				]
 			};
 
 			mockFetch.mockResolvedValueOnce({
@@ -91,9 +116,26 @@ describe('AuthViewModel', () => {
 				json: async () => mockConfig
 			});
 
+			// Mock status response
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					onboarding: { isComplete: true }
+				})
+			});
+
+			// Mock protected route check
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
+
 			await viewModel.initialize();
 
-			expect(viewModel.authConfig).toEqual(mockConfig);
+			// AuthViewModel normalizes the config structure
+			expect(viewModel.authConfig).toEqual({
+				terminal_key_set: true,
+				oauth_configured: true,
+				oauthProviders: mockConfig.oauth_providers
+			});
+			expect(viewModel.oauthProviders).toEqual(mockConfig.oauth_providers);
 			expect(viewModel.hasTerminalKeyAuth).toBe(true);
 			expect(viewModel.hasOAuthAuth).toBe(true);
 			expect(viewModel.hasAnyAuth).toBe(true);
@@ -103,7 +145,19 @@ describe('AuthViewModel', () => {
 			// Mock auth config response
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
-				json: async () => ({ terminal_key_set: true, oauth_configured: false })
+				json: async () => ({
+					terminal_key_set: true,
+					oauth_configured: false,
+					oauth_providers: []
+				})
+			});
+
+			// Mock status response
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					onboarding: { isComplete: true }
+				})
 			});
 
 			// Mock protected route check (authenticated -> 200)
@@ -122,7 +176,19 @@ describe('AuthViewModel', () => {
 			// Mock auth config response
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
-				json: async () => ({ terminal_key_set: true, oauth_configured: false })
+				json: async () => ({
+					terminal_key_set: true,
+					oauth_configured: false,
+					oauth_providers: []
+				})
+			});
+
+			// Mock status response
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					onboarding: { isComplete: true }
+				})
 			});
 
 			// Mock protected route check (not authenticated)
@@ -220,8 +286,18 @@ describe('AuthViewModel', () => {
 	describe('OAuth Authentication', () => {
 		it('should redirect to OAuth URL when configured', async () => {
 			viewModel.authConfig = {
-				oauth_configured: true
+				oauth_configured: true,
+				oauthProviders: [
+					{
+						name: 'github',
+						displayName: 'GitHub',
+						enabled: true,
+						hasClientId: true,
+						available: true
+					}
+				]
 			};
+			viewModel.oauthProviders = viewModel.authConfig.oauthProviders;
 
 			// Mock OAuth initiation response
 			mockFetch.mockResolvedValueOnce({
@@ -248,8 +324,10 @@ describe('AuthViewModel', () => {
 
 		it('should not redirect when OAuth is not configured', async () => {
 			viewModel.authConfig = {
-				oauth_configured: false
+				oauth_configured: false,
+				oauthProviders: []
 			};
+			viewModel.oauthProviders = [];
 
 			await viewModel.loginWithOAuth();
 
@@ -260,8 +338,18 @@ describe('AuthViewModel', () => {
 
 		it('should handle OAuth initiation errors', async () => {
 			viewModel.authConfig = {
-				oauth_configured: true
+				oauth_configured: true,
+				oauthProviders: [
+					{
+						name: 'github',
+						displayName: 'GitHub',
+						enabled: true,
+						hasClientId: true,
+						available: true
+					}
+				]
 			};
+			viewModel.oauthProviders = viewModel.authConfig.oauthProviders;
 
 			// Mock failed OAuth initiation
 			mockFetch.mockResolvedValueOnce({
@@ -326,13 +414,29 @@ describe('AuthViewModel', () => {
 		});
 
 		it('should compute hasOAuthAuth correctly', () => {
-			viewModel.authConfig = { oauth_configured: true };
+			viewModel.oauthProviders = [
+				{
+					name: 'github',
+					displayName: 'GitHub',
+					enabled: true,
+					hasClientId: true,
+					available: true
+				}
+			];
 			expect(viewModel.hasOAuthAuth).toBe(true);
 
-			viewModel.authConfig = { oauth_configured: false };
+			viewModel.oauthProviders = [
+				{
+					name: 'github',
+					displayName: 'GitHub',
+					enabled: false,
+					hasClientId: true,
+					available: false
+				}
+			];
 			expect(viewModel.hasOAuthAuth).toBe(false);
 
-			viewModel.authConfig = null;
+			viewModel.oauthProviders = [];
 			expect(viewModel.hasOAuthAuth).toBe(false);
 		});
 
@@ -342,24 +446,44 @@ describe('AuthViewModel', () => {
 				terminal_key_set: true,
 				oauth_configured: true
 			};
+			viewModel.oauthProviders = [
+				{
+					name: 'github',
+					displayName: 'GitHub',
+					enabled: true,
+					hasClientId: true,
+					available: true
+				}
+			];
 			expect(viewModel.hasAnyAuth).toBe(true);
 
 			viewModel.authConfig = {
 				terminal_key_set: true,
 				oauth_configured: false
 			};
+			viewModel.oauthProviders = [];
 			expect(viewModel.hasAnyAuth).toBe(true);
 
 			viewModel.authConfig = {
 				terminal_key_set: false,
 				oauth_configured: true
 			};
+			viewModel.oauthProviders = [
+				{
+					name: 'github',
+					displayName: 'GitHub',
+					enabled: true,
+					hasClientId: true,
+					available: true
+				}
+			];
 			expect(viewModel.hasAnyAuth).toBe(true);
 
 			viewModel.authConfig = {
 				terminal_key_set: false,
 				oauth_configured: false
 			};
+			viewModel.oauthProviders = [];
 			expect(viewModel.hasAnyAuth).toBe(true); // Still true - API keys always available
 		});
 	});
@@ -396,10 +520,13 @@ describe('AuthViewModel', () => {
 			viewModel.isPWA = true;
 			viewModel.currentUrl = 'http://localhost:5173';
 			viewModel.urlInput = 'http://localhost:5173'; // Set to same as currentUrl
+			viewModel.onboardingComplete = true;
 			viewModel.authConfig = {
 				terminal_key_set: true,
-				oauth_configured: false
+				oauth_configured: false,
+				oauthProviders: []
 			};
+			viewModel.oauthProviders = [];
 
 			const state = viewModel.getState();
 
@@ -407,10 +534,12 @@ describe('AuthViewModel', () => {
 				loading: true,
 				error: 'Test error',
 				isPWA: true,
+				onboardingComplete: true,
 				hasTerminalKeyAuth: true,
 				hasOAuthAuth: false,
 				hasAnyAuth: true,
-				needsUrlChange: false
+				needsUrlChange: false,
+				oauthProviders: []
 			});
 		});
 	});

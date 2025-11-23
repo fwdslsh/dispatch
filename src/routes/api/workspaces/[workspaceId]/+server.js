@@ -1,5 +1,12 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	NotFoundError,
+	handleApiError,
+	validateEnum
+} from '$lib/server/shared/utils/api-errors.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ params, request: _request, locals }) {
@@ -11,7 +18,7 @@ export async function GET({ params, request: _request, locals }) {
 		// Get workspace details
 		const workspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [workspaceId]);
 		if (!workspace) {
-			return error(404, { message: 'Workspace not found' });
+			throw new NotFoundError('Workspace not found');
 		}
 
 		// Get active sessions for this workspace
@@ -82,11 +89,7 @@ export async function GET({ params, request: _request, locals }) {
 		logger.info('WORKSPACE_API', `Retrieved workspace details: ${workspaceId}`);
 		return json(response);
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to get workspace details:', err);
-		throw error(500, { message: 'Failed to retrieve workspace details' });
+		handleApiError(err, 'GET /api/workspaces/[workspaceId]');
 	}
 }
 
@@ -99,7 +102,7 @@ export async function PUT({ params, request, url: _url, locals }) {
 
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			throw error(401, { message: 'Authentication required for workspace updates' });
+			throw new UnauthorizedError('Authentication required for workspace updates');
 		}
 
 		const dbManager = locals.services.database;
@@ -108,19 +111,19 @@ export async function PUT({ params, request, url: _url, locals }) {
 		// Check if workspace exists
 		const workspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [workspaceId]);
 		if (!workspace) {
-			throw error(404, { message: 'Workspace not found' });
+			throw new NotFoundError('Workspace not found');
 		}
 
 		// Validate status if provided
-		if (status && !['active', 'inactive', 'archived'].includes(status)) {
-			throw error(400, { message: 'Invalid status. Must be one of: active, inactive, archived' });
+		if (status) {
+			validateEnum('status', status, ['active', 'inactive', 'archived']);
 		}
 
 		let trimmedName;
 		if (Object.prototype.hasOwnProperty.call(data, 'name')) {
 			trimmedName = typeof name === 'string' ? name.trim() : '';
 			if (!trimmedName) {
-				throw error(400, { message: 'Workspace name cannot be empty' });
+				throw new BadRequestError('Workspace name cannot be empty', 'EMPTY_WORKSPACE_NAME');
 			}
 		}
 
@@ -134,9 +137,10 @@ export async function PUT({ params, request, url: _url, locals }) {
 			);
 
 			if (activeSessions[0]?.count > 0) {
-				throw error(400, {
-					message: 'Cannot archive workspace with active sessions'
-				});
+				throw new BadRequestError(
+					'Cannot archive workspace with active sessions',
+					'ACTIVE_SESSIONS_EXIST'
+				);
 			}
 		}
 
@@ -212,11 +216,7 @@ export async function PUT({ params, request, url: _url, locals }) {
 		});
 		return json(response);
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to update workspace:', err);
-		throw error(500, { message: 'Failed to update workspace' });
+		handleApiError(err, 'PUT /api/workspaces/[workspaceId]');
 	}
 }
 
@@ -227,7 +227,7 @@ export async function DELETE({ params, request: _request, url: _url, locals }) {
 
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			throw error(401, { message: 'Authentication required for workspace deletion' });
+			throw new UnauthorizedError('Authentication required for workspace deletion');
 		}
 
 		const dbManager = locals.services.database;
@@ -236,7 +236,7 @@ export async function DELETE({ params, request: _request, url: _url, locals }) {
 		// Check if workspace exists
 		const workspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [workspaceId]);
 		if (!workspace) {
-			throw error(404, { message: 'Workspace not found' });
+			throw new NotFoundError('Workspace not found');
 		}
 
 		// Check for active sessions
@@ -248,9 +248,10 @@ export async function DELETE({ params, request: _request, url: _url, locals }) {
 		);
 
 		if (activeSessions.length > 0) {
-			throw error(400, {
-				message: 'Cannot delete workspace with active sessions'
-			});
+			throw new BadRequestError(
+				'Cannot delete workspace with active sessions',
+				'ACTIVE_SESSIONS_EXIST'
+			);
 		}
 
 		// Soft delete - just remove from workspaces table
@@ -270,11 +271,7 @@ export async function DELETE({ params, request: _request, url: _url, locals }) {
 		logger.info('WORKSPACE_API', `Deleted workspace: ${workspaceId}`);
 		return json({ message: 'Workspace deleted successfully' });
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to delete workspace:', err);
-		throw error(500, { message: 'Failed to delete workspace' });
+		handleApiError(err, 'DELETE /api/workspaces/[workspaceId]');
 	}
 }
 

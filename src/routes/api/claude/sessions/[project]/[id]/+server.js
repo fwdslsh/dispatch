@@ -1,18 +1,20 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { join } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 import { readTailLines, parseJsonlLines } from '$lib/server/shared/utils/jsonl.js';
 import { createReadStream } from 'node:fs';
+import { NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 const MAX_BYTES = 5 * 1024 * 1024; // soft cap to keep responses reasonable
 
 export async function GET({ params, url, request: _request, locals: _locals }) {
-	const { project, id } = params;
-	const full = join(projectsRoot(), project, `${id}.jsonl`);
+	try {
+		const { project, id } = params;
+		const full = join(projectsRoot(), project, `${id}.jsonl`);
 
-	const st = await stat(full).catch(() => null);
-	if (!st?.isFile()) throw error(404, 'Session not found');
+		const st = await stat(full).catch(() => null);
+		if (!st?.isFile()) throw new NotFoundError('Session not found');
 
 	// `full=1` can stream whole file (bounded); default returns last N lines for snappy UI
 	const wantFull = url.searchParams.get('full') === '1' && st.size <= MAX_BYTES;
@@ -35,16 +37,19 @@ export async function GET({ params, url, request: _request, locals: _locals }) {
 	const entries = parseJsonlLines(lines);
 
 	// Derive tiny summary
-	const summary = entries.reduce(
-		(acc, e) => {
-			const role = e.role || e.type || 'unknown';
-			acc.roles[role] = (acc.roles[role] || 0) + 1;
-			acc.count++;
-			acc.lastAt = e.timestamp || acc.lastAt;
-			return acc;
-		},
-		{ count: 0, roles: {}, lastAt: null }
-	);
+		const summary = entries.reduce(
+			(acc, e) => {
+				const role = e.role || e.type || 'unknown';
+				acc.roles[role] = (acc.roles[role] || 0) + 1;
+				acc.count++;
+				acc.lastAt = e.timestamp || acc.lastAt;
+				return acc;
+			},
+			{ count: 0, roles: {}, lastAt: null }
+		);
 
-	return json({ project, id, size: st.size, lastModified: st.mtimeMs, summary, entries });
+		return json({ project, id, size: st.size, lastModified: st.mtimeMs, summary, entries });
+	} catch (err) {
+		handleApiError(err, 'GET /api/claude/sessions/[project]/[id]');
+	}
 }

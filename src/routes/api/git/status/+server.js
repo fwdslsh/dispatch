@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { resolve } from 'node:path';
 import { execGit } from '$lib/server/shared/git-utils.js';
+import { BadRequestError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Parse git status output
 function parseGitStatus(output) {
@@ -46,7 +47,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {
-			return json({ error: 'Path parameter is required' }, { status: 400 });
+			throw new BadRequestError('Path parameter is required', 'MISSING_PATH');
 		}
 
 		const resolvedPath = resolve(path);
@@ -55,7 +56,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
 		} catch (_error) {
-			return json({ error: 'Not a git repository' }, { status: 404 });
+			throw new NotFoundError('Not a git repository');
 		}
 
 		// Get current branch
@@ -70,8 +71,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 			status,
 			isGitRepo: true
 		});
-	} catch (error) {
-		console.error('Git status error:', error);
-		return json({ error: error.message || 'Failed to get git status' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/git/status');
 	}
 }

@@ -1,7 +1,6 @@
 import { logger } from '../shared/utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
-import { homedir } from 'node:os';
-import { resolve } from 'node:path';
+import { PtyConfig } from './PtyConfig.js';
 
 /**
  * PTY adapter for terminal sessions using node-pty
@@ -11,23 +10,7 @@ export class PtyAdapter {
 	/**
 	 * @param {Object} params
 	 * @param {string} params.cwd - Working directory
-	 * @param {Object} [params.options={}] - PTY options
-	 * @param {Object} [params.options.env] - Environment variables
-	 * @param {Object} [params.options.workspaceEnv] - Workspace environment variables
-	 * @param {number} [params.options.cols] - Terminal columns
-	 * @param {number} [params.options.rows] - Terminal rows
-	 * @param {string} [params.options.name] - Terminal name
-	 * @param {string|null} [params.options.encoding] - String encoding
-	 * @param {boolean} [params.options.handleFlowControl] - Flow control
-	 * @param {string} [params.options.flowControlPause] - Flow control pause
-	 * @param {string} [params.options.flowControlResume] - Flow control resume
-	 * @param {number} [params.options.uid] - Unix user ID
-	 * @param {number} [params.options.gid] - Unix group ID
-	 * @param {boolean} [params.options.useConpty] - Windows ConPTY
-	 * @param {boolean} [params.options.useConptyDll] - Windows ConPTY DLL
-	 * @param {boolean} [params.options.conptyInheritCursor] - Windows ConPTY cursor
-	 * @param {string} [params.options.shell] - Shell command
-	 * @param {string[]} [params.options.args] - Shell arguments
+	 * @param {Object} [params.options={}] - PTY options (see PtyConfig for details)
 	 * @param {Function} params.onEvent - Event callback
 	 */
 	async create({ cwd, options = {}, onEvent }) {
@@ -40,63 +23,14 @@ export class PtyAdapter {
 			throw new Error(`Terminal functionality not available: ${error.message}`);
 		}
 
-		// Expand tilde in cwd if present
-		let expandedCwd = cwd || process.env.WORKSPACES_ROOT || process.env.HOME;
-		if (expandedCwd && expandedCwd.startsWith('~/')) {
-			expandedCwd = resolve(homedir(), expandedCwd.slice(2));
-		}
+		// Create configuration value object
+		const config = new PtyConfig({ cwd, ...options });
 
-		// Prepare node-pty options with defaults
-		const ptyOptions = {
-			// Working directory
-			cwd: expandedCwd,
+		// Get node-pty options and shell config
+		const ptyOptions = config.toNodePtyOptions();
+		const { shell, args } = config.getShellConfig();
 
-			// Environment variables with workspace environment variables merged
-			// Precedence: system env (process.env) → workspace env → session-specific env
-			env: options.env
-				? { ...process.env, ...options.workspaceEnv, ...options.env }
-				: { ...process.env, ...options.workspaceEnv },
-
-			// Terminal dimensions
-			cols: options.cols || 80,
-			rows: options.rows || 24,
-
-			// Terminal name/type
-			name: options.name || 'xterm-256color',
-
-			// String encoding (utf8, null for binary)
-			encoding: options.encoding !== undefined ? options.encoding : 'utf8',
-
-			// Flow control options (experimental)
-			handleFlowControl: options.handleFlowControl || false,
-			flowControlPause: options.flowControlPause || '\x13', // XOFF
-			flowControlResume: options.flowControlResume || '\x11', // XON
-
-			// Unix-specific options
-			uid: options.uid,
-			gid: options.gid,
-
-			// Windows-specific options
-			useConpty: options.useConpty,
-			useConptyDll: options.useConptyDll,
-			conptyInheritCursor: options.conptyInheritCursor,
-
-			// Allow any other node-pty options
-			...options
-		};
-
-		// Extract shell and args from options or use defaults
-		const shell =
-			options.shell || process.env.SHELL || (process.platform === 'win32' ? 'cmd.exe' : 'bash');
-		const args = options.args || [];
-
-		logger.info('PTY_ADAPTER', `Spawning ${shell} with args:`, args, 'options:', {
-			cwd: ptyOptions.cwd,
-			cols: ptyOptions.cols,
-			rows: ptyOptions.rows,
-			name: ptyOptions.name,
-			encoding: ptyOptions.encoding
-		});
+		logger.info('PTY_ADAPTER', `Spawning ${shell} with args:`, args, 'options:', config.getLoggingConfig());
 
 		let term;
 		try {
@@ -106,13 +40,17 @@ export class PtyAdapter {
 			throw new Error(`Failed to spawn terminal: ${error.message}`);
 		}
 
-		// Set up event handlers
+		// Set up event handlers with error boundaries
 		term.onData((data) => {
-			onEvent({
-				channel: 'pty:stdout',
-				type: 'chunk',
-				payload: ptyOptions.encoding === null ? data : new TextEncoder().encode(data)
-			});
+			try {
+				onEvent({
+					channel: 'pty:stdout',
+					type: 'chunk',
+					payload: config.encoding === null ? data : new TextEncoder().encode(data)
+				});
+			} catch (error) {
+				logger.error('PTY_ADAPTER', 'Error in onData event handler:', error);
+			}
 		});
 
 		term.onExit((exitInfo) => {
@@ -120,14 +58,18 @@ export class PtyAdapter {
 				'PTY_ADAPTER',
 				`Process exited with code ${exitInfo.exitCode}, signal ${exitInfo.signal}`
 			);
-			onEvent({
-				channel: 'system:status',
-				type: 'closed',
-				payload: {
-					exitCode: exitInfo.exitCode,
-					signal: exitInfo.signal
-				}
-			});
+			try {
+				onEvent({
+					channel: 'system:status',
+					type: 'closed',
+					payload: {
+						exitCode: exitInfo.exitCode,
+						signal: exitInfo.signal
+					}
+				});
+			} catch (error) {
+				logger.error('PTY_ADAPTER', 'Error in onExit event handler:', error);
+			}
 		});
 
 		// Return adapter interface
@@ -141,11 +83,15 @@ export class PtyAdapter {
 			},
 			resize(cols, rows) {
 				term.resize(cols, rows);
-				onEvent({
-					channel: 'pty:resize',
-					type: 'dimensions',
-					payload: { cols, rows }
-				});
+				try {
+					onEvent({
+						channel: 'pty:resize',
+						type: 'dimensions',
+						payload: { cols, rows }
+					});
+				} catch (error) {
+					logger.error('PTY_ADAPTER', 'Error in resize event handler:', error);
+				}
 			},
 			clear() {
 				if (term.clear) {

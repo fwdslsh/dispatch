@@ -169,7 +169,9 @@ export async function resetDatabase(options = {}) {
 			// Create default API key (hashed)
 			// Using bcrypt synchronously for simplicity in tests
 			const bcrypt = await import('bcrypt');
-			const plainKey = 'test-api-key-' + Math.random().toString(36).substring(2, 15);
+
+			// Use the test automation key for predictable authentication in E2E tests
+			const plainKey = 'test-automation-key-12345';
 			const keyHash = bcrypt.hashSync(plainKey, 12);
 
 			const keyId = Math.random().toString(36).substring(2, 15);
@@ -184,7 +186,7 @@ export async function resetDatabase(options = {}) {
 				label: 'Test API Key'
 			};
 
-			console.log('[resetDatabase] ✓ Seeded with default user and API key');
+			console.log('[resetDatabase] ✓ Seeded with default user and test automation key');
 		}
 
 		// Get final state
@@ -238,7 +240,33 @@ export async function resetToFreshInstall() {
  * @returns {Promise<Object>} Reset result with API key
  */
 export async function resetToOnboarded() {
-	return resetDatabase({ onboarded: true, seedData: true });
+	const result = await resetDatabase({ onboarded: true, seedData: true });
+
+	// Wait for server to notice the database changes
+	// The server has an open SQLite connection and needs time to see the write
+	const maxAttempts = 10;
+	for (let i = 0; i < maxAttempts; i++) {
+		try {
+			const response = await fetch('http://127.0.0.1:7173/api/status');
+			if (response.ok) {
+				const status = await response.json();
+				if (status.onboarding?.isComplete === true) {
+					console.log('[resetToOnboarded] ✓ Server confirmed onboarding complete');
+					break;
+				}
+			}
+		} catch (_err) {
+			// Server might be restarting
+		}
+
+		if (i === maxAttempts - 1) {
+			console.warn('[resetToOnboarded] ⚠ Server still shows onboarding incomplete after reset');
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, 100));
+	}
+
+	return result;
 }
 
 /**

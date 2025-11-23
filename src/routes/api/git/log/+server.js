@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
+import { BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function GET({ url, request: _request, locals: _locals }) {
 	try {
@@ -9,7 +10,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 		const format = url.searchParams.get('format') || 'oneline';
 
 		if (!path) {
-			return json({ error: 'Path parameter is required' }, { status: 400 });
+			throw new BadRequestError('Path parameter is required', 'MISSING_PATH');
 		}
 
 		const resolvedPath = resolve(path);
@@ -48,8 +49,7 @@ export async function GET({ url, request: _request, locals: _locals }) {
 		}
 
 		return json({ commits });
-	} catch (error) {
-		console.error('Git log error:', error);
-		return json({ error: error.message || 'Failed to get git log' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/git/log');
 	}
 }

@@ -271,8 +271,8 @@ export class RunSessionClient {
 		const url = kind
 			? `${baseUrl}/api/sessions?kind=${encodeURIComponent(kind)}`
 			: `${baseUrl}/api/sessions`;
-		const headers = {};
-		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
+		const headers = new Headers();
+		if (this.apiKey) headers.set('Authorization', `Bearer ${this.apiKey}`);
 		const response = await fetch(url, { headers, credentials: 'include' });
 		const result = await response.json();
 
@@ -288,8 +288,8 @@ export class RunSessionClient {
 	 */
 	async deleteRunSession(runId) {
 		const baseUrl = this.config.apiBaseUrl || '';
-		const headers = {};
-		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
+		const headers = new Headers();
+		if (this.apiKey) headers.set('Authorization', `Bearer ${this.apiKey}`);
 		const response = await fetch(`${baseUrl}/api/sessions?runId=${encodeURIComponent(runId)}`, {
 			method: 'DELETE',
 			headers,

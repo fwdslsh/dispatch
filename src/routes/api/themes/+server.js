@@ -9,6 +9,7 @@
 import { json } from '@sveltejs/kit';
 import { ThemeManager } from '$lib/server/themes/ThemeManager.js';
 import { XtermThemeParser } from '$lib/server/themes/XtermThemeParser.js';
+import { ApiError, BadRequestError, UnauthorizedError, ForbiddenError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Initialize parser and theme manager as singletons
 const parser = new XtermThemeParser();
@@ -36,9 +37,8 @@ export async function GET({ locals: _locals }) {
 		}));
 
 		return json({ themes: themeList });
-	} catch (error) {
-		console.error('[Themes API] Failed to list themes:', error);
-		return json({ error: error.message }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/themes');
 	}
 }
 
@@ -55,7 +55,7 @@ export async function POST({ request, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			return json({ error: 'Unauthorized' }, { status: 401 });
+			throw new UnauthorizedError();
 		}
 
 		// Parse form data
@@ -63,12 +63,12 @@ export async function POST({ request, locals }) {
 		const file = formData.get('theme');
 
 		if (!file) {
-			return json({ error: 'No theme file provided' }, { status: 400 });
+			throw new BadRequestError('No theme file provided', 'NO_FILE');
 		}
 
 		// Validate it's a File object
 		if (!(file instanceof File)) {
-			return json({ error: 'Invalid file upload' }, { status: 400 });
+			throw new BadRequestError('Invalid file upload', 'INVALID_FILE');
 		}
 
 		// Read file content
@@ -100,18 +100,15 @@ export async function POST({ request, locals }) {
 				{ status: 400 }
 			);
 		}
-	} catch (error) {
-		console.error('[Themes API] Theme upload error:', error);
-
-		// Handle specific error types
-		if (error.code === 'EACCES') {
-			return json({ error: 'Permission denied' }, { status: 403 });
+	} catch (err) {
+		// Handle filesystem errors
+		if (err.code === 'EACCES') {
+			throw new ForbiddenError('Permission denied');
+		}
+		if (err.code === 'ENOSPC') {
+			throw new ApiError('No space left on device', 507, 'INSUFFICIENT_STORAGE');
 		}
 
-		if (error.code === 'ENOSPC') {
-			return json({ error: 'No space left on device' }, { status: 507 });
-		}
-
-		return json({ error: error.message || 'Failed to upload theme' }, { status: 500 });
+		handleApiError(err, 'POST /api/themes');
 	}
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { GET } from '../../src/routes/api/environment/+server.js';
+import { wrapHandler } from '../helpers/api-test-helper.js';
 
 // Mock fs module
 vi.mock('node:fs', () => ({
@@ -25,6 +26,7 @@ vi.mock('node:url', () => ({
 
 describe('Environment API', () => {
 	let mockReadFileSync;
+	const getHandler = wrapHandler(GET);
 
 	beforeEach(() => {
 		mockReadFileSync = readFileSync;
@@ -51,7 +53,7 @@ describe('Environment API', () => {
 			});
 			mockReadFileSync.mockReturnValue(mockPackageJson);
 
-			const response = await GET();
+			const response = await getHandler();
 			const data = await response.json();
 
 			expect(data).toEqual({
@@ -68,7 +70,7 @@ describe('Environment API', () => {
 				throw new Error('File not found');
 			});
 
-			const response = await GET();
+			const response = await getHandler();
 			const data = await response.json();
 
 			expect(data).toEqual({
@@ -83,7 +85,7 @@ describe('Environment API', () => {
 			// Mock invalid JSON
 			mockReadFileSync.mockReturnValue('invalid json content');
 
-			const response = await GET();
+			const response = await getHandler();
 			const data = await response.json();
 
 			expect(data).toEqual({
@@ -108,7 +110,7 @@ describe('Environment API', () => {
 			});
 			mockReadFileSync.mockReturnValue(mockPackageJson);
 
-			const response = await GET();
+			const response = await getHandler();
 			const data = await response.json();
 
 			expect(data.homeDirectory).toBe('/mock/home');
@@ -130,13 +132,14 @@ describe('Environment API', () => {
 			});
 			mockReadFileSync.mockReturnValue(mockPackageJson);
 
-			const response = await GET();
+			const response = await getHandler();
 			const data = await response.json();
 
 			// When process.env is undefined, the function should return an error
 			expect(response.status).toBe(500);
 			expect(data).toEqual({
-				error: 'Failed to get environment information'
+				error: 'An unexpected error occurred',
+				message: 'An unexpected error occurred'
 			});
 
 			// Restore original process

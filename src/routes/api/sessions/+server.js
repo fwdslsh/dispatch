@@ -4,6 +4,12 @@
  */
 
 import { SESSION_TYPE, isValidSessionType } from '$lib/shared/session-types.js';
+import {
+	BadRequestError,
+	NotFoundError,
+	ServiceUnavailableError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * Get title for session type
@@ -72,9 +78,8 @@ export async function GET({ url, request: _request, locals }) {
 		return new Response(JSON.stringify({ sessions: filteredSessions }), {
 			headers: { 'content-type': 'application/json' }
 		});
-	} catch (error) {
-		console.error('[API] Failed to list sessions:', error);
-		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/sessions');
 	}
 }
 
@@ -105,16 +110,14 @@ export async function POST({ request, locals }) {
 					}
 				);
 			} catch (error) {
-				return new Response(JSON.stringify({ error: error.message }), { status: 404 });
+				throw new NotFoundError(`Session not found: ${sessionId}`);
 			}
 		}
 
 		if (!isValidSessionType(sessionKind)) {
-			return new Response(
-				JSON.stringify({
-					error: `Invalid or missing kind. Must be one of: ${Object.values(SESSION_TYPE).join(', ')}`
-				}),
-				{ status: 400 }
+			throw new BadRequestError(
+				`Invalid or missing kind. Must be one of: ${Object.values(SESSION_TYPE).join(', ')}`,
+				'INVALID_SESSION_TYPE'
 			);
 		}
 
@@ -160,43 +163,44 @@ export async function POST({ request, locals }) {
 				headers: { 'content-type': 'application/json' }
 			}
 		);
-	} catch (error) {
-		console.error('[API] Run session creation failed:', error);
-
-		// Provide more specific error messages for common issues
-		let errorMessage = error.message;
-		let statusCode = 500;
-
-		if (error.message?.includes('node-pty')) {
-			errorMessage = `${SESSION_TYPE.PTY} functionality is temporarily unavailable. Please try again in a moment.`;
-			statusCode = 503;
-		} else if (error.message?.includes('claude-code')) {
-			errorMessage = `${SESSION_TYPE.CLAUDE} functionality is temporarily unavailable. Please try again in a moment.`;
-			statusCode = 503;
-		} else if (error.message?.includes('No adapter')) {
-			errorMessage = `Session type "${sessionKind || 'unknown'}" is not supported`;
-			statusCode = 400;
+	} catch (err) {
+		// Map specific error types to appropriate HTTP errors
+		if (err.message?.includes('node-pty')) {
+			throw new ServiceUnavailableError(
+				`${SESSION_TYPE.PTY} functionality is temporarily unavailable. Please try again in a moment.`,
+				'PTY_UNAVAILABLE'
+			);
+		} else if (err.message?.includes('claude-code')) {
+			throw new ServiceUnavailableError(
+				`${SESSION_TYPE.CLAUDE} functionality is temporarily unavailable. Please try again in a moment.`,
+				'CLAUDE_UNAVAILABLE'
+			);
+		} else if (err.message?.includes('No adapter')) {
+			throw new BadRequestError(
+				`Session type "${sessionKind || 'unknown'}" is not supported`,
+				'UNSUPPORTED_SESSION_TYPE'
+			);
 		}
 
-		return new Response(JSON.stringify({ error: errorMessage }), { status: statusCode });
+		// Handle all errors including the ones we just threw
+		handleApiError(err, 'POST /api/sessions');
 	}
 }
 
 export async function DELETE({ url, locals }) {
-	const runId = url.searchParams.get('runId');
-
-	if (!runId) {
-		return new Response(JSON.stringify({ error: 'Missing runId parameter' }), { status: 400 });
-	}
-
 	try {
+		const runId = url.searchParams.get('runId');
+
+		if (!runId) {
+			throw new BadRequestError('Missing runId parameter', 'MISSING_RUN_ID');
+		}
+
 		// Close session using SessionOrchestrator
 		await locals.services.sessionOrchestrator.closeSession(runId);
 
 		return new Response(JSON.stringify({ success: true }));
-	} catch (error) {
-		console.error('[API] Run session deletion failed:', error);
-		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'DELETE /api/sessions');
 	}
 }
 
@@ -204,63 +208,43 @@ export async function DELETE({ url, locals }) {
 export async function PUT({ request, locals }) {
 	const { action, runId, clientId, tileId } = await request.json();
 
-	if (action === 'setLayout') {
-		if (!runId || !clientId || !tileId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameters: runId, clientId, tileId'
-				}),
-				{ status: 400 }
-			);
-		}
+	try {
+		if (action === 'setLayout') {
+			if (!runId || !clientId || !tileId) {
+				throw new BadRequestError(
+					'Missing required parameters: runId, clientId, tileId',
+					'MISSING_LAYOUT_PARAMS'
+				);
+			}
 
-		try {
 			// Update or create layout for this client
 			await locals.services.workspaceRepository.setWorkspaceLayout(runId, clientId, tileId);
 			return new Response(JSON.stringify({ success: true }));
-		} catch (error) {
-			console.error('[API] Layout update failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
-	}
-
-	if (action === 'removeLayout') {
-		if (!runId || !clientId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameters: runId, clientId'
-				}),
-				{ status: 400 }
-			);
 		}
 
-		try {
+		if (action === 'removeLayout') {
+			if (!runId || !clientId) {
+				throw new BadRequestError(
+					'Missing required parameters: runId, clientId',
+					'MISSING_LAYOUT_PARAMS'
+				);
+			}
+
 			await locals.services.workspaceRepository.removeWorkspaceLayout(runId, clientId);
 			return new Response(JSON.stringify({ success: true }));
-		} catch (error) {
-			console.error('[API] Layout removal failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
-	}
-
-	if (action === 'getLayout') {
-		if (!clientId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameter: clientId'
-				}),
-				{ status: 400 }
-			);
 		}
 
-		try {
+		if (action === 'getLayout') {
+			if (!clientId) {
+				throw new BadRequestError('Missing required parameter: clientId', 'MISSING_CLIENT_ID');
+			}
+
 			const layout = await locals.services.workspaceRepository.getWorkspaceLayout(clientId);
 			return new Response(JSON.stringify({ layout }));
-		} catch (error) {
-			console.error('[API] Layout retrieval failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 		}
-	}
 
-	return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400 });
+		throw new BadRequestError(`Invalid action: ${action}`, 'INVALID_ACTION');
+	} catch (err) {
+		handleApiError(err, 'PUT /api/sessions');
+	}
 }

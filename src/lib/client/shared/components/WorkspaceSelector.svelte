@@ -1,7 +1,35 @@
 <script>
 	/**
-	 * WorkspaceSelector Component
-	 * Directory picker with dropdown functionality
+	 * @component WorkspaceSelector
+	 * @description
+	 * Directory picker button component with dropdown appearance.
+	 * Displays folder icon, selected path (truncated if long), and chevron indicator.
+	 * Used for workspace/directory selection interfaces.
+	 *
+	 * @typedef {Object} WorkspaceSelectorProps
+	 * @property {string} selectedPath - Bindable selected directory path
+	 * @property {boolean} [disabled=false] - Disabled state
+	 * @property {string} [placeholder='Select directory...'] - Placeholder text when no path selected
+	 * @property {string} [augmented='tl-clip br-clip both'] - Augmented-ui styling
+	 * @property {() => void} [onClick] - Click handler (opens directory browser)
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <script>
+	 *   let workspacePath = $state('/home/user/projects');
+	 *   let showBrowser = $state(false);
+	 * </script>
+	 *
+	 * <WorkspaceSelector
+	 *   bind:selectedPath={workspacePath}
+	 *   onClick={() => showBrowser = true}
+	 *   placeholder="Choose workspace..."
+	 * />
+	 * ```
+	 *
+	 * @remarks
+	 * Automatically truncates long paths (shows last 2 segments with .../ prefix)
 	 */
 	import IconFolder from './Icons/IconFolder.svelte';
 	import IconChevronDown from './Icons/IconChevronDown.svelte';

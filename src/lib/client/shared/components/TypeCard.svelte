@@ -1,7 +1,48 @@
 <script>
 	/**
-	 * TypeCard Component
-	 * Card-style button for type selection with icon, title, and description
+	 * @component TypeCard
+	 * @description
+	 * Card-style button for type selection with icon, title, and description.
+	 * Used in session type selection and other choice interfaces.
+	 * Features gradient backgrounds, hover effects, and active states.
+	 *
+	 * @typedef {Object} TypeCardProps
+	 * @property {import('svelte').Snippet} [icon] - Icon snippet to display
+	 * @property {string} [title=''] - Card title text
+	 * @property {string} [description=''] - Optional description text
+	 * @property {boolean} [active=false] - Active/selected state
+	 * @property {boolean} [disabled=false] - Disabled state
+	 * @property {string} [augmented='tl-clip br-clip both'] - Augmented-ui styling
+	 * @property {(event: MouseEvent) => void} [onclick] - Click event handler
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Session type selection -->
+	 * <TypeCard
+	 *   title="Terminal"
+	 *   description="Interactive shell session"
+	 *   active={selectedType === 'terminal'}
+	 *   onclick={() => selectType('terminal')}
+	 * >
+	 *   {#snippet icon()}
+	 *     <IconTerminal size={32} />
+	 *   {/snippet}
+	 * </TypeCard>
+	 *
+	 * <TypeCard
+	 *   title="Claude Code"
+	 *   description="AI-powered coding assistant"
+	 *   active={selectedType === 'claude'}
+	 *   onclick={() => selectType('claude')}
+	 * >
+	 *   {#snippet icon()}
+	 *     <IconClaude size={32} />
+	 *   {/snippet}
+	 * </TypeCard>
+	 * ```
+	 *
+	 * @fires {MouseEvent} click - Fired when card is clicked
 	 */
 
 	// Props

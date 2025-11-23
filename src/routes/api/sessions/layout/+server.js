@@ -3,22 +3,20 @@
  * Manages session-to-tile mappings for persistent window layouts
  */
 
+import { json } from '@sveltejs/kit';
+import { BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+
 export async function GET({ url, request: _request, locals }) {
-	// Require authentication
 	try {
 		const clientId = url.searchParams.get('clientId') || 'default';
 		const layout = await locals.services.workspaceRepository.getWorkspaceLayout(clientId);
-		return new Response(JSON.stringify({ layout }), {
-			headers: { 'content-type': 'application/json' }
-		});
-	} catch (error) {
-		console.error('[API] Layout fetch failed:', error);
-		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+		return json({ layout });
+	} catch (err) {
+		handleApiError(err, 'GET /api/sessions/layout');
 	}
 }
 
 export async function POST({ request, locals }) {
-	// Require authentication
 	try {
 		const { runId, sessionId, tileId, clientId = 'default' } = await request.json();
 
@@ -26,24 +24,17 @@ export async function POST({ request, locals }) {
 		const actualRunId = runId || sessionId;
 
 		if (!actualRunId || !tileId) {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing required parameters: runId, tileId'
-				}),
-				{ status: 400 }
-			);
+			throw new BadRequestError('Missing required parameters: runId, tileId', 'MISSING_LAYOUT_PARAMS');
 		}
 
 		await locals.services.workspaceRepository.setWorkspaceLayout(actualRunId, clientId, tileId);
-		return new Response(JSON.stringify({ success: true }));
-	} catch (error) {
-		console.error('[API] Layout update failed:', error);
-		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+		return json({ success: true });
+	} catch (err) {
+		handleApiError(err, 'POST /api/sessions/layout');
 	}
 }
 
 export async function DELETE({ url, request: _request, locals }) {
-	// Require authentication
 	try {
 		const runId = url.searchParams.get('runId');
 		const sessionId = url.searchParams.get('sessionId');
@@ -53,21 +44,15 @@ export async function DELETE({ url, request: _request, locals }) {
 		const actualRunId = runId || sessionId;
 		const clientId = url.searchParams.get('clientId') || 'default';
 
-		if (actualRunId) {
-			// Remove specific session from layout
-			await locals.services.workspaceRepository.removeWorkspaceLayout(actualRunId, clientId);
-		} else {
-			return new Response(
-				JSON.stringify({
-					error: 'Missing runId parameter'
-				}),
-				{ status: 400 }
-			);
+		if (!actualRunId) {
+			throw new BadRequestError('Missing runId parameter', 'MISSING_RUN_ID');
 		}
 
-		return new Response(JSON.stringify({ success: true }));
-	} catch (error) {
-		console.error('[API] Layout removal failed:', error);
-		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+		// Remove specific session from layout
+		await locals.services.workspaceRepository.removeWorkspaceLayout(actualRunId, clientId);
+
+		return json({ success: true });
+	} catch (err) {
+		handleApiError(err, 'DELETE /api/sessions/layout');
 	}
 }

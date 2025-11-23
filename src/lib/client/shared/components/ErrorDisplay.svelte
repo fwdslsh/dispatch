@@ -1,7 +1,53 @@
 <script>
 	/**
-	 * ErrorDisplay Foundation Component
-	 * Standardized error message presentation with different severity levels
+	 * @component ErrorDisplay
+	 * @description
+	 * Foundation component for displaying error, warning, success, and info messages.
+	 * Supports dismissible messages, different severity levels, and custom content.
+	 * Uses semantic colors and icons for accessibility.
+	 *
+	 * @typedef {Object} ErrorDisplayProps
+	 * @property {string} [error=''] - Error message text
+	 * @property {string} [title=''] - Optional title above message
+	 * @property {'error'|'warning'|'info'|'success'} [severity='error'] - Message severity level
+	 * @property {boolean} [dismissible=false] - Show dismiss button
+	 * @property {boolean} [showIcon=true] - Show severity icon
+	 * @property {'small'|'medium'|'large'} [size='medium'] - Display size
+	 * @property {() => void} [ondismiss] - Called when message is dismissed
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic error -->
+	 * <ErrorDisplay
+	 *   error="Failed to save changes"
+	 *   severity="error"
+	 * />
+	 *
+	 * <!-- Warning with title -->
+	 * <ErrorDisplay
+	 *   title="Unsaved Changes"
+	 *   error="You have unsaved changes that will be lost"
+	 *   severity="warning"
+	 *   dismissible
+	 *   ondismiss={handleDismiss}
+	 * />
+	 *
+	 * <!-- Success message -->
+	 * <ErrorDisplay
+	 *   title="Success!"
+	 *   error="Your changes have been saved"
+	 *   severity="success"
+	 * />
+	 *
+	 * <!-- With custom content -->
+	 * <ErrorDisplay title="Connection Error" severity="error">
+	 *   <p>Unable to connect to server</p>
+	 *   <Button size="small" onclick={handleRetry}>Retry</Button>
+	 * </ErrorDisplay>
+	 * ```
+	 *
+	 * @fires {void} dismiss - Fired when dismiss button is clicked
 	 */
 	import IconX from './Icons/IconX.svelte';
 	import IconAlertTriangle from './Icons/IconAlertTriangle.svelte';

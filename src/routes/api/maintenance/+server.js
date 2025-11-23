@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { UnauthorizedError, BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * Maintenance API - Data cleanup operations based on user preferences
@@ -9,14 +10,14 @@ export async function POST({ request, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			return json({ error: 'Invalid authentication key' }, { status: 401 });
+			throw new UnauthorizedError();
 		}
 
 		const body = await request.json();
 		const { action } = body;
 
 		if (!action) {
-			return json({ error: 'Missing action parameter' }, { status: 400 });
+			throw new BadRequestError('Missing action parameter', 'MISSING_ACTION');
 		}
 
 		// Get maintenance preferences from settings repository
@@ -65,10 +66,9 @@ export async function POST({ request, locals }) {
 			});
 		}
 
-		return json({ error: 'Invalid action. Must be "preview" or "cleanup"' }, { status: 400 });
-	} catch (error) {
-		console.error('[Maintenance API] Operation failed:', error);
-		return json({ error: error.message }, { status: 500 });
+		throw new BadRequestError('Invalid action. Must be "preview" or "cleanup"', 'INVALID_ACTION');
+	} catch (err) {
+		handleApiError(err, 'POST /api/maintenance');
 	}
 }
 

@@ -1,11 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { getSocketEvents } from '$lib/server/shared/socket-setup.js';
+import { handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function GET({ url, locals: _locals }) {
-	const limit = parseInt(url.searchParams.get('limit') || '100');
-	const socketId = url.searchParams.get('socketId'); // Optional filter by socket
-
 	try {
+		const limit = parseInt(url.searchParams.get('limit') || '100');
+		const socketId = url.searchParams.get('socketId'); // Optional filter by socket
+
 		let events = getSocketEvents(Math.min(limit, 500));
 
 		// Filter by socketId if specified
@@ -18,8 +19,7 @@ export async function GET({ url, locals: _locals }) {
 			total: events.length,
 			timestamp: Date.now()
 		});
-	} catch (error) {
-		console.error('Error getting socket events:', error);
-		return json({ error: 'Failed to get socket events' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/admin/events');
 	}
 }

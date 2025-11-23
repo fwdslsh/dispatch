@@ -9,7 +9,12 @@
 	let { viewMode = 'window-manager', onSelectView = () => {} } = $props();
 
 	function handleSelect(mode) {
-		if (viewMode === mode) return;
+		console.log('[LayoutControls] handleSelect called:', { mode, currentViewMode: viewMode, willCall: viewMode !== mode });
+		if (viewMode === mode) {
+			console.log('[LayoutControls] Early return - already in this mode');
+			return;
+		}
+		console.log('[LayoutControls] Calling onSelectView with mode:', mode);
 		onSelectView?.(mode);
 	}
 </script>

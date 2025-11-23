@@ -60,19 +60,33 @@ export default async function globalSetup() {
 	});
 
 	// Capture output for debugging
+	// Keep references to prevent garbage collection
+	let stdoutBuffer = '';
+	let stderrBuffer = '';
+
 	serverProcess.stdout.on('data', (data) => {
 		const msg = data.toString();
+		stdoutBuffer += msg;
 		if (msg.includes('Local:') || msg.includes('ready in')) {
 			console.log('[Global Setup]', msg.trim());
 		}
 	});
 
 	serverProcess.stderr.on('data', (data) => {
-		console.error('[Global Setup] Server error:', data.toString());
+		const msg = data.toString();
+		stderrBuffer += msg;
+		// Log all stderr during startup
+		console.error('[Global Setup] Server stderr:', msg.trim());
 	});
 
 	serverProcess.on('error', (error) => {
 		console.error('[Global Setup] Failed to start server:', error);
+	});
+
+	serverProcess.on('exit', (code, signal) => {
+		console.error(`[Global Setup] Server process exited with code ${code}, signal ${signal}`);
+		if (stdoutBuffer) console.log('[Global Setup] Last stdout:', stdoutBuffer.slice(-500));
+		if (stderrBuffer) console.error('[Global Setup] Last stderr:', stderrBuffer.slice(-500));
 	});
 
 	// Wait for server to be ready

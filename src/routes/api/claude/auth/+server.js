@@ -5,6 +5,11 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '$lib/server/shared/utils/logger.js';
 import { AUTH_TIMEOUTS } from '$lib/shared/constants/auth-timeouts.js';
+import {
+	BadRequestError,
+	UnauthorizedError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * Promisify spawn() for async/await with timeout support
@@ -128,24 +133,12 @@ export async function POST({ request }) {
 		const { apiKey } = await request.json();
 
 		if (!apiKey || typeof apiKey !== 'string') {
-			return json(
-				{
-					success: false,
-					error: 'API key is required'
-				},
-				{ status: 400 }
-			);
+			throw new BadRequestError('API key is required', 'MISSING_API_KEY');
 		}
 
 		// Validate API key format (Anthropic keys start with sk-ant-)
 		if (!apiKey.startsWith('sk-ant-')) {
-			return json(
-				{
-					success: false,
-					error: 'Invalid API key format'
-				},
-				{ status: 400 }
-			);
+			throw new BadRequestError('Invalid API key format', 'INVALID_API_KEY_FORMAT');
 		}
 
 		// Try to authenticate with the API key using Claude CLI
@@ -162,23 +155,13 @@ export async function POST({ request }) {
 			});
 		} catch (authError) {
 			logger.error('Claude API key auth failed:', authError);
-			return json(
-				{
-					success: false,
-					error: 'Invalid API key or authentication failed'
-				},
-				{ status: 401 }
+			throw new UnauthorizedError(
+				'Invalid API key or authentication failed',
+				'CLAUDE_AUTH_FAILED'
 			);
 		}
-	} catch (error_) {
-		console.error('Claude auth POST error:', error_);
-		return json(
-			{
-				success: false,
-				error: 'Authentication request failed'
-			},
-			{ status: 500 }
-		);
+	} catch (err) {
+		handleApiError(err, 'POST /api/claude/auth');
 	}
 }
 
@@ -194,7 +177,7 @@ export async function DELETE() {
 		// Also try to remove credentials file if it exists
 		try {
 			const credentialsPath = join(homedir(), '.claude', '.credentials.json');
-			console.log('Removing Claude credentials from', credentialsPath);
+			logger.info('CLAUDE', 'Removing Claude credentials from', credentialsPath);
 			await fs.unlink(credentialsPath);
 		} catch {
 			// Ignore errors removing credentials file
@@ -204,14 +187,7 @@ export async function DELETE() {
 			success: true,
 			message: 'Signed out successfully'
 		});
-	} catch (error_) {
-		logger.error('Claude sign out failed:', error_);
-		return json(
-			{
-				success: false,
-				error: 'Failed to sign out'
-			},
-			{ status: 500 }
-		);
+	} catch (err) {
+		handleApiError(err, 'DELETE /api/claude/auth');
 	}
 }

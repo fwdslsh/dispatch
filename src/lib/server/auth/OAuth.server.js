@@ -5,7 +5,27 @@
 
 import { logger } from '../shared/utils/logger.js';
 import { randomBytes } from 'crypto';
-// import { AuthProvider } from '../../shared/auth-types.js';
+import { encryptionService } from '../shared/EncryptionService.js';
+import { config } from '../config/environment.js';
+
+/**
+ * Custom error class for OAuth profile fetch failures
+ */
+class OAuthProfileFetchError extends Error {
+	/**
+	 * @param {string} message - Error message
+	 * @param {string} provider - OAuth provider name
+	 * @param {number} status - HTTP status code
+	 * @param {string} body - Response body
+	 */
+	constructor(message, provider, status, body) {
+		super(message);
+		this.name = 'OAuthProfileFetchError';
+		this.provider = provider;
+		this.status = status;
+		this.body = body;
+	}
+}
 
 /**
  * OAuth.server.js
@@ -63,7 +83,7 @@ export class OAuthManager {
 				name: provider,
 				enabled: config.enabled || false,
 				clientId: config.clientId || null,
-				clientSecret: config.clientSecret || null, // Only used server-side
+				clientSecret: config.clientSecret ? encryptionService.decrypt(config.clientSecret) : null, // Decrypted for server-side use
 				redirectUri: config.redirectUri || this.getDefaultRedirectUri(provider),
 				displayName: this.getProviderDisplayName(provider)
 			};
@@ -222,10 +242,20 @@ export class OAuthManager {
 			const settings = await this.settingsManager.getByCategory('oauth');
 			const providers = settings?.providers || {};
 
+			// Warn if encryption is unavailable
+			if (!encryptionService.isAvailable()) {
+				logger.warn(
+					'OAUTH',
+					`Storing ${provider} client secret in PLAINTEXT. Set ENCRYPTION_KEY for production!`
+				);
+			}
+
 			providers[provider] = {
 				enabled: true,
 				clientId,
-				clientSecret, // TODO: Encrypt in production
+				clientSecret: encryptionService.isAvailable()
+				? encryptionService.encrypt(clientSecret)
+				: clientSecret, // Encrypted at rest
 				redirectUri: redirectUri || this.getDefaultRedirectUri(provider),
 				updatedAt: Date.now()
 			};
@@ -279,19 +309,16 @@ export class OAuthManager {
 	 * Build authorization URL for OAuth provider
 	 * @private
 	 */
-	buildAuthorizationUrl(provider, config, state, customRedirectUri) {
-		let redirectUri = customRedirectUri || config.redirectUri;
+	buildAuthorizationUrl(provider, providerConfig, state, customRedirectUri) {
+		let redirectUri = customRedirectUri || providerConfig.redirectUri;
 
 		if (!redirectUri.startsWith('http')) {
-			// prepend with the current protocol and host
-			// In production, this should use the actual domain
-			// For now, use a placeholder that will be replaced by environment config
-			const baseUrl = 'https://localhost:5173'; // Replace with actual base URL in production
-			redirectUri = new URL(redirectUri, baseUrl).toString();
+			// Prepend with the configured base URL
+			redirectUri = new URL(redirectUri, config.baseUrl).toString();
 		}
 
 		const params = new URLSearchParams({
-			client_id: config.clientId,
+			client_id: providerConfig.clientId,
 			redirect_uri: redirectUri,
 			state,
 			scope: this.getProviderScopes(provider)
@@ -361,12 +388,12 @@ export class OAuthManager {
 			errorBody
 		);
 
-		const error = new Error(`OAuth user fetch failed: ${response.statusText}`);
-		error.name = 'OAuthProfileFetchError';
-		error.provider = provider;
-		error.status = response.status;
-		error.body = errorBody;
-		return error;
+		return new OAuthProfileFetchError(
+			`OAuth user fetch failed: ${response.statusText}`,
+			provider,
+			response.status,
+			errorBody
+		);
 	}
 
 	getUserRequestHeaders(provider, accessToken, tokenType = 'Bearer') {

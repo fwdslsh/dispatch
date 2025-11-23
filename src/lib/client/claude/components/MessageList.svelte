@@ -22,9 +22,11 @@
 		console.log('[MessageList] Messages changed:', viewModel.messages.length, viewModel.messages);
 	});
 
+	// Handle scroll signal from ViewModel (MVVM signal pattern)
 	$effect(() => {
-		if (messagesContainer) {
-			viewModel.setMessagesContainer(messagesContainer);
+		if (viewModel.shouldScrollToBottom && messagesContainer) {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			viewModel.shouldScrollToBottom = false;
 		}
 	});
 </script>

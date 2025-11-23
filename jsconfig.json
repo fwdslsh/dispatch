@@ -10,7 +10,13 @@
 		"sourceMap": true,
 		"strict": false,
 		"moduleResolution": "bundler",
-		"maxNodeModuleJsDepth": 2
+		"maxNodeModuleJsDepth": 2,
+
+		// Incrementally enabling strict mode flags for better type safety
+		"alwaysStrict": true,
+		"noImplicitThis": true,
+		"strictBindCallApply": true,
+		"strictFunctionTypes": true
 	},
 	"exclude": ["specs", ".claude", "docs"]
 }

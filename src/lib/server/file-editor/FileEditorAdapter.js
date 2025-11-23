@@ -70,15 +70,19 @@ class FileEditorProcess extends EventEmitter {
 	async initialize() {
 		this.isActive = true;
 
-		// Emit initialization event
-		this.onEvent({
-			channel: 'file-editor:system',
-			type: 'initialized',
-			payload: {
-				cwd: this.cwd,
-				timestamp: Date.now()
-			}
-		});
+		// Emit initialization event with error handling
+		try {
+			this.onEvent({
+				channel: 'file-editor:system',
+				type: 'initialized',
+				payload: {
+					cwd: this.cwd,
+					timestamp: Date.now()
+				}
+			});
+		} catch (error) {
+			logger.error('FILE_EDITOR_ADAPTER', 'Error in initialize event handler:', error);
+		}
 
 		logger.info('FILE_EDITOR_ADAPTER', `File editor session initialized in: ${this.cwd}`);
 	}
@@ -90,11 +94,15 @@ class FileEditorProcess extends EventEmitter {
 	sendResult(data) {
 		if (!this.isActive) return;
 
-		this.onEvent({
-			channel: 'file-editor:result',
-			type: 'operation',
-			payload: data
-		});
+		try {
+			this.onEvent({
+				channel: 'file-editor:result',
+				type: 'operation',
+				payload: data
+			});
+		} catch (error) {
+			logger.error('FILE_EDITOR_ADAPTER', 'Error in sendResult event handler:', error);
+		}
 	}
 
 	/**
@@ -104,11 +112,15 @@ class FileEditorProcess extends EventEmitter {
 	sendFileContent(data) {
 		if (!this.isActive) return;
 
-		this.onEvent({
-			channel: 'file-editor:content',
-			type: 'file',
-			payload: data
-		});
+		try {
+			this.onEvent({
+				channel: 'file-editor:content',
+				type: 'file',
+				payload: data
+			});
+		} catch (error) {
+			logger.error('FILE_EDITOR_ADAPTER', 'Error in sendFileContent event handler:', error);
+		}
 	}
 
 	/**
@@ -118,15 +130,19 @@ class FileEditorProcess extends EventEmitter {
 	sendError(error) {
 		if (!this.isActive) return;
 
-		this.onEvent({
-			channel: 'file-editor:error',
-			type: 'error',
-			payload: {
-				message: error.message || 'Unknown error',
-				stack: error.stack,
-				timestamp: Date.now()
-			}
-		});
+		try {
+			this.onEvent({
+				channel: 'file-editor:error',
+				type: 'error',
+				payload: {
+					message: error.message || 'Unknown error',
+					stack: error.stack,
+					timestamp: Date.now()
+				}
+			});
+		} catch (eventError) {
+			logger.error('FILE_EDITOR_ADAPTER', 'Error in sendError event handler:', eventError);
+		}
 	}
 
 	/**
@@ -145,14 +161,18 @@ class FileEditorProcess extends EventEmitter {
 		logger.debug('FILE_EDITOR_ADAPTER', `Received input: ${text.substring(0, 100)}`);
 
 		// Emit an event to show input was received
-		this.onEvent({
-			channel: 'file-editor:input',
-			type: 'received',
-			payload: {
-				data: text,
-				timestamp: Date.now()
-			}
-		});
+		try {
+			this.onEvent({
+				channel: 'file-editor:input',
+				type: 'received',
+				payload: {
+					data: text,
+					timestamp: Date.now()
+				}
+			});
+		} catch (error) {
+			logger.error('FILE_EDITOR_ADAPTER', 'Error in handleInput event handler:', error);
+		}
 	}
 
 	/**
@@ -162,13 +182,17 @@ class FileEditorProcess extends EventEmitter {
 		if (!this.isActive) return;
 
 		this.isActive = false;
-		this.onEvent({
-			channel: 'file-editor:system',
-			type: 'closed',
-			payload: {
-				timestamp: Date.now()
-			}
-		});
+		try {
+			this.onEvent({
+				channel: 'file-editor:system',
+				type: 'closed',
+				payload: {
+					timestamp: Date.now()
+				}
+			});
+		} catch (error) {
+			logger.error('FILE_EDITOR_ADAPTER', 'Error in close event handler:', error);
+		}
 
 		this.removeAllListeners();
 		logger.info('FILE_EDITOR_ADAPTER', 'File editor session closed');

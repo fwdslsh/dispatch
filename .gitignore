@@ -160,3 +160,6 @@ dispatch.db-shm
 dispatch.db-wal
 SETTINGS_REFACTOR_SUMMARY.md
 SETTINGS_REFACTOR_TODOS.md
+
+# Build metrics
+.metrics/

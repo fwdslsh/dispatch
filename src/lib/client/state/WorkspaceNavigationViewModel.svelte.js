@@ -150,10 +150,13 @@ export class WorkspaceNavigationViewModel {
 	async deleteWorkspace(workspaceId) {
 		const workspace = this.workspaces.find((w) => w.path === workspaceId);
 		if (workspace && workspace.activeSessions && workspace.activeSessions.length > 0) {
-			throw new Error('Cannot delete workspace with active sessions');
+			this.error = 'Cannot delete workspace with active sessions';
+			console.error('Cannot delete workspace with active sessions:', workspaceId);
+			return false;
 		}
 
 		this.isLoading = true;
+		this.error = null;
 		try {
 			await this.#apiClient.deleteWorkspace(workspaceId);
 			this.workspaces = this.workspaces.filter((w) => w.path !== workspaceId);
@@ -167,9 +170,11 @@ export class WorkspaceNavigationViewModel {
 			}
 
 			this.error = null;
+			return true;
 		} catch (err) {
 			this.error = err.message;
-			throw err;
+			console.error('Failed to delete workspace:', err);
+			return false;
 		} finally {
 			this.isLoading = false;
 		}

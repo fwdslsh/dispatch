@@ -1,5 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	NotFoundError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * API Key Detail Endpoints
@@ -12,28 +18,32 @@ import { logger } from '$lib/server/shared/utils/logger.js';
  */
 /** @type {import('./$types').RequestHandler} */
 export async function DELETE({ params, locals }) {
-	const services = locals.services;
-	const userId = locals.auth?.userId || 'default';
-	const { keyId } = params;
+	try {
+		const services = locals.services;
+		const userId = locals.auth?.userId || 'default';
+		const { keyId } = params;
 
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+		if (!locals.auth?.authenticated) {
+			throw new UnauthorizedError('Authentication required');
+		}
+
+		// Delete the API key
+		const deleted = await services.apiKeyManager.deleteKey(keyId, userId);
+
+		if (!deleted) {
+			logger.warn(
+				'API_KEYS',
+				`Failed to delete key ${keyId}: not found or not owned by user ${userId}`
+			);
+			throw new NotFoundError('API key not found');
+		}
+
+		logger.info('API_KEYS', `Deleted API key ${keyId} for user ${userId}`);
+
+		return json({ success: true });
+	} catch (err) {
+		handleApiError(err, 'DELETE /api/auth/keys/[keyId]');
 	}
-
-	// Delete the API key
-	const deleted = await services.apiKeyManager.deleteKey(keyId, userId);
-
-	if (!deleted) {
-		logger.warn(
-			'API_KEYS',
-			`Failed to delete key ${keyId}: not found or not owned by user ${userId}`
-		);
-		return json({ error: 'API key not found' }, { status: 404 });
-	}
-
-	logger.info('API_KEYS', `Deleted API key ${keyId} for user ${userId}`);
-
-	return json({ success: true });
 }
 
 /**
@@ -42,36 +52,40 @@ export async function DELETE({ params, locals }) {
  */
 /** @type {import('./$types').RequestHandler} */
 export async function PATCH({ params, request, locals }) {
-	const services = locals.services;
-	const userId = locals.auth?.userId || 'default';
-	const { keyId } = params;
+	try {
+		const services = locals.services;
+		const userId = locals.auth?.userId || 'default';
+		const { keyId } = params;
 
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+		if (!locals.auth?.authenticated) {
+			throw new UnauthorizedError('Authentication required');
+		}
+
+		// Parse request body
+		const body = await request.json();
+		const { disabled } = body;
+
+		if (typeof disabled !== 'boolean') {
+			throw new BadRequestError('Invalid disabled value (must be boolean)', 'INVALID_DISABLED');
+		}
+
+		// Update key status
+		const updated = disabled
+			? await services.apiKeyManager.disableKey(keyId, userId)
+			: await services.apiKeyManager.enableKey(keyId, userId);
+
+		if (!updated) {
+			logger.warn(
+				'API_KEYS',
+				`Failed to update key ${keyId}: not found or not owned by user ${userId}`
+			);
+			throw new NotFoundError('API key not found');
+		}
+
+		logger.info('API_KEYS', `Updated API key ${keyId} for user ${userId} (disabled=${disabled})`);
+
+		return json({ success: true });
+	} catch (err) {
+		handleApiError(err, 'PATCH /api/auth/keys/[keyId]');
 	}
-
-	// Parse request body
-	const body = await request.json();
-	const { disabled } = body;
-
-	if (typeof disabled !== 'boolean') {
-		return json({ error: 'Invalid disabled value (must be boolean)' }, { status: 400 });
-	}
-
-	// Update key status
-	const updated = disabled
-		? await services.apiKeyManager.disableKey(keyId, userId)
-		: await services.apiKeyManager.enableKey(keyId, userId);
-
-	if (!updated) {
-		logger.warn(
-			'API_KEYS',
-			`Failed to update key ${keyId}: not found or not owned by user ${userId}`
-		);
-		return json({ error: 'API key not found' }, { status: 404 });
-	}
-
-	logger.info('API_KEYS', `Updated API key ${keyId} for user ${userId} (disabled=${disabled})`);
-
-	return json({ success: true });
 }

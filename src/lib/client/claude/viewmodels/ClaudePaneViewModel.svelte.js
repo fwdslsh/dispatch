@@ -13,7 +13,6 @@
  * - Track live event icons for streaming feedback
  */
 
-import { tick } from 'svelte';
 import { SvelteSet, SvelteDate } from 'svelte/reactivity';
 import { runSessionClient } from '../../shared/services/RunSessionClient.js';
 import * as MessageParser from '../services/MessageParser.js';
@@ -56,7 +55,9 @@ export class ClaudePaneViewModel {
 
 	// UI state
 	isMobile = $state(false);
-	messagesContainer = $state(null);
+
+	// UI signal for View layer (replaces direct DOM manipulation)
+	shouldScrollToBottom = $state(false);
 
 	// Derived status
 	status = $derived.by(() => {
@@ -112,22 +113,6 @@ export class ClaudePaneViewModel {
 		return `${Date.now()}-${this.messageSequence}`;
 	}
 
-	/**
-	 * Scroll messages container to bottom
-	 */
-	async scrollToBottom() {
-		await tick();
-		if (this.messagesContainer) {
-			this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-		}
-	}
-
-	/**
-	 * Set messages container element reference
-	 */
-	setMessagesContainer(element) {
-		this.messagesContainer = element;
-	}
 
 	/**
 	 * Send user input message
@@ -174,7 +159,7 @@ export class ClaudePaneViewModel {
 						id: this.nextMessageId()
 					}
 				];
-				await this.scrollToBottom();
+				this.shouldScrollToBottom = true;
 			} catch (err) {
 				console.error('[ClaudePaneViewModel] Failed to send auth code:', err);
 			}
@@ -201,8 +186,8 @@ export class ClaudePaneViewModel {
 		this.isWaitingForReply = true;
 		this.liveEventIcons = [];
 
-		// Scroll to user message
-		await this.scrollToBottom();
+		// Signal to scroll to user message
+		this.shouldScrollToBottom = true;
 
 		try {
 			// Send input through run session client
@@ -262,7 +247,7 @@ export class ClaudePaneViewModel {
 					this.liveEventIcons = [];
 				}
 				if (action.scrollToBottom) {
-					this.scrollToBottom();
+					this.shouldScrollToBottom = true;
 				}
 				break;
 
@@ -271,7 +256,7 @@ export class ClaudePaneViewModel {
 				this.lastError = action.setError;
 				this.isWaitingForReply = false;
 				this.liveEventIcons = [];
-				this.scrollToBottom();
+				this.shouldScrollToBottom = true;
 				break;
 
 			case 'clear_waiting':
@@ -288,7 +273,7 @@ export class ClaudePaneViewModel {
 					this.lastError = action.setError;
 				}
 				if (action.scrollToBottom) {
-					this.scrollToBottom();
+					this.shouldScrollToBottom = true;
 				}
 				break;
 
@@ -399,7 +384,7 @@ export class ClaudePaneViewModel {
 		this.messages = loadedMessages;
 		this.isCatchingUp = false;
 
-		await this.scrollToBottom();
+		this.shouldScrollToBottom = true;
 	}
 
 	/**

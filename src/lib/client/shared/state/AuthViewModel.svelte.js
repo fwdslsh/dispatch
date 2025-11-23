@@ -193,7 +193,6 @@ export class AuthViewModel {
 	/**
 	 * Check if user is already authenticated via session cookie
 	 * The server will automatically validate the cookie via hooks.server.js
-	 * @private
 	 * @returns {Promise<boolean>} True if authenticated
 	 */
 	async checkExistingAuth() {

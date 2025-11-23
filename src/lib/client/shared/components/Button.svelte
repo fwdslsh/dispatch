@@ -1,7 +1,54 @@
 <script>
 	/**
-	 * Button Component - Simplified Unified System
-	 * Uses BEM pattern with .btn base class and modifiers
+	 * @component Button
+	 * @description
+	 * Button component with multiple variants, sizes, and loading states.
+	 * Uses BEM pattern with .btn base class and modifiers.
+	 * Supports augmented-ui styling, icon positioning, and full accessibility.
+	 *
+	 * @typedef {Object} ButtonProps
+	 * @property {string} [text=''] - Button text content (alternative to children)
+	 * @property {'primary'|'ghost'|'warn'|'danger'} [variant='primary'] - Visual variant
+	 * @property {'small'|'medium'|'large'} [size='medium'] - Button size
+	 * @property {boolean} [disabled=false] - Disabled state
+	 * @property {boolean} [loading=false] - Loading state with spinner
+	 * @property {boolean} [hideTextOnLoading=false] - Hide text when loading
+	 * @property {string} [augmented='tl-clip br-clip both'] - Augmented-ui styling
+	 * @property {'button'|'submit'|'reset'} [type='button'] - HTML button type
+	 * @property {string} [form] - Form ID to associate with
+	 * @property {'start'|'end'} [iconPosition='start'] - Icon position relative to text
+	 * @property {(event: MouseEvent) => void} [onclick] - Click event handler
+	 * @property {string} [ariaLabel] - Accessible label (overrides text)
+	 * @property {string} [ariaDescribedBy] - ID of describing element
+	 * @property {string} [class] - Additional CSS classes
+	 * @property {string} [style] - Inline styles
+	 * @property {string} [id] - Element ID (auto-generated if not provided)
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic usage -->
+	 * <Button text="Click me" onclick={handleClick} />
+	 *
+	 * <!-- With icon snippet -->
+	 * <Button variant="danger" loading={isSubmitting}>
+	 *   {#snippet icon()}
+	 *     <IconTrash size={16} />
+	 *   {/snippet}
+	 *   Delete Item
+	 * </Button>
+	 *
+	 * <!-- Ghost variant with custom styling -->
+	 * <Button
+	 *   variant="ghost"
+	 *   size="small"
+	 *   augmented="none"
+	 *   class="custom-class"
+	 * >
+	 *   Cancel
+	 * </Button>
+	 * ```
+	 *
+	 * @fires {MouseEvent} click - Fired when button is clicked (not disabled/loading)
 	 */
 
 	// Props with defaults

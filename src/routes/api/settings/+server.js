@@ -6,6 +6,7 @@
 
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { UnauthorizedError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * GET /api/settings
@@ -27,7 +28,7 @@ export async function GET({ url, locals }) {
 		// Auth must be handled in hooks only
 		if (!locals.auth?.authenticated) {
 			logger.info('SETTINGS_API', 'Unauthenticated on GET /api/settings');
-			return json({ error: 'Authentication required' }, { status: 401 });
+			throw new UnauthorizedError('Authentication required');
 		}
 
 		// Get category filter if provided
@@ -68,9 +69,8 @@ export async function GET({ url, locals }) {
 				}
 			});
 		}
-	} catch (error) {
-		console.error('Settings API error:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/settings');
 	}
 }
 

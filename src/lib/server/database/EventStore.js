@@ -43,9 +43,10 @@ export class EventStore {
 			if (!initLock) {
 				// Start initialization
 				initLock = (async () => {
-					try {
-						const lastSeq = await this.getLatestSeq(sessionId);
-						this.#sequences.set(sessionId, lastSeq + 1);
+					try{
+						const eventCount = await this.getEventCount(sessionId);
+						// If no events exist, start at 0. If events exist, start at count (which is max_seq + 1)
+						this.#sequences.set(sessionId, eventCount);
 					} catch (error) {
 						logger.error(
 							'EVENTSTORE',
@@ -132,18 +133,18 @@ export class EventStore {
 	}
 
 	/**
-	 * Get events for session from sequence number
+	 * Get events for session after a given sequence number
 	 * @param {string} sessionId - Session ID
-	 * @param {number} [fromSeq=0] - Starting sequence number
+	 * @param {number} [afterSeq=-1] - Get events AFTER this sequence (exclusive). Use -1 to get all events.
 	 * @returns {Promise<Array>} Events ordered by sequence
 	 */
-	async getEvents(sessionId, fromSeq = 0) {
+	async getEvents(sessionId, afterSeq = -1) {
 		const rows = await this.#db.all(
 			`SELECT run_id, seq, channel, type, payload, ts
 			 FROM session_events
 			 WHERE run_id = ? AND seq > ?
 			 ORDER BY seq ASC`,
-			[sessionId, fromSeq]
+			[sessionId, afterSeq]
 		);
 
 		return rows.map((row) => this.#parseEvent(row));
@@ -155,7 +156,7 @@ export class EventStore {
 	 * @returns {Promise<Array>} All events for session
 	 */
 	async getAllEvents(sessionId) {
-		return this.getEvents(sessionId, 0);
+		return this.getEvents(sessionId, -1);
 	}
 
 	/**

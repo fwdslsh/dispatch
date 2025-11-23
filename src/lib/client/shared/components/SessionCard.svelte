@@ -1,4 +1,41 @@
 <script>
+	/**
+	 * @component SessionCard
+	 * @description
+	 * Interactive card for displaying session information with selection and action capabilities.
+	 * Shows session type icon, title, workspace path, last activity, and action button.
+	 * Supports active/inactive visual states and keyboard navigation.
+	 *
+	 * @typedef {Object} SessionCardProps
+	 * @property {Object} session - Session data object
+	 * @property {string} session.id - Unique session identifier
+	 * @property {string} session.type - Session type ('claude' or 'terminal')
+	 * @property {string} session.title - Session display title
+	 * @property {string} session.workspacePath - Associated workspace path
+	 * @property {string|Date} session.lastActivity - Last activity timestamp
+	 * @property {string|null} [selectedSession=null] - Currently selected session ID
+	 * @property {(session: Object) => void} [onSelect] - Called when card is clicked
+	 * @property {(session: Object) => void} [onAction] - Called when action button clicked
+	 * @property {string} [actionLabel='Connect'] - Action button label
+	 * @property {(date: string|Date) => string} [formatDate] - Date formatting function
+	 * @property {boolean} [isActive=false] - Visual active state indicator
+	 *
+	 * @example
+	 * ```svelte
+	 * <SessionCard
+	 *   {session}
+	 *   selectedSession={currentSessionId}
+	 *   onSelect={handleSelectSession}
+	 *   onAction={handleConnectSession}
+	 *   actionLabel="Resume"
+	 *   formatDate={(d) => new Date(d).toLocaleString()}
+	 *   isActive={session.status === 'running'}
+	 * />
+	 * ```
+	 *
+	 * @fires {Object} select - Fired when card is clicked with session object
+	 * @fires {Object} action - Fired when action button clicked with session object
+	 */
 	import Button from './Button.svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
 	import IconTerminal from './Icons/IconTerminal.svelte';

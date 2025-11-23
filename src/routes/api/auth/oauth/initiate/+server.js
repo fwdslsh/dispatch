@@ -1,5 +1,10 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import {
+	BadRequestError,
+	ServiceUnavailableError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * OAuth Initiation API
@@ -12,7 +17,10 @@ export async function POST({ request, locals }) {
 	try {
 		const services = locals.services;
 		if (!services?.oauthManager) {
-			throw error(500, 'OAuth manager not initialized');
+			throw new ServiceUnavailableError(
+				'OAuth manager not initialized',
+				'OAUTH_NOT_INITIALIZED'
+			);
 		}
 
 		const body = await request.json();
@@ -20,7 +28,7 @@ export async function POST({ request, locals }) {
 
 		// Validate provider
 		if (!provider || typeof provider !== 'string') {
-			throw error(400, 'Provider name required');
+			throw new BadRequestError('Provider name required', 'MISSING_PROVIDER');
 		}
 
 		// Initiate OAuth flow
@@ -35,13 +43,11 @@ export async function POST({ request, locals }) {
 			provider
 		});
 	} catch (err) {
-		logger.error('OAUTH_INITIATE', 'Error initiating OAuth flow:', err);
-
-		// If the error is from OAuthManager, return specific message
+		// If the error is from OAuthManager about provider configuration, wrap as BadRequest
 		if (err.message?.includes('not enabled') || err.message?.includes('not configured')) {
-			throw error(400, err.message);
+			err = new BadRequestError(err.message, 'PROVIDER_NOT_CONFIGURED');
 		}
 
-		throw error(500, 'Failed to initiate OAuth flow');
+		handleApiError(err, 'POST /api/auth/oauth/initiate');
 	}
 }

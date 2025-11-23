@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { BadRequestError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Expand tilde (~) in paths
 function expandTilde(filepath) {
@@ -22,7 +23,7 @@ export async function POST({ request, locals: _locals }) {
 		const { path, worktreePath, force = false } = await request.json();
 
 		if (!path || !worktreePath) {
-			return json({ error: 'Path and worktreePath are required' }, { status: 400 });
+			throw new BadRequestError('Path and worktreePath are required', 'MISSING_PARAMS');
 		}
 
 		const resolvedPath = resolvePath(path);
@@ -32,7 +33,7 @@ export async function POST({ request, locals: _locals }) {
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
 		} catch (_error) {
-			return json({ error: 'Not a git repository' }, { status: 404 });
+			throw new NotFoundError('Not a git repository');
 		}
 
 		// Remove worktree
@@ -49,8 +50,7 @@ export async function POST({ request, locals: _locals }) {
 			worktreePath: resolvedWorktreePath,
 			message: result
 		});
-	} catch (error) {
-		console.error('Git worktree remove error:', error);
-		return json({ error: error.message || 'Failed to remove worktree' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/git/worktree/remove');
 	}
 }

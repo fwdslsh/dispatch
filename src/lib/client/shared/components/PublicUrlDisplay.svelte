@@ -1,4 +1,5 @@
 <script>
+	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import Button from './Button.svelte';
@@ -46,23 +47,22 @@
 		}
 	}
 
-	// Use untrack to prevent creating dependencies on state changes
-	$effect(() => {
+	// Initialize socket connection and polling on mount
+	onMount(() => {
 		connectSocket();
 		// Poll every 5 seconds to check for URL updates
 		pollInterval = setInterval(pollPublicUrl, 5000);
+	});
 
-		// Cleanup function
-		return () => {
-			if (pollInterval) {
-				clearInterval(pollInterval);
-				pollInterval = null;
-			}
-			if (socket) {
-				socket.disconnect();
-				socket = null;
-			}
-		};
+	onDestroy(() => {
+		if (pollInterval) {
+			clearInterval(pollInterval);
+			pollInterval = null;
+		}
+		if (socket) {
+			socket.disconnect();
+			socket = null;
+		}
 	});
 </script>
 

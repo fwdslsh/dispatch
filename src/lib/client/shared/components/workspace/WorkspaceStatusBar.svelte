@@ -125,6 +125,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 0.4rem 0.6rem;
+		padding-block: 0;
 		box-sizing: border-box;
 		width: 100%;
 		max-width: 100svw;
@@ -164,6 +165,7 @@
 	@media (max-width: 800px) {
 		.status-bar {
 			padding: var(--space-1) var(--space-2);
+			padding-block: 0;
 		}
 
 		.status-bar-group {

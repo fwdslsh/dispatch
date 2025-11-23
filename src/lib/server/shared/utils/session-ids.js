@@ -6,6 +6,83 @@
 import { randomUUID } from 'node:crypto';
 
 /**
+ * SessionId Value Object
+ * Encapsulates session ID generation and validation logic
+ * Format: {kind}-{timestamp}-{nonce}
+ */
+export class SessionId {
+	/**
+	 * Create a new SessionId
+	 * @param {string} kind - Session type/kind (e.g., 'pty', 'claude', 'file-editor')
+	 * @param {number} [timestamp] - Optional timestamp (defaults to Date.now())
+	 * @param {string} [nonce] - Optional nonce (defaults to random string)
+	 */
+	constructor(kind, timestamp = Date.now(), nonce = null) {
+		if (!kind || typeof kind !== 'string') {
+			throw new Error('Session kind is required and must be a string');
+		}
+
+		this.kind = kind;
+		this.timestamp = timestamp;
+		this.nonce = nonce || Math.random().toString(36).substr(2, 9);
+	}
+
+	/**
+	 * Generate the string representation of this SessionId
+	 * @returns {string} Session ID in format: {kind}-{timestamp}-{nonce}
+	 */
+	toString() {
+		return `${this.kind}-${this.timestamp}-${this.nonce}`;
+	}
+
+	/**
+	 * Get the string value (alias for toString())
+	 * @returns {string} Session ID string
+	 */
+	getValue() {
+		return this.toString();
+	}
+
+	/**
+	 * Parse a session ID string into a SessionId object
+	 * @param {string} id - Session ID string to parse
+	 * @returns {SessionId|null} Parsed SessionId or null if invalid
+	 */
+	static parse(id) {
+		if (typeof id !== 'string') return null;
+
+		const parts = id.split('-');
+		if (parts.length < 3) return null;
+
+		const kind = parts[0];
+		const timestamp = parseInt(parts[1], 10);
+		const nonce = parts.slice(2).join('-'); // Handle nonces that might contain dashes
+
+		if (!kind || isNaN(timestamp)) return null;
+
+		return new SessionId(kind, timestamp, nonce);
+	}
+
+	/**
+	 * Validate if a string is a valid session ID
+	 * @param {string} id - ID to validate
+	 * @returns {boolean} True if valid session ID format
+	 */
+	static isValid(id) {
+		return SessionId.parse(id) !== null;
+	}
+
+	/**
+	 * Create a new session ID for a given kind
+	 * @param {string} kind - Session type/kind
+	 * @returns {SessionId} New SessionId instance
+	 */
+	static create(kind) {
+		return new SessionId(kind);
+	}
+}
+
+/**
  * Generate a new application-managed session ID
  * @returns {string} A UUID v4 string
  */

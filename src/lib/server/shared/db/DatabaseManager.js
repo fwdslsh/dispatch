@@ -561,7 +561,7 @@ export class DatabaseManager {
 		try {
 			return JSON.parse(row.settings_json);
 		} catch (e) {
-			console.warn(`Failed to parse settings for category '${category}':`, e);
+			logger.warn('DB', `Failed to parse settings for category '${category}':`, e);
 			return {};
 		}
 	}
