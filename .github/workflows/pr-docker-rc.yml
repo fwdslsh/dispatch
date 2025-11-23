@@ -19,13 +19,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract version from package.json
+      - name: Extract version and commit hash
         id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "rc_tag=${VERSION}-rc" >> $GITHUB_OUTPUT
-          echo "Building release candidate: ${VERSION}-rc"
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "rc_tag=${VERSION}-rc-${COMMIT_HASH}" >> $GITHUB_OUTPUT
+          echo "Building release candidate: ${VERSION}-rc-${COMMIT_HASH}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
