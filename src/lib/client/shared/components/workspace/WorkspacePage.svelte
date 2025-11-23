@@ -294,7 +294,7 @@
 
 <style>
 	.dispatch-workspace {
-		--bw-container-height: calc(100vh - 175px);
+		--bw-container-height: stretch;
 		--bw-container-width: stretch;
 		--bw-font-family: var(--font-sans);
 		--bw-font-size: var(--font-size-1);
