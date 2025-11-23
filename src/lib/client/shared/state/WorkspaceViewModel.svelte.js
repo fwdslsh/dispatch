@@ -24,6 +24,25 @@ const log = createLogger('workspace:viewmodel');
  * Manages workspace state, session operations, and view mode
  */
 export class WorkspaceViewModel {
+	// View mode state
+	workspaceViewMode = $state('window-manager');
+
+	// Session state
+	activeSessionId = $state(null);
+	sessionMenuOpen = $state(false);
+
+	// Modal state
+	activeModal = $state(null); // { type: 'createSession' | 'pwaInstructions', data: any } | null
+
+	// BwinHost reference (managed by View)
+	bwinHostRef = $state(null);
+
+	// PWA state
+	deferredPrompt = $state(null);
+
+	// Error state
+	error = $state(null);
+
 	/**
 	 * @param {import('./SessionViewModel.svelte.js').SessionViewModel} sessionViewModel - Session management ViewModel
 	 * @param {import('./AppState.svelte.js').AppState} appStateManager - App state manager
@@ -34,25 +53,6 @@ export class WorkspaceViewModel {
 		this.appStateManager = appStateManager;
 		this.workspaceState = appStateManager.workspaces;
 		this.goto = gotoFn;
-
-		// View mode state
-		this.workspaceViewMode = $state('window-manager');
-
-		// Session state
-		this.activeSessionId = $state(null);
-		this.sessionMenuOpen = $state(false);
-
-		// Modal state
-		this.activeModal = $state(null); // { type: 'createSession' | 'pwaInstructions', data: any } | null
-
-		// BwinHost reference (managed by View)
-		this.bwinHostRef = $state(null);
-
-		// PWA state
-		this.deferredPrompt = $state(null);
-
-		// Error state
-		this.error = $state(null);
 
 		// Derived state
 		this.sessionsList = $derived.by(() => {
@@ -118,6 +118,10 @@ export class WorkspaceViewModel {
 	setWorkspaceViewMode(mode) {
 		log.info('Setting workspace view mode to', mode);
 		this.workspaceViewMode = mode;
+		// Debug: Check derived values after setting
+		setTimeout(() => {
+			log.info('After mode change - isSingleSessionView:', this.isSingleSessionView, 'isWindowManagerView:', this.isWindowManagerView);
+		}, 0);
 	}
 
 	/**

@@ -29,7 +29,8 @@
 	});
 
 	const log = createLogger('workspace:page');
-	let workspaceViewModel = $state();
+	let workspaceViewModel; // Regular variable, not reactive
+	let isWorkspaceReady = $state(false); // Reactive flag for initialization
 	let __removeWorkspacePageListeners = $state(null);
 
 	// PWA install guides for manual installation
@@ -61,6 +62,17 @@
 		}
 	});
 
+	// Local reactive state for view mode (synced with ViewModel)
+	let viewMode = $state('window-manager');
+
+	// Sync local viewMode with ViewModel changes
+	$effect(() => {
+		if (workspaceViewModel) {
+			console.log('[WorkspacePage] Syncing viewMode from ViewModel:', workspaceViewModel.workspaceViewMode);
+			viewMode = workspaceViewModel.workspaceViewMode;
+		}
+	});
+
 	// Mount lifecycle
 	onMount(async () => {
 		// Get ViewModel from container
@@ -68,6 +80,9 @@
 
 		// Initialize workspace (loads sessions)
 		await workspaceViewModel.initialize();
+
+		// Mark workspace as ready (triggers reactivity)
+		isWorkspaceReady = true;
 
 		// Get socket service and set up session:closed handler
 		const socketService = await container.get('socket');
@@ -142,15 +157,37 @@
 			workspaceViewModel.ensureActiveSession();
 		}
 	});
+
+	// Effect to populate BinaryWindow when view switches to window-manager
+	$effect(() => {
+		if (viewMode === 'window-manager' && workspaceViewModel) {
+			console.log('[WorkspacePage] Switched to window-manager mode');
+			// Use setTimeout to wait for bind:this to complete
+			setTimeout(() => {
+				console.log('[WorkspacePage] Checking if BwinHost ref is ready...');
+				if (workspaceViewModel.bwinHostRef) {
+					console.log('[WorkspacePage] BwinHost ref is ready, populating panes');
+					workspaceViewModel.populateBwinHost();
+				} else {
+					console.log('[WorkspacePage] BwinHost ref not ready yet');
+				}
+			}, 0);
+		}
+	});
 </script>
 
 <Shell>
 	{#snippet header()}
 		<WorkspaceHeader
 			onLogout={() => workspaceViewModel?.handleLogout()}
-			viewMode={workspaceViewModel?.workspaceViewMode}
+			viewMode={viewMode}
 			onInstallPWA={() => workspaceViewModel?.handleInstallPWA(PWA_INSTALL_GUIDES)}
-			onViewModeChange={(mode) => workspaceViewModel?.setWorkspaceViewMode(mode)}
+			onViewModeChange={(mode) => {
+			console.log('[WorkspacePage] onViewModeChange called, setting viewMode to:', mode);
+			workspaceViewModel?.setWorkspaceViewMode(mode);
+			viewMode = mode;
+			console.log('[WorkspacePage] viewMode after update:', viewMode);
+		}}
 		/>
 	{/snippet}
 
@@ -215,7 +252,7 @@
 						</div>
 					</div>
 				</div>
-			{:else if workspaceViewModel?.isWindowManagerView}
+			{:else if isWorkspaceReady && viewMode === 'window-manager'}
 				<BinaryWindow
 					bind:this={workspaceViewModel.bwinHostRef}
 					settings={{ id: 'root', fitContainer: true }}
@@ -243,7 +280,7 @@
 			hasActiveSessions={workspaceViewModel?.hasActiveSessions}
 			currentSessionIndex={workspaceViewModel?.currentSessionIndex}
 			totalSessions={workspaceViewModel?.totalSessions}
-			viewMode={workspaceViewModel?.workspaceViewMode}
+			viewMode={viewMode}
 		/>
 	{/snippet}
 
