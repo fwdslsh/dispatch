@@ -161,7 +161,7 @@
 
 			<div class="directory-browser-container surface border-2 border-primary-dim p-4">
 				<DirectoryBrowser
-					bind:selected={viewModel.workspacePath}
+					selected={viewModel?.workspacePath}
 					startPath={viewModel?.workspacePath || viewModel?.defaultWorkspace}
 					onSelect={handleDirectorySelect}
 				/>

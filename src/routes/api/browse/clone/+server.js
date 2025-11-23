@@ -93,13 +93,18 @@ export async function POST({ request }) {
 		}
 
 		// Check if target already exists
+		let targetExists = false;
 		try {
 			await access(resolvedTarget, constants.F_OK);
-			if (!overwrite) {
-				throw new ConflictError('Target directory already exists');
-			}
+			targetExists = true;
 		} catch (_error) {
-			// Target doesn't exist, which is what we want (unless overwrite is enabled)
+			// Target doesn't exist, which is what we want
+			targetExists = false;
+		}
+
+		// If target exists and overwrite is false, throw error
+		if (targetExists && !overwrite) {
+			throw new ConflictError('Target directory already exists');
 		}
 
 		// Validate parent directory of target exists and is writable

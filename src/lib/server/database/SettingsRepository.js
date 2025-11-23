@@ -7,6 +7,8 @@
  * @typedef {import('./DatabaseManager.js').DatabaseManager} DatabaseManager
  */
 
+import { logger } from '../shared/utils/logger.js';
+
 export class SettingsRepository {
 	#db;
 
@@ -56,7 +58,7 @@ export class SettingsRepository {
 		try {
 			return JSON.parse(row.settings_json);
 		} catch (e) {
-			console.warn(`Failed to parse settings for category '${category}':`, e);
+			logger.warn('SETTINGS', `Failed to parse settings for category '${category}':`, e);
 			return {};
 		}
 	}
@@ -111,7 +113,7 @@ export class SettingsRepository {
 			try {
 				settings = JSON.parse(row.settings_json);
 			} catch (e) {
-				console.warn(`Failed to parse settings for category '${row.category}':`, e);
+				logger.warn('SETTINGS', `Failed to parse settings for category '${row.category}':`, e);
 			}
 
 			return {

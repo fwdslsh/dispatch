@@ -3,6 +3,9 @@
  * @file Handles session metadata persistence
  */
 
+import { SessionId } from '../shared/utils/session-ids.js';
+import { logger } from '../shared/utils/logger.js';
+
 /**
  * @typedef {import('./DatabaseManager.js').DatabaseManager} DatabaseManager
  */
@@ -29,8 +32,8 @@ export class SessionRepository {
 	async create(sessionData) {
 		const { kind, workspacePath, metadata = {}, ownerUserId = null } = sessionData;
 
-		// Generate run ID
-		const runId = `${kind}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		// Generate run ID using SessionId value object
+		const runId = SessionId.create(kind).toString();
 		const now = Date.now();
 
 		const meta = {
@@ -176,7 +179,7 @@ export class SessionRepository {
 			try {
 				meta = JSON.parse(row.meta_json);
 			} catch (e) {
-				console.warn('Failed to parse session metadata:', e);
+				logger.warn('SESSION', 'Failed to parse session metadata:', e);
 			}
 		}
 

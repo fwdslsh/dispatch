@@ -1,22 +1,46 @@
 <script>
 	/**
-	 * EmptyState Component
-	 * Displays empty state messaging with optional icon and actions
+	 * @component EmptyState
+	 * @description
+	 * Displays empty state messaging with optional icon and action buttons.
+	 * Used when lists, tables, or sections have no content.
+	 * Provides better UX than bare "no data" text with actionable next steps.
 	 *
-	 * Used when lists, tables, or sections have no content
-	 * Provides better UX than bare "no data" text
+	 * @typedef {Object} EmptyStateProps
+	 * @property {string|import('svelte').Snippet} [icon] - Icon string or snippet
+	 * @property {string} message - Required empty state message
+	 * @property {string} [title] - Optional title above message
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic usage -->
+	 * <EmptyState
+	 *   message="No sessions available"
+	 * />
+	 *
+	 * <!-- With icon and title -->
+	 * <EmptyState
+	 *   title="No Workspaces"
+	 *   message="Create your first workspace to get started">
+	 *   {#snippet icon()}
+	 *     <IconFolder size={48} />
+	 *   {/snippet}
+	 * </EmptyState>
+	 *
+	 * <!-- With action buttons -->
+	 * <EmptyState
+	 *   title="No API Keys"
+	 *   message="Generate an API key to access the Dispatch API">
+	 *   {#snippet icon()}
+	 *     <IconKey size={48} />
+	 *   {/snippet}
+	 *   <Button onclick={handleCreateKey}>Create API Key</Button>
+	 * </EmptyState>
+	 * ```
 	 */
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {string | import('svelte').Snippet} [icon]
-	 * @property {string} message
-	 * @property {string} [title]
-	 * @property {import('svelte').Snippet} [children]
-	 * @property {string} [class]
-	 */
-
-	/** @type {Props & Record<string, any>} */
+	/** @type {EmptyStateProps & Record<string, any>} */
 	let {
 		// Content
 		icon = '',

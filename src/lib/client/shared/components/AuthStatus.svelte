@@ -1,10 +1,21 @@
-<!--
-	AuthStatus Component
-	Displays the current authentication provider (Terminal Key, GitHub OAuth, etc.)
-	Simplified for single-user app - just shows which auth mechanism is active
--->
-
 <script>
+	/**
+	 * @component AuthStatus
+	 * @description
+	 * Displays the current authentication provider (API Key, GitHub OAuth, Google OAuth).
+	 * Shows provider icon and label retrieved from localStorage.
+	 * Simplified for single-user app - indicates which auth mechanism is active.
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic usage in settings or status display -->
+	 * <AuthStatus />
+	 * ```
+	 *
+	 * @remarks
+	 * Reads 'dispatch-auth-provider' from localStorage on mount.
+	 * Supported providers: terminal_key, github, google, oauth
+	 */
 	import { onMount } from 'svelte';
 
 	let provider = $state(null);

@@ -3,17 +3,15 @@ import { logger } from './utils/logger.js';
 import { SocketEventMediator } from '../socket/SocketEventMediator.js';
 import { createLoggingMiddleware } from '../socket/middleware/logging.js';
 import { createErrorHandlingMiddleware } from '../socket/middleware/errorHandling.js';
+import { requireAuth } from '../socket/middleware/authentication.js';
 import { createSessionHandlers } from '../socket/handlers/sessionHandlers.js';
-import { CookieService } from '../auth/CookieService.server.js';
-import { SOCKET_EVENTS } from '../../shared/socket-events.js';
-import { createSocketRateLimiter } from '../auth/RateLimiter.js';
+import { createTunnelHandlers } from '../socket/handlers/tunnelHandlers.js';
+import { createClaudeHandlers, CLAUDE_EVENTS } from '../socket/handlers/claudeHandlers.js';
+import { createVSCodeHandlers } from '../socket/handlers/vscodeHandlers.js';
 
 // Admin event tracking
 let socketEvents = [];
 let activeIO = null;
-
-// Rate limiter for Socket.IO authentication (5 attempts per minute per IP)
-const socketAuthRateLimiter = createSocketRateLimiter();
 
 /**
  * Get the active Socket.IO instance
@@ -54,81 +52,6 @@ export function getSocketEvents(limit = 100) {
 }
 
 /**
- * Parse cookies from Socket.IO handshake headers
- * Socket.IO doesn't provide parsed cookies like SvelteKit, so we parse manually
- */
-function parseCookies(cookieHeader) {
-	if (!cookieHeader) return {};
-
-	const cookies = {};
-	cookieHeader.split(';').forEach((cookie) => {
-		const [name, ...rest] = cookie.trim().split('=');
-		if (name && rest.length > 0) {
-			cookies[name] = decodeURIComponent(rest.join('='));
-		}
-	});
-	return cookies;
-}
-
-/**
- * Validate authentication for Socket.IO connections
- * Supports both session cookies and API keys
- * Includes rate limiting to prevent brute-force attacks
- *
- * @param {object} socket - Socket.IO socket instance
- * @param {string} token - API key or session ID from client
- * @param {function} callback - Callback function for response
- * @param {object} services - Services object (auth, sessionManager)
- * @returns {Promise<boolean>} True if authenticated, false otherwise
- */
-async function requireValidAuth(socket, token, callback, services) {
-	const { auth: authService, sessionManager: _sessionManager } = services;
-
-	// Rate limiting: Check authentication attempts per IP address
-	const clientIp = socket.handshake.address || 'unknown';
-	const rateLimitResult = socketAuthRateLimiter.check(clientIp);
-
-	if (!rateLimitResult.allowed) {
-		logger.warn('SOCKET', `Rate limit exceeded for socket auth from IP ${clientIp}`, {
-			socketId: socket.id,
-			retryAfter: rateLimitResult.retryAfter
-		});
-		if (callback) {
-			callback({
-				success: false,
-				error: 'Too many authentication attempts. Please try again later.',
-				retryAfter: rateLimitResult.retryAfter
-			});
-		}
-		return false;
-	}
-
-	// Validate using AuthService (supports both API keys and OAuth sessions)
-	const authResult = await authService.validateAuth(token);
-
-	if (!authResult.valid) {
-		logger.warn('SOCKET', `Invalid authentication token from socket ${socket.id}`);
-		if (callback) callback({ success: false, error: 'Invalid authentication token' });
-		return false;
-	}
-
-	// Reset rate limit on successful authentication
-	socketAuthRateLimiter.reset(clientIp);
-
-	// Store auth context in socket data
-	socket.data.authenticated = true;
-	socket.data.auth = {
-		provider: authResult.provider,
-		userId: authResult.userId,
-		apiKeyId: authResult.apiKeyId,
-		label: authResult.label
-	};
-
-	logger.debug('SOCKET', `Socket ${socket.id} authenticated via ${authResult.provider}`);
-	return true;
-}
-
-/**
  * Setup Socket.IO with SocketEventMediator architecture
  */
 export function setupSocketIO(httpServer, services) {
@@ -147,14 +70,14 @@ export function setupSocketIO(httpServer, services) {
 		services.vscodeManager.setSocketIO(io);
 	}
 
-	const { sessionOrchestrator, eventRecorder, auth: authService } = services;
+	const { sessionOrchestrator, eventRecorder } = services;
 
 	if (!sessionOrchestrator) {
 		logger.error('SOCKET_SETUP', 'SessionOrchestrator not provided in services');
 		throw new Error('SessionOrchestrator is required for socket setup');
 	}
 
-	if (!authService) {
+	if (!services.auth) {
 		logger.error('SOCKET_SETUP', 'AuthService not provided in services');
 		throw new Error('AuthService is required for socket setup');
 	}
@@ -190,365 +113,99 @@ export function setupSocketIO(httpServer, services) {
 		next();
 	});
 
-	// Create session handlers
+	// Create domain-specific handlers
 	const sessionHandlers = createSessionHandlers(sessionOrchestrator);
+	const tunnelHandlers = createTunnelHandlers(services.tunnelManager);
+	const claudeHandlers = createClaudeHandlers(services.claudeAuthManager);
+	const vscodeHandlers = createVSCodeHandlers(services.vscodeManager);
 
-	// Register event handlers
-	// Auth events
+	// Register authentication event (client:hello)
+	// This event handles all authentication strategies and is the only one that doesn't require prior auth
 	mediator.on('client:hello', async (socket, data, callback) => {
 		logger.info('SOCKET', `Received client:hello from ${socket.id}:`, data);
-		const { clientId: _clientId, sessionId, apiKey, terminalKey } = data || {};
 
-		// Strategy 1: Check for sessionId (browser authentication via cookie)
-		if (sessionId) {
-			const sessionData = await services.sessionManager.validateSession(sessionId);
-			if (sessionData) {
-				socket.data.authenticated = true;
-				socket.data.auth = {
-					provider: sessionData.session.provider,
-					userId: sessionData.session.userId
-				};
-				socket.data.session = sessionData.session;
-				socket.data.user = sessionData.user;
+		// Use authentication middleware to validate all strategies
+		const authenticated = await requireAuth(socket, data, callback, services);
 
-				logger.debug('SOCKET', `Socket ${socket.id} authenticated via session cookie`);
-				if (callback) callback({ success: true, message: 'Authenticated via session' });
-				return;
-			}
-		}
-
-		// Strategy 2: Check for apiKey or legacy terminalKey
-		const token = apiKey || terminalKey;
-		if (token) {
-			const isValid = await requireValidAuth(socket, token, callback, services);
-			if (isValid && callback) {
-				callback({ success: true, message: 'Authenticated via API key' });
-			}
-			return;
-		}
-
-		// Strategy 3: Check for session cookie in handshake headers
-		const cookieHeader = socket.handshake.headers.cookie;
-		if (cookieHeader) {
-			const cookies = parseCookies(cookieHeader);
-			const cookieSessionId = cookies[CookieService.COOKIE_NAME];
-
-			if (cookieSessionId) {
-				const sessionData = await services.sessionManager.validateSession(cookieSessionId);
-				if (sessionData) {
-					socket.data.authenticated = true;
-					socket.data.auth = {
-						provider: sessionData.session.provider,
-						userId: sessionData.session.userId
-					};
-					socket.data.session = sessionData.session;
-					socket.data.user = sessionData.user;
-
-					logger.debug('SOCKET', `Socket ${socket.id} authenticated via cookie header`);
-					if (callback) callback({ success: true, message: 'Authenticated via cookie' });
-					return;
-				}
-			}
-		}
-
-		// No valid authentication found
-		logger.warn('SOCKET', `Socket ${socket.id} failed authentication - no valid credentials`);
-		if (callback) {
+		if (authenticated && callback) {
+			const provider = socket.data.auth?.provider || 'unknown';
 			callback({
-				success: false,
-				error: 'Authentication required (sessionId, apiKey, or valid cookie)'
+				success: true,
+				message: `Authenticated via ${provider}`
 			});
 		}
 	});
 
-	// Session events
+	// Register session event handlers
 	mediator.on('run:attach', async (socket, data, callback) => {
-		try {
-			const result = await sessionHandlers.attach(socket, data);
-			if (callback) callback(result);
-		} catch (error) {
-			logger.error('SOCKET', 'Error in run:attach:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		const result = await sessionHandlers.attach(socket, data);
+		if (callback) callback(result);
 	});
 
 	mediator.on('run:input', async (socket, data) => {
-		try {
-			await sessionHandlers.input(socket, data);
-		} catch (error) {
-			logger.error('SOCKET', 'Error in run:input:', error);
-			socket.emit('error', { message: error.message });
-		}
+		if (!(await requireAuth(socket, data, null, services))) return;
+		await sessionHandlers.input(socket, data);
 	});
 
 	mediator.on('run:resize', async (socket, data, callback) => {
-		try {
-			const result = await sessionHandlers.resize(socket, data);
-			if (callback) callback(result);
-		} catch (error) {
-			logger.error('SOCKET', 'Error in run:resize:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		const result = await sessionHandlers.resize(socket, data);
+		if (callback) callback(result);
 	});
 
 	mediator.on('run:close', async (socket, data, callback) => {
-		try {
-			const result = await sessionHandlers.close(socket, data);
-			if (callback) callback(result);
-		} catch (error) {
-			logger.error('SOCKET', 'Error in run:close:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		const result = await sessionHandlers.close(socket, data);
+		if (callback) callback(result);
 	});
 
-	// Tunnel events
+	// Register tunnel event handlers
 	mediator.on('tunnel:start', async (socket, data, callback) => {
-		try {
-			const { apiKey, terminalKey } = data || {};
-			const token = apiKey || terminalKey;
-
-			if (token) {
-				const isValid = await requireValidAuth(socket, token, callback, services);
-				if (!isValid) return;
-			} else if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated tunnel:start from socket ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Authentication required' });
-				return;
-			}
-
-			await services.tunnelManager.start();
-			const status = services.tunnelManager.getStatus();
-			if (callback) {
-				callback({
-					success: true,
-					url: status.url,
-					status: status
-				});
-			}
-		} catch (error) {
-			logger.error('SOCKET', 'Error starting tunnel:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await tunnelHandlers.start(socket, data, callback);
 	});
 
 	mediator.on('tunnel:stop', async (socket, data, callback) => {
-		try {
-			const { apiKey, terminalKey } = data || {};
-			const token = apiKey || terminalKey;
-
-			if (token) {
-				const isValid = await requireValidAuth(socket, token, callback, services);
-				if (!isValid) return;
-			} else if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated tunnel:stop from socket ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Authentication required' });
-				return;
-			}
-
-			await services.tunnelManager.stop();
-			const status = services.tunnelManager.getStatus();
-			if (callback) callback({ success: true, status });
-		} catch (error) {
-			logger.error('SOCKET', 'Error stopping tunnel:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await tunnelHandlers.stop(socket, data, callback);
 	});
 
 	mediator.on('tunnel:status', async (socket, data, callback) => {
-		try {
-			const status = services.tunnelManager.getStatus();
-			if (callback) callback({ success: true, status });
-		} catch (error) {
-			logger.error('SOCKET', 'Error getting tunnel status:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		// Status check doesn't require authentication
+		await tunnelHandlers.status(socket, data, callback);
 	});
 
 	mediator.on('tunnel:updateConfig', async (socket, data, callback) => {
-		try {
-			const { apiKey, terminalKey, subdomain } = data || {};
-			const token = apiKey || terminalKey;
-
-			if (token) {
-				const isValid = await requireValidAuth(socket, token, callback, services);
-				if (!isValid) return;
-			} else if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated tunnel:updateConfig from socket ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Authentication required' });
-				return;
-			}
-
-			// Update configuration
-			const success = await services.tunnelManager.updateConfig({ subdomain });
-
-			if (success) {
-				const status = services.tunnelManager.getStatus();
-				if (callback) callback({ success: true, status });
-
-				// Broadcast status update to all connected clients
-				services.tunnelManager._broadcastStatus('tunnel:status', status);
-			} else {
-				if (callback) callback({ success: false, error: 'Failed to update configuration' });
-			}
-		} catch (error) {
-			logger.error('SOCKET', 'Error updating tunnel config:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await tunnelHandlers.updateConfig(socket, data, callback);
 	});
 
-	// Claude authentication events
-	mediator.on(SOCKET_EVENTS.CLAUDE_AUTH_START, async (socket, data, callback) => {
-		try {
-			const { apiKey, terminalKey } = data || {};
-			const token = apiKey || terminalKey;
-
-			// Require authentication - check multiple strategies
-			if (token) {
-				// Strategy 1: Validate explicit API key
-				const isValid = await requireValidAuth(socket, token, callback, services);
-				if (!isValid) return;
-			} else if (!socket.data.authenticated) {
-				// Strategy 2: Check for session cookie in handshake headers
-				const cookieHeader = socket.handshake.headers.cookie;
-				if (cookieHeader) {
-					const cookies = parseCookies(cookieHeader);
-					const cookieSessionId = cookies[CookieService.COOKIE_NAME];
-
-					if (cookieSessionId) {
-						const sessionData = await services.sessionManager.validateSession(cookieSessionId);
-						if (sessionData) {
-							// Authenticate socket with session data
-							socket.data.authenticated = true;
-							socket.data.auth = {
-								provider: sessionData.session.provider,
-								userId: sessionData.session.userId
-							};
-							socket.data.session = sessionData.session;
-							socket.data.user = sessionData.user;
-							logger.debug(
-								'SOCKET',
-								`Socket ${socket.id} authenticated via cookie for Claude auth`
-							);
-						}
-					}
-				}
-
-				// If still not authenticated after checking cookies, reject
-				if (!socket.data.authenticated) {
-					logger.warn('SOCKET', `Unauthenticated claude.auth.start from socket ${socket.id}`);
-					if (callback) callback({ success: false, error: 'Authentication required' });
-					return;
-				}
-			}
-
-			// Start Claude OAuth flow using ClaudeAuthManager
-			const success = await services.claudeAuthManager.start(socket);
-
-			logger.info('SOCKET', `Claude auth start result: ${success}`);
-
-			if (callback) {
-				// Return consistent error field for client
-				const errorMsg = success
-					? null
-					: 'Failed to start Claude authentication. Please ensure the Claude CLI is installed.';
-				callback({
-					success,
-					error: errorMsg,
-					message: success ? 'OAuth flow started' : errorMsg
-				});
-
-				if (!success) {
-					logger.warn('SOCKET', `Returned error to client: ${errorMsg}`);
-				}
-			}
-		} catch (error) {
-			logger.error('SOCKET', 'Error starting Claude auth:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+	// Register Claude authentication event handlers
+	mediator.on(CLAUDE_EVENTS.AUTH_START, async (socket, data, callback) => {
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await claudeHandlers.authStart(socket, data, callback);
 	});
 
-	mediator.on(SOCKET_EVENTS.CLAUDE_AUTH_CODE, async (socket, data, callback) => {
-		try {
-			const { code } = data || {};
-
-			if (!code) {
-				logger.warn('SOCKET', `Claude auth code missing from socket ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Authorization code required' });
-				return;
-			}
-
-			// Submit authorization code to Claude OAuth flow
-			const success = services.claudeAuthManager.submitCode(socket, code);
-			if (callback) {
-				callback({ success, message: success ? 'Code submitted' : 'Failed to submit code' });
-			}
-		} catch (error) {
-			logger.error('SOCKET', 'Error submitting Claude auth code:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+	mediator.on(CLAUDE_EVENTS.AUTH_CODE, async (socket, data, callback) => {
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await claudeHandlers.authCode(socket, data, callback);
 	});
 
-	// VS Code tunnel events
+	// Register VS Code tunnel event handlers
 	mediator.on('vscode-tunnel:start', async (socket, data, callback) => {
-		try {
-			const { apiKey, terminalKey } = data || {};
-			const token = apiKey || terminalKey;
-
-			if (token) {
-				const isValid = await requireValidAuth(socket, token, callback, services);
-				if (!isValid) return;
-			} else if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated vscode-tunnel:start from socket ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Authentication required' });
-				return;
-			}
-
-			await services.vscodeManager.start();
-			const status = services.vscodeManager.getStatus();
-			if (callback) {
-				callback({
-					success: true,
-					url: status.url,
-					status: status
-				});
-			}
-		} catch (error) {
-			logger.error('SOCKET', 'Error starting VS Code tunnel:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await vscodeHandlers.start(socket, data, callback);
 	});
 
 	mediator.on('vscode-tunnel:stop', async (socket, data, callback) => {
-		try {
-			const { apiKey, terminalKey } = data || {};
-			const token = apiKey || terminalKey;
-
-			if (token) {
-				const isValid = await requireValidAuth(socket, token, callback, services);
-				if (!isValid) return;
-			} else if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated vscode-tunnel:stop from socket ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Authentication required' });
-				return;
-			}
-
-			await services.vscodeManager.stop();
-			const status = services.vscodeManager.getStatus();
-			if (callback) callback({ success: true, status });
-		} catch (error) {
-			logger.error('SOCKET', 'Error stopping VS Code tunnel:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		if (!(await requireAuth(socket, data, callback, services))) return;
+		await vscodeHandlers.stop(socket, data, callback);
 	});
 
 	mediator.on('vscode-tunnel:status', async (socket, data, callback) => {
-		try {
-			const status = services.vscodeManager.getStatus();
-			if (callback) callback({ success: true, status });
-		} catch (error) {
-			logger.error('SOCKET', 'Error getting VS Code tunnel status:', error);
-			if (callback) callback({ success: false, error: error.message });
-		}
+		// Status check doesn't require authentication
+		await vscodeHandlers.status(socket, data, callback);
 	});
 
 	// Handle connection and disconnection events
@@ -557,7 +214,6 @@ export function setupSocketIO(httpServer, services) {
 		logSocketEvent(socket.id, 'connection', null);
 
 		// Set up periodic session validation (every 60s) for cookie-based auth
-		// This ensures sessions expire in real-time even during active connections
 		let sessionValidationTimer = null;
 		if (socket.data.session) {
 			sessionValidationTimer = setInterval(async () => {
@@ -566,7 +222,6 @@ export function setupSocketIO(httpServer, services) {
 					const sessionData = await services.sessionManager.validateSession(sessionId);
 
 					if (!sessionData) {
-						// Session has expired - notify client and disconnect
 						logger.info('SOCKET', `Session ${sessionId} expired for socket ${socket.id}`);
 						socket.emit('session:expired', {
 							message: 'Your session has expired. Please log in again.'
@@ -577,19 +232,17 @@ export function setupSocketIO(httpServer, services) {
 				} catch (error) {
 					logger.error('SOCKET', `Error validating session for socket ${socket.id}:`, error);
 				}
-			}, 60000); // 60 seconds
+			}, 60000);
 		}
 
 		socket.on('disconnect', (reason) => {
 			logger.info('SOCKET', `Client disconnected: ${socket.id}, reason: ${reason}`);
 			logSocketEvent(socket.id, 'disconnect', { reason });
 
-			// Clean up session validation timer
 			if (sessionValidationTimer) {
 				clearInterval(sessionValidationTimer);
 			}
 
-			// Clean up Claude authentication PTY session if active
 			if (services.claudeAuthManager) {
 				services.claudeAuthManager.cleanup(socket.id);
 			}

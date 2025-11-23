@@ -7,7 +7,6 @@ import { logger } from '../shared/utils/logger.js';
 import { randomBytes } from 'crypto';
 import { encryptionService } from '../shared/EncryptionService.js';
 import { config } from '../config/environment.js';
-// import { AuthProvider } from '../../shared/auth-types.js';
 
 /**
  * Custom error class for OAuth profile fetch failures

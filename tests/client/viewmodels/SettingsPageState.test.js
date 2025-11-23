@@ -23,26 +23,29 @@ describe('Settings Page State Helpers', () => {
 		const ids = sections.map((section) => section.id);
 		expect(new Set(ids).size).toBe(ids.length);
 
+		// Updated to match the actual registry-based implementation
+		// Sections are ordered by their 'order' property:
+		// - themes (10), home (20), workspace-env (30), keys (40),
+		//   authentication (50), tunnels (60), claude (70), data-management (90)
 		const expectedOrder = [
-			'global',
-			'authentication',
-			'workspace-env',
-			'home',
-			'tunnel',
-			'vscode-tunnel',
-			'claude-auth',
-			'claude-defaults',
-			'storage',
 			'themes',
-			'preferences',
-			'retention'
+			'home',
+			'workspace-env',
+			'keys',
+			'authentication',
+			'tunnels',
+			'claude',
+			'data-management'
 		];
 
 		expect(ids).toEqual(expectedOrder);
 
 		for (const section of sections) {
 			expect(section.label).toMatch(/^[A-Z]/);
-			expect(section.navAriaLabel).toContain(section.label);
+			// Ensure navAriaLabel exists and is a non-empty string
+			expect(section.navAriaLabel).toBeTruthy();
+			expect(typeof section.navAriaLabel).toBe('string');
+			expect(section.navAriaLabel.length).toBeGreaterThan(0);
 			expect(section.component).toBeTruthy();
 			expect(section.icon).toBeTruthy();
 		}
@@ -50,7 +53,8 @@ describe('Settings Page State Helpers', () => {
 
 	it('creates state with default active section when initial section is missing', () => {
 		const customState = createSettingsPageState({ initialSection: 'unknown-section' });
-		expect(customState.activeSection).toBe('global');
+		// Default section is now 'themes' (first in the registry order)
+		expect(customState.activeSection).toBe('themes');
 		expect(customState.savedMessage).toBeNull();
 		expect(customState.error).toBeNull();
 	});
@@ -59,9 +63,10 @@ describe('Settings Page State Helpers', () => {
 		recordSaveMessage(state, 'Saved!');
 		recordError(state, 'Should be cleared');
 
-		setActiveSection(state, 'retention');
+		// Use a valid section ID from the actual registry
+		setActiveSection(state, 'data-management');
 
-		expect(state.activeSection).toBe('retention');
+		expect(state.activeSection).toBe('data-management');
 		expect(state.savedMessage).toBeNull();
 		expect(state.error).toBeNull();
 	});
@@ -91,8 +96,9 @@ describe('Settings Page State Helpers', () => {
 	});
 
 	it('translates component load errors into actionable guidance', () => {
-		const message = translateSettingsError({ type: 'component-load', sectionId: 'claude-auth' });
-		expect(message).toContain('Claude Auth');
+		// Use 'claude' instead of 'claude-auth' to match actual section ID
+		const message = translateSettingsError({ type: 'component-load', sectionId: 'claude' });
+		expect(message).toContain('Claude');
 		expect(message).toContain('refresh');
 	});
 

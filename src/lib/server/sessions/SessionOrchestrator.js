@@ -51,10 +51,7 @@ export class SessionOrchestrator {
 	async createSession(kind, options) {
 		const { workspacePath, metadata = {}, ownerUserId = null, ...adapterOptions } = options;
 
-		// Get adapter for session type
-		const adapter = this.#adapterRegistry.getAdapter(kind);
-
-		// Create session metadata in database
+		// Create session metadata in database first
 		const session = await this.#sessionRepository.create({
 			kind,
 			workspacePath,
@@ -62,6 +59,7 @@ export class SessionOrchestrator {
 			ownerUserId
 		});
 
+		let adapter = null;
 		let process = null;
 		let cleanupRequired = false;
 
@@ -69,6 +67,9 @@ export class SessionOrchestrator {
 			// Start buffering events during initialization
 			this.#eventRecorder.startBuffering(session.id);
 			cleanupRequired = true;
+
+			// Get adapter - if this fails, we still have a session in DB that needs cleanup
+			adapter = this.#adapterRegistry.getAdapter(kind);
 
 			// Create process with onEvent callback that has error handling
 			process = await adapter.create({
@@ -394,5 +395,24 @@ export class SessionOrchestrator {
 		);
 
 		logger.info('SESSION', 'SessionOrchestrator cleanup complete');
+	}
+
+	/**
+	 * TEST ONLY: Set active sessions for testing
+	 * @internal
+	 * @param {Map} sessions - Map of sessionId -> { adapter, process }
+	 */
+	_setActiveSessions(sessions) {
+		for (const [sessionId, session] of sessions.entries()) {
+			this.#activeSessions.set(sessionId, session);
+		}
+	}
+
+	/**
+	 * TEST ONLY: Clear all active sessions
+	 * @internal
+	 */
+	_clearActiveSessions() {
+		this.#activeSessions.clear();
 	}
 }

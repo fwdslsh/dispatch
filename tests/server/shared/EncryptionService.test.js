@@ -3,10 +3,12 @@ import { EncryptionService } from '../../../src/lib/server/shared/EncryptionServ
 
 describe('EncryptionService', () => {
 	let service;
-	const testKey = EncryptionService.generateKey();
+	let testKey;
 	const originalEnv = process.env.ENCRYPTION_KEY;
 
 	beforeEach(() => {
+		// Generate a fresh test key for each test
+		testKey = EncryptionService.generateKey();
 		// Set encryption key for tests
 		process.env.ENCRYPTION_KEY = testKey;
 		service = new EncryptionService(testKey);
@@ -37,8 +39,16 @@ describe('EncryptionService', () => {
 		});
 
 		it('should return false when encryption key is not set', () => {
+			// Temporarily clear environment variable
+			const savedKey = process.env.ENCRYPTION_KEY;
+			delete process.env.ENCRYPTION_KEY;
+			
+			// Pass null explicitly to override process.env check
 			const noKeyService = new EncryptionService(null);
 			expect(noKeyService.isAvailable()).toBe(false);
+			
+			// Restore environment
+			process.env.ENCRYPTION_KEY = savedKey;
 		});
 	});
 
@@ -70,9 +80,17 @@ describe('EncryptionService', () => {
 		});
 
 		it('should return null when encryption is unavailable', () => {
+			// Temporarily clear environment variable
+			const savedKey = process.env.ENCRYPTION_KEY;
+			delete process.env.ENCRYPTION_KEY;
+			
+			// Create a service with no key
 			const noKeyService = new EncryptionService(null);
 			const result = noKeyService.encrypt('secret');
 			expect(result).toBeNull();
+			
+			// Restore environment
+			process.env.ENCRYPTION_KEY = savedKey;
 		});
 	});
 
@@ -110,9 +128,16 @@ describe('EncryptionService', () => {
 		});
 
 		it('should return ciphertext as-is if invalid format and encryption unavailable', () => {
+			// Temporarily clear environment variable
+			const savedKey = process.env.ENCRYPTION_KEY;
+			delete process.env.ENCRYPTION_KEY;
+			
 			const noKeyService = new EncryptionService(null);
 			const invalid = 'not-encrypted';
 			expect(noKeyService.decrypt(invalid)).toBe(invalid);
+			
+			// Restore environment
+			process.env.ENCRYPTION_KEY = savedKey;
 		});
 
 		it('should return plaintext value if format is invalid (migration case)', () => {
@@ -125,9 +150,13 @@ describe('EncryptionService', () => {
 			const plaintext = 'my-secret';
 			const encrypted = service.encrypt(plaintext);
 
-			// Tamper with the ciphertext (flip a bit)
+			// Tamper with the ciphertext by flipping a hex character
 			const parts = encrypted.split(':');
-			const tamperedCiphertext = parts[2].replace('a', 'b');
+			const originalCiphertext = parts[2];
+			// Flip first character: 0<->1, 2<->3, ..., e<->f
+			const firstChar = originalCiphertext[0];
+			const newChar = firstChar === '0' ? '1' : '0';
+			const tamperedCiphertext = newChar + originalCiphertext.slice(1);
 			const tampered = [parts[0], parts[1], tamperedCiphertext, parts[3]].join(':');
 
 			expect(() => service.decrypt(tampered)).toThrow('Decryption failed');
@@ -137,9 +166,13 @@ describe('EncryptionService', () => {
 			const plaintext = 'my-secret';
 			const encrypted = service.encrypt(plaintext);
 
-			// Tamper with auth tag
+			// Tamper with auth tag - ensure we actually change a character
 			const parts = encrypted.split(':');
-			const tamperedTag = parts[3].replace('a', 'b');
+			const originalTag = parts[3];
+			// Replace first character with a different hex digit
+			const firstChar = originalTag[0];
+			const newChar = firstChar === '0' ? '1' : '0';
+			const tamperedTag = newChar + originalTag.slice(1);
 			const tampered = [parts[0], parts[1], parts[2], tamperedTag].join(':');
 
 			expect(() => service.decrypt(tampered)).toThrow('Decryption failed');

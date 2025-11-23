@@ -1,10 +1,37 @@
 <script>
 	/**
-	 * InfoBox Component
-	 * Displays informational messages with variant styling
+	 * @component InfoBox
+	 * @description
+	 * Displays informational messages with semantic variant styling.
+	 * Used for warnings, errors, success messages, and informational content.
+	 * Provides consistent alert/message styling across the application.
 	 *
-	 * Used for warnings, errors, success messages, and informational content
-	 * Replaces duplicate alert/message patterns
+	 * @typedef {Object} InfoBoxProps
+	 * @property {'info'|'warning'|'error'|'success'} [variant='info'] - Message severity/type
+	 * @property {string} [title=''] - Optional title text
+	 * @property {import('svelte').Snippet|string} [icon] - Custom icon (defaults to variant icon)
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic info message -->
+	 * <InfoBox variant="info">
+	 *   This is an informational message.
+	 * </InfoBox>
+	 *
+	 * <!-- Warning with title -->
+	 * <InfoBox variant="warning" title="Important Notice">
+	 *   Please review your settings before continuing.
+	 * </InfoBox>
+	 *
+	 * <!-- Error with custom icon -->
+	 * <InfoBox variant="error" title="Connection Failed">
+	 *   {#snippet icon()}
+	 *     <IconAlertTriangle size={20} />
+	 *   {/snippet}
+	 *   Unable to connect to server. Check your network connection.
+	 * </InfoBox>
+	 * ```
 	 */
 
 	let {

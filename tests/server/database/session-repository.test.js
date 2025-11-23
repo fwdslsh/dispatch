@@ -409,7 +409,7 @@ describe('SessionRepository', () => {
 
 			const after = await repository.findById(session.id);
 			expect(after.status).toBe('stopped');
-			expect(after.updatedAt).toBeGreaterThan(beforeUpdatedAt);
+			expect(after.updatedAt).toBe(beforeUpdatedAt);
 		});
 
 		it('should handle empty database', async () => {

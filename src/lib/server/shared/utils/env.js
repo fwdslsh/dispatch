@@ -4,6 +4,7 @@
  */
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { logger } from './logger.js';
 
 /**
  * Build execution environment for spawned processes
@@ -151,7 +152,7 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
 	try {
 		return resolve(workspacePath);
 	} catch (_error) {
-		console.warn(`Invalid workspace path "${workspacePath}", using default: ${defaultPath}`);
+		logger.warn('ENV', `Invalid workspace path "${workspacePath}", using default: ${defaultPath}`);
 		return resolve(defaultPath);
 	}
 }
@@ -166,7 +167,7 @@ export async function getWorkspaceEnvVariables(settingsRepository) {
 		const workspaceSettings = await settingsRepository.getByCategory('workspace');
 		return workspaceSettings?.envVariables || {};
 	} catch (error) {
-		console.warn('Failed to load workspace environment variables:', error);
+		logger.warn('ENV', 'Failed to load workspace environment variables:', error);
 		return {};
 	}
 }
