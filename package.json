@@ -6,7 +6,7 @@
 	"type": "module",
 	"private": false,
 	"scripts": {
-		"postinstall": "npx playwright install chromium --with-deps || npx playwright install chromium",
+		"postinstall": "npx patch-package && (npx playwright install chromium --with-deps || npx playwright install chromium)",
 		"dev": "TERMINAL_KEY='testkey12345' HOME=\"$(pwd)/.testing-home\" WORKSPACES_ROOT=\"$(pwd)/.testing-home/workspaces\" SSL_ENABLED=true vite dev --host",
 		"dev:local": "TERMINAL_KEY='testkey12345' WORKSPACES_ROOT=\"$HOME/code\" SSL_ENABLED=true vite dev --host",
 		"dev:server": "TERMINAL_KEY='testkey12345' SSL_ENABLED=true node src/dev-server.js",

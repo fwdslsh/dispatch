@@ -298,10 +298,22 @@ export class SessionViewModel {
 	}
 
 	/**
+	 * Remove a session from local state (without API call)
+	 * Used when session is closed via Socket.IO event
+	 * @param {string} sessionId - Session ID
+	 */
+	removeSession(sessionId) {
+		log.info('Removing session from local state', sessionId);
+		this.appStateManager.removeSession(sessionId);
+	}
+
+	/**
 	 * Close/terminate a session
 	 * @param {string} sessionId - Session ID
 	 */
 	async closeSession(sessionId) {
+		let apiSuccess = false;
+
 		try {
 			log.info('Closing session', sessionId);
 
@@ -311,44 +323,41 @@ export class SessionViewModel {
 			// Get session to obtain workspacePath for API call
 			const session = this.getSession(sessionId);
 			if (!session) {
-				this.operationState.error = `Session ${sessionId} not found`;
-				log.error('Session not found for close operation', sessionId);
-				this.appStateManager.sessions.setError(this.operationState.error);
-				return false;
+				log.warn('Session not found in local state, removing anyway', sessionId);
+				// Session not in state, but still try to clean up
+				this.appStateManager.removeSession(sessionId);
+				return true;
 			}
 
-			// Ensure workspacePath is valid
-			const workspacePath = session.workspacePath || '';
-			if (!workspacePath) {
-				log.warn('Session has missing workspacePath, attempting fallback', sessionId);
-				// Try to get from current workspace selection as fallback
-				const currentWorkspace = this.appStateManager.workspaces.selectedWorkspace;
-				let fallbackPath = currentWorkspace?.path || '';
-
-				// If still no valid workspace path, use a default or force cleanup
-				if (!fallbackPath) {
-					log.warn('No valid workspace path available, forcing session cleanup', sessionId);
-					// Use a placeholder path for corrupted sessions
-					fallbackPath = '/tmp/corrupted-session-cleanup';
-				}
-
+			// Try to delete via API - this may fail, but we still want to clean up locally
+			try {
 				await this.sessionApi.delete(sessionId);
-			} else {
-				await this.sessionApi.delete(sessionId);
+				apiSuccess = true;
+				log.info('Session deleted from server successfully', sessionId);
+			} catch (apiError) {
+				log.warn('Failed to delete session from server, cleaning up locally anyway', {
+					sessionId,
+					error: apiError.message
+				});
+				// Continue to local cleanup even if API fails
 			}
 
-			// Dispatch session removal to AppStateManager
-			// Cleanup socket manager registration
-			// Socket cleanup handled automatically by RunSessionClient when detaching
+			// Always remove from local state to prevent zombie sessions
 			this.appStateManager.removeSession(sessionId);
 
-			log.info('Session closed successfully', sessionId);
+			log.info('Session closed and removed from local state', sessionId);
 			return true;
 		} catch (error) {
 			log.error('Failed to close session', error);
 			this.operationState.error = error.message || 'Failed to close session';
 
-			// Dispatch error
+			// Still try to remove from local state as last resort
+			try {
+				this.appStateManager.removeSession(sessionId);
+			} catch (removeError) {
+				log.error('Failed to remove session from state', removeError);
+			}
+
 			this.appStateManager.sessions.setError(error.message);
 			return false;
 		} finally {

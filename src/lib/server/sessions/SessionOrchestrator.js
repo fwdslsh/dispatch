@@ -11,6 +11,7 @@ import { AdapterRegistry } from './AdapterRegistry.js';
 // eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { EventRecorder } from './EventRecorder.js';
 import { logger } from '../shared/utils/logger.js';
+import { getActiveSocketIO } from '../shared/socket-setup.js';
 
 export class SessionOrchestrator {
 	#sessionRepository;
@@ -212,6 +213,18 @@ export class SessionOrchestrator {
 		} catch (error) {
 			errors.push({ operation: 'updateStatus', error });
 			logger.error('SESSION', `Failed to update status for ${sessionId}:`, error);
+		}
+
+		// Emit session:closed event to all connected clients
+		try {
+			const io = getActiveSocketIO();
+			if (io) {
+				io.emit('session:closed', { sessionId });
+				logger.debug('SESSION', `Emitted session:closed event for ${sessionId}`);
+			}
+		} catch (error) {
+			errors.push({ operation: 'emitSocketEvent', error });
+			logger.warn('SESSION', `Error emitting session:closed event for ${sessionId}:`, error.message);
 		}
 
 		if (errors.length > 0) {

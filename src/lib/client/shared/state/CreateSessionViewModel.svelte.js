@@ -13,6 +13,8 @@
 
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
+const LAST_WORKSPACE_KEY = 'dispatch-last-workspace-path';
+
 /**
  * CreateSessionViewModel
  * Manages the business logic for creating new sessions
@@ -44,12 +46,46 @@ export class CreateSessionViewModel {
 	}
 
 	/**
+	 * Get last selected workspace path from localStorage
+	 * @returns {string|null} Last workspace path or null
+	 */
+	getLastWorkspacePath() {
+		if (typeof localStorage === 'undefined') return null;
+		try {
+			return localStorage.getItem(LAST_WORKSPACE_KEY);
+		} catch (e) {
+			console.warn('Failed to get last workspace path:', e);
+			return null;
+		}
+	}
+
+	/**
+	 * Save workspace path to localStorage
+	 * @param {string} path - Workspace path to save
+	 */
+	saveLastWorkspacePath(path) {
+		if (typeof localStorage === 'undefined' || !path) return;
+		try {
+			localStorage.setItem(LAST_WORKSPACE_KEY, path);
+		} catch (e) {
+			console.warn('Failed to save last workspace path:', e);
+		}
+	}
+
+	/**
 	 * Initialize the ViewModel
-	 * Sets default workspace if not already set
+	 * Sets workspace path from last selected or default
 	 */
 	initialize() {
-		if (!this.workspacePath && this.sessionViewModel) {
-			this.workspacePath = this.sessionViewModel.getDefaultWorkspace();
+		if (!this.workspacePath) {
+			// Try to use last selected workspace first
+			const lastPath = this.getLastWorkspacePath();
+			if (lastPath) {
+				this.workspacePath = lastPath;
+			} else if (this.sessionViewModel) {
+				// Fall back to default workspace
+				this.workspacePath = this.sessionViewModel.getDefaultWorkspace();
+			}
 		}
 	}
 
@@ -83,6 +119,8 @@ export class CreateSessionViewModel {
 	setWorkspacePath(path) {
 		this.workspacePath = path;
 		this.error = null;
+		// Save for future sessions
+		this.saveLastWorkspacePath(path);
 	}
 
 	/**

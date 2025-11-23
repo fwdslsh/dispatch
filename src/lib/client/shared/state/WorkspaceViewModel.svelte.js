@@ -37,7 +37,6 @@ export class WorkspaceViewModel {
 
 		// View mode state
 		this.workspaceViewMode = $state('window-manager');
-		this.editModeEnabled = $state(false);
 
 		// Session state
 		this.activeSessionId = $state(null);
@@ -119,14 +118,6 @@ export class WorkspaceViewModel {
 	setWorkspaceViewMode(mode) {
 		log.info('Setting workspace view mode to', mode);
 		this.workspaceViewMode = mode;
-	}
-
-	/**
-	 * Toggle edit mode
-	 */
-	toggleEditMode() {
-		this.editModeEnabled = !this.editModeEnabled;
-		log.info('Edit mode toggled:', this.editModeEnabled);
 	}
 
 	/**
@@ -309,22 +300,28 @@ export class WorkspaceViewModel {
 	/**
 	 * Handle session close
 	 * @param {string} sessionId - Session ID to close
+	 * @param {boolean} [skipPaneRemoval=false] - Skip pane removal (when called from pane's onClose)
 	 */
-	handleSessionClose(sessionId) {
+	async handleSessionClose(sessionId, skipPaneRemoval = false) {
 		const currentSessions = this.sessionsList;
 		const currentIndex = currentSessions.findIndex((session) => session.id === sessionId);
 		const fallbackSession =
 			currentSessions[currentIndex + 1] ?? currentSessions[currentIndex - 1] ?? null;
 
-		// Remove pane before closing session
-		this.removeSessionPane(sessionId);
+		// Remove pane before closing session (unless pane is already being removed)
+		if (!skipPaneRemoval) {
+			this.removeSessionPane(sessionId);
+		}
 
-		// Close session in SessionViewModel
-		this.sessionViewModel.closeSession(sessionId);
+		// Close session in SessionViewModel (calls API, which triggers socket event)
+		await this.sessionViewModel.closeSession(sessionId);
 
+		// Update active session to fallback if needed
 		if (sessionId === this.activeSessionId) {
 			this.updateActiveSession(fallbackSession?.id ?? null);
 		}
+
+		// Socket.IO event will handle removing from sessions list
 	}
 
 	/**
@@ -350,30 +347,47 @@ export class WorkspaceViewModel {
 			return false;
 		}
 
-		if (!session || !session.id || !session.sessionType) {
+		if (!session || !session.id) {
 			console.warn('Invalid session data for adding pane:', session);
 			return false;
 		}
 
-		console.log('Adding session to pane:', session.id, session.sessionType);
-		const component = getComponentForSessionType(session.sessionType);
+		// Normalize session type property (accept both 'type' and 'sessionType')
+		const sessionType = session.sessionType || session.type;
+		if (!sessionType) {
+			console.warn('Session missing type information:', session);
+			return false;
+		}
+
+		console.log('Adding session to pane:', session.id, sessionType);
+		const component = getComponentForSessionType(sessionType);
 		if (!component) {
-			log.error('No component found for session type:', session.sessionType);
+			log.error('No component found for session type:', sessionType);
 			return false;
 		}
 
 		// Get session module to prepare props
-		const module = getClientSessionModule(session.type);
+		const module = getClientSessionModule(sessionType);
 		const props = module?.prepareProps ? module.prepareProps(session) : { sessionId: session.id };
+
+		// Prepare pane config with title and close handler
+		const paneConfig = {
+			title: session.title || sessionType || 'Session',
+			onClose: async () => {
+				log.info('Pane close button clicked, closing session:', session.id);
+				// Close the session (skip pane removal since it's already happening)
+				await this.handleSessionClose(session.id, true);
+			}
+		};
 
 		try {
 			this.bwinHostRef.addPane(
 				session.id, // Use sessionId as pane ID
-				{}, // Pane config (use library defaults)
+				paneConfig, // Pane config with title and close handler
 				component, // Svelte component to render
 				props // Props to pass to component
 			);
-			log.info('Added session to pane:', session.id, session.type);
+			log.info('Added session to pane:', session.id, sessionType);
 			return true;
 		} catch (err) {
 			log.error('Failed to add pane for session:', session.id, err);
@@ -383,21 +397,13 @@ export class WorkspaceViewModel {
 
 	/**
 	 * Remove session pane from BwinHost
+	 * Note: Pane removal is now handled automatically by the onpaneremoved event
+	 * This method is kept for compatibility but doesn't actually remove panes
 	 * @param {string} sessionId - Session ID
 	 */
 	removeSessionPane(sessionId) {
-		if (!this.bwinHostRef) {
-			return false;
-		}
-
-		try {
-			log.info('Session closed, removing pane:', sessionId);
-			this.bwinHostRef.removePane(sessionId);
-			return true;
-		} catch (err) {
-			log.error('Failed to remove pane:', sessionId, err);
-			return false;
-		}
+		log.info('removeSessionPane called for:', sessionId, '(pane removal handled by event)');
+		return true;
 	}
 
 	/**
@@ -443,6 +449,15 @@ export class WorkspaceViewModel {
 
 		try {
 			await this.sessionViewModel.handleSessionSelected(detail);
+
+			// If this was a resume operation, add the session to window manager
+			if (detail?.shouldResume) {
+				const session = this.sessionViewModel.sessions.find(s => s.id === selectedId);
+				if (session && session.isActive) {
+					this.addSessionToPane(session);
+				}
+			}
+
 			this.sessionMenuOpen = false;
 			return true;
 		} catch (err) {
@@ -514,7 +529,6 @@ export class WorkspaceViewModel {
 	getState() {
 		return {
 			workspaceViewMode: this.workspaceViewMode,
-			editModeEnabled: this.editModeEnabled,
 			activeSessionId: this.activeSessionId,
 			sessionMenuOpen: this.sessionMenuOpen,
 			activeModal: this.activeModal,

@@ -274,6 +274,7 @@ sqlite3 .testing-home/dispatch/data/workspace.db "PRAGMA table_info('sessions');
 - **Terminal**: @battlefieldduck/xterm-svelte + node-pty
 - **Claude**: @anthropic-ai/claude-code 1.0.98
 - **Database**: SQLite3 5.1.7
+- **Window Manager**: sv-window-manager ([GitHub](https://github.com/itlackey/sv-window-manager/)) - Svelte 5 tiling window manager with `onpaneremoved` event support
 
 ## Important File Paths & Organization
 

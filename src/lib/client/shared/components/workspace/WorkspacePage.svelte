@@ -69,6 +69,30 @@
 		// Initialize workspace (loads sessions)
 		await workspaceViewModel.initialize();
 
+		// Get socket service and set up session:closed handler
+		const socketService = await container.get('socket');
+
+		// Ensure socket is connected
+		if (!socketService.socket?.connected) {
+			await socketService.connect({ path: '/socket.io' });
+		}
+
+		// Set up global session:closed event handler
+		socketService.on('session:closed', ({ sessionId }) => {
+			log.info('Received session:closed event for:', sessionId);
+
+			// Remove session from SessionViewModel
+			workspaceViewModel.sessionViewModel.removeSession(sessionId);
+
+			// Note: Pane removal is now handled by onpaneremoved event handler
+			// No need to manually remove pane here
+		});
+
+		// Populate BwinHost with existing sessions once after initialization
+		if (workspaceViewModel.bwinHostRef) {
+			workspaceViewModel.populateBwinHost();
+		}
+
 		// Setup PWA install prompt (browser-specific, stays in View)
 		if (typeof window !== 'undefined') {
 			function handleBeforeInstallPrompt(e) {
@@ -109,12 +133,6 @@
 			workspaceViewModel.ensureActiveSession();
 		}
 	});
-
-	$effect(() => {
-		if (workspaceViewModel?.bwinHostRef) {
-			workspaceViewModel.populateBwinHost();
-		}
-	});
 </script>
 
 <Shell>
@@ -122,8 +140,6 @@
 		<WorkspaceHeader
 			onLogout={() => workspaceViewModel?.handleLogout()}
 			viewMode={workspaceViewModel?.workspaceViewMode}
-			editModeEnabled={workspaceViewModel?.editModeEnabled}
-			onEditModeToggle={() => workspaceViewModel?.toggleEditMode()}
 			onInstallPWA={() => workspaceViewModel?.handleInstallPWA(PWA_INSTALL_GUIDES)}
 			onViewModeChange={(mode) => workspaceViewModel?.setWorkspaceViewMode(mode)}
 		/>
@@ -194,6 +210,11 @@
 				<BwinHost
 					bind:this={workspaceViewModel.bwinHostRef}
 					config={{ fitContainer: true }}
+					onpaneremoved={async (paneId) => {
+						log.info('Pane removed by user, closing session:', paneId);
+						// Skip pane removal since pane is already removed (that's why this event fired)
+						await workspaceViewModel.handleSessionClose(paneId, true);
+					}}
 				/>
 			{:else}
 				<SingleSessionView
