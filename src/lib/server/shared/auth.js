@@ -1,4 +1,4 @@
-import { logger } from './utils/logger';
+import { logger } from './utils/logger.js';
 
 /**
  * @typedef {import('../auth/ApiKeyManager.server.js').ApiKeyManager} ApiKeyManager

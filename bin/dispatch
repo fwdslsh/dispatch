@@ -6,7 +6,7 @@ set -e
 
 VERSION="0.1.2"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOCKER_IMAGE="fwdslsh/dispatch:latest"
+DOCKER_IMAGE="fwdslsh/dispatch:${DISPATCH_VERSION:-latest}"
 CONTAINER_NAME="dispatch"
 DEFAULT_PORT="3030"
 
@@ -115,6 +115,12 @@ PORT=$DEFAULT_PORT
 # Optional: Features
 ENABLE_TUNNEL=false
 #LT_SUBDOMAIN=my-dispatch
+
+# Optional: SSL Configuration
+# SSL_MODE options: none (HTTP only), self-signed, letsencrypt
+SSL_MODE=none
+#DOMAIN=localhost
+#LETSENCRYPT_EMAIL=youremail@example.com
 
 # Optional: Directory paths (uncomment to override defaults)
 #WORKSPACES_ROOT=~/workspaces
@@ -485,6 +491,14 @@ START OPTIONS:
     --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
     --home <PATH>      Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
+
+ENVIRONMENT VARIABLES (in .env file):
+    SSL_MODE                    SSL mode: none (HTTP only), self-signed, or letsencrypt
+    DOMAIN                      Domain name for SSL certificates (required for letsencrypt)
+    LETSENCRYPT_EMAIL          Email for Let's Encrypt certificates (required for letsencrypt)
+    LETSENCRYPT_STAGING        Use staging environment for testing (true/false)
+    TERMINAL_KEY                Authentication key for web interface
+    ENABLE_TUNNEL              Enable public URL via LocalTunnel (true/false)
 
 CONNECT OPTIONS:
     -p, --port <PORT>           SSH port (default: 2222)

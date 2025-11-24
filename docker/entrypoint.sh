@@ -11,7 +11,7 @@ HOST_UID=${HOST_UID:-$DEFAULT_UID}
 HOST_GID=${HOST_GID:-$DEFAULT_GID}
 
 # SSL Configuration
-SSL_MODE=${SSL_MODE:-letsencrypt}
+SSL_MODE=${SSL_MODE:-none}
 DOMAIN=${DOMAIN:-localhost}
 LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-}
 LETSENCRYPT_STAGING=${LETSENCRYPT_STAGING:-false}
@@ -71,6 +71,7 @@ setup_directories() {
     DIRS_TO_SETUP=(
         "/home/$USER_NAME"
         "/workspace"
+        "/config"
         "/tmp/dispatch"
         "/etc/letsencrypt"
         "/var/www/certbot"
@@ -84,9 +85,9 @@ setup_directories() {
         fi
     done
 
-    # Set proper ownership for SSL directories
-    chown -R dispatch:dispatch /etc/letsencrypt /var/www/certbot
-    
+    # Set proper ownership for all created directories
+    chown -R dispatch:dispatch /etc/letsencrypt /var/www/certbot /config /workspace /tmp/dispatch
+
     echo "✅ Directory setup complete"
 }
 
