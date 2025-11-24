@@ -61,7 +61,8 @@ export class PtyConfig {
 
 		// Shell configuration
 		this.shell = options.shell || this.getDefaultShell();
-		this.args = options.args || [];
+		// Default to interactive mode (-i) for bash to show prompt
+		this.args = options.args || ['-i'];
 
 		// Store any additional options
 		this.additionalOptions = { ...options };
