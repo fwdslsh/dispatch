@@ -107,10 +107,17 @@ export class PtyConfig {
 	 * @private
 	 */
 	buildEnvironment(sessionEnv, workspaceEnv) {
-		if (sessionEnv) {
-			return { ...process.env, ...workspaceEnv, ...sessionEnv };
+		const baseEnv = { ...process.env, ...workspaceEnv };
+
+		// Set default PS1 prompt if not already set (for shells without .bashrc)
+		if (!baseEnv.PS1) {
+			baseEnv.PS1 = '\\u@\\h:\\w\\$ ';
 		}
-		return { ...process.env, ...workspaceEnv };
+
+		if (sessionEnv) {
+			return { ...baseEnv, ...sessionEnv };
+		}
+		return baseEnv;
 	}
 
 	/**
