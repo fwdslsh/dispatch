@@ -29,7 +29,7 @@
 	});
 
 	const log = createLogger('workspace:page');
-	let workspaceViewModel; // Regular variable, not reactive
+	let workspaceViewModel = $state(null); // Reactive state for ViewModel
 	let isWorkspaceReady = $state(false); // Reactive flag for initialization
 	let __removeWorkspacePageListeners = $state(null);
 
