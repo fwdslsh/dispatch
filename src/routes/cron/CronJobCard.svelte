@@ -172,81 +172,80 @@
 
 <style>
 	.job-card {
-		background: var(--card-bg, white);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 12px;
-		padding: 1.5rem;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-lg);
+		padding: var(--space-6);
 		transition: all 0.2s ease;
 		border-left: 4px solid transparent;
 	}
 
 	.job-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
 	}
 
 	.job-card.status-active {
-		border-left-color: #10b981;
+		border-left-color: var(--color-success);
 	}
 
 	.job-card.status-paused {
-		border-left-color: #3b82f6;
+		border-left-color: var(--color-info);
 	}
 
 	.job-card.status-error {
-		border-left-color: #ef4444;
+		border-left-color: var(--color-error);
 	}
 
 	.job-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		margin-bottom: 1rem;
-		gap: 1rem;
+		margin-bottom: var(--space-4);
+		gap: var(--space-4);
 	}
 
 	.job-title {
 		flex: 1;
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: var(--space-3);
 		flex-wrap: wrap;
 	}
 
 	.job-title h3 {
-		font-size: 1.125rem;
+		font-size: var(--font-size-lg);
 		font-weight: 600;
-		color: var(--text-primary, #1f2937);
+		color: var(--text-primary);
 		margin: 0;
 	}
 
 	.status-badge {
-		padding: 0.25rem 0.75rem;
-		border-radius: 9999px;
-		font-size: 0.75rem;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-full);
+		font-size: var(--font-size-xs);
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
 
 	.status-badge.status-active {
-		background: #d1fae5;
-		color: #065f46;
+		background: var(--color-success-light);
+		color: var(--color-success-dark);
 	}
 
 	.status-badge.status-paused {
-		background: #dbeafe;
-		color: #1e40af;
+		background: var(--color-info-light);
+		color: var(--color-info-dark);
 	}
 
 	.status-badge.status-error {
-		background: #fee2e2;
-		color: #991b1b;
+		background: var(--color-error-light);
+		color: var(--color-error-dark);
 	}
 
 	.job-actions {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	.action-btn {
@@ -255,149 +254,149 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--hover-bg, #f9fafb);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 6px;
+		background: var(--bg-hover);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-md);
 		cursor: pointer;
 		transition: all 0.2s ease;
-		color: var(--text-secondary, #6b7280);
+		color: var(--text-secondary);
 	}
 
 	.action-btn:hover {
-		background: var(--border-color, #e5e7eb);
-		color: var(--text-primary, #1f2937);
+		background: var(--bg-secondary);
+		color: var(--text-primary);
 	}
 
 	.action-btn.danger:hover {
-		background: #fee2e2;
-		color: #dc2626;
-		border-color: #fecaca;
+		background: var(--color-error-light);
+		color: var(--color-error-dark);
+		border-color: var(--color-error);
 	}
 
 	.job-description {
-		font-size: 0.9375rem;
-		color: var(--text-secondary, #6b7280);
-		margin: 0 0 1rem 0;
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		margin: 0 0 var(--space-4) 0;
 		line-height: 1.5;
 	}
 
 	.job-schedule {
-		background: var(--hover-bg, #f9fafb);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 8px;
-		padding: 1rem;
-		margin-bottom: 1rem;
+		background: var(--bg-hover);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-md);
+		padding: var(--space-4);
+		margin-bottom: var(--space-4);
 	}
 
 	.schedule-item {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.5rem;
-		color: var(--text-primary, #1f2937);
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
+		color: var(--text-primary);
 		font-weight: 500;
 	}
 
 	.schedule-text {
-		font-size: 0.9375rem;
+		font-size: var(--font-size-sm);
 	}
 
 	.cron-expression {
 		display: block;
-		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-		font-size: 0.875rem;
-		color: var(--text-secondary, #6b7280);
-		background: var(--card-bg, white);
-		padding: 0.5rem;
-		border-radius: 4px;
-		border: 1px solid var(--border-color, #e5e7eb);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		background: var(--bg-primary);
+		padding: var(--space-2);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-primary);
 	}
 
 	.job-command {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.5rem;
-		background: #1f2937;
-		color: #d1d5db;
-		padding: 0.75rem;
-		border-radius: 8px;
-		margin-bottom: 1rem;
+		gap: var(--space-2);
+		background: var(--bg-terminal);
+		color: var(--text-terminal);
+		padding: var(--space-3);
+		border-radius: var(--radius-md);
+		margin-bottom: var(--space-4);
 	}
 
 	.job-command svg {
 		flex-shrink: 0;
-		margin-top: 0.125rem;
+		margin-top: var(--space-1);
 	}
 
 	.command-text {
-		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-		font-size: 0.875rem;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
 		word-break: break-all;
 	}
 
 	.job-stats {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 1rem;
-		margin-bottom: 1rem;
-		padding: 1rem 0;
-		border-top: 1px solid var(--border-color, #e5e7eb);
-		border-bottom: 1px solid var(--border-color, #e5e7eb);
+		gap: var(--space-4);
+		margin-bottom: var(--space-4);
+		padding: var(--space-4) 0;
+		border-top: 1px solid var(--border-primary);
+		border-bottom: 1px solid var(--border-primary);
 	}
 
 	.stat-item {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--space-1);
 	}
 
 	.stat-label {
-		font-size: 0.8125rem;
-		color: var(--text-secondary, #6b7280);
+		font-size: var(--font-size-xs);
+		color: var(--text-secondary);
 	}
 
 	.stat-value {
-		font-size: 0.9375rem;
+		font-size: var(--font-size-sm);
 		font-weight: 600;
-		color: var(--text-primary, #1f2937);
+		color: var(--text-primary);
 	}
 
 	.last-status {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.625rem;
-		border-radius: 6px;
-		font-size: 0.875rem;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-sm);
 		font-weight: 500;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 
 	.last-status.success {
-		background: #d1fae5;
-		color: #065f46;
+		background: var(--color-success-light);
+		color: var(--color-success-dark);
 	}
 
 	.last-status.failed {
-		background: #fee2e2;
-		color: #991b1b;
+		background: var(--color-error-light);
+		color: var(--color-error-dark);
 	}
 
 	.error-message {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.625rem;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		background: #fef3c7;
-		color: #78350f;
-		margin-bottom: 1rem;
+		gap: var(--space-2);
+		padding: var(--space-2);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-sm);
+		background: var(--color-warning-light);
+		color: var(--color-warning-dark);
+		margin-bottom: var(--space-4);
 	}
 
 	.error-message svg {
 		flex-shrink: 0;
-		margin-top: 0.125rem;
+		margin-top: var(--space-1);
 	}
 
 	.view-logs-btn {
@@ -405,31 +404,31 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.75rem;
-		background: var(--hover-bg, #f9fafb);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 8px;
-		font-size: 0.9375rem;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		background: var(--bg-hover);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-sm);
 		font-weight: 500;
-		color: var(--text-primary, #1f2937);
+		color: var(--text-primary);
 		cursor: pointer;
 		transition: all 0.2s ease;
 	}
 
 	.view-logs-btn:hover {
-		background: var(--border-color, #e5e7eb);
-		border-color: var(--text-secondary, #9ca3af);
+		background: var(--bg-secondary);
+		border-color: var(--border-secondary);
 	}
 
 	@media (max-width: 640px) {
 		.job-card {
-			padding: 1rem;
+			padding: var(--space-4);
 		}
 
 		.job-stats {
 			grid-template-columns: 1fr;
-			gap: 0.75rem;
+			gap: var(--space-3);
 		}
 	}
 </style>

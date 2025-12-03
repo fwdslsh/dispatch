@@ -277,58 +277,57 @@
 	.cron-page {
 		max-width: 1400px;
 		margin: 0 auto;
-		padding: 2rem;
+		padding: var(--space-8);
 	}
 
 	.page-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		margin-bottom: 2rem;
+		margin-bottom: var(--space-8);
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 
 	.header-content h1 {
-		font-size: 2rem;
+		font-size: var(--font-size-3xl);
 		font-weight: 600;
-		margin: 0 0 0.5rem 0;
-		color: var(--text-primary, #1f2937);
+		margin: 0 0 var(--space-2) 0;
+		color: var(--text-primary);
 	}
 
 	.subtitle {
-		font-size: 1rem;
-		color: var(--text-secondary, #6b7280);
+		font-size: var(--font-size-base);
+		color: var(--text-secondary);
 		margin: 0;
 	}
 
 	.stats-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1rem;
-		margin-bottom: 2rem;
+		gap: var(--space-4);
+		margin-bottom: var(--space-8);
 	}
 
 	.stat-card {
-		background: var(--card-bg, white);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 12px;
-		padding: 1.5rem;
+		background: var(--bg-primary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-lg);
+		padding: var(--space-6);
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: var(--space-4);
 		transition: all 0.2s ease;
 	}
 
 	.stat-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
 	}
 
 	.stat-icon {
 		width: 48px;
 		height: 48px;
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -336,23 +335,23 @@
 	}
 
 	.stat-icon.total {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
+		background: var(--bg-accent);
+		color: var(--text-on-accent);
 	}
 
 	.stat-icon.active {
-		background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-		color: white;
+		background: var(--color-success);
+		color: var(--text-on-accent);
 	}
 
 	.stat-icon.paused {
-		background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-		color: white;
+		background: var(--color-info);
+		color: var(--text-on-accent);
 	}
 
 	.stat-icon.error {
-		background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-		color: white;
+		background: var(--color-error);
+		color: var(--text-on-accent);
 	}
 
 	.stat-content {
@@ -360,31 +359,31 @@
 	}
 
 	.stat-label {
-		font-size: 0.875rem;
-		color: var(--text-secondary, #6b7280);
-		margin-bottom: 0.25rem;
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		margin-bottom: var(--space-1);
 	}
 
 	.stat-value {
-		font-size: 1.875rem;
+		font-size: var(--font-size-3xl);
 		font-weight: 700;
-		color: var(--text-primary, #1f2937);
+		color: var(--text-primary);
 	}
 
 	.filter-tabs {
 		display: flex;
-		gap: 0.5rem;
-		margin-bottom: 1.5rem;
-		border-bottom: 1px solid var(--border-color, #e5e7eb);
+		gap: var(--space-2);
+		margin-bottom: var(--space-6);
+		border-bottom: 1px solid var(--border-primary);
 		padding-bottom: 0;
 	}
 
 	.tab {
-		padding: 0.75rem 1.25rem;
+		padding: var(--space-3) var(--space-5);
 		background: none;
 		border: none;
-		color: var(--text-secondary, #6b7280);
-		font-size: 0.9375rem;
+		color: var(--text-secondary);
+		font-size: var(--font-size-sm);
 		font-weight: 500;
 		cursor: pointer;
 		border-bottom: 2px solid transparent;
@@ -394,13 +393,13 @@
 	}
 
 	.tab:hover {
-		color: var(--text-primary, #1f2937);
-		background: var(--hover-bg, #f9fafb);
+		color: var(--text-primary);
+		background: var(--bg-hover);
 	}
 
 	.tab.active {
-		color: var(--primary-color, #3b82f6);
-		border-bottom-color: var(--primary-color, #3b82f6);
+		color: var(--text-accent);
+		border-bottom-color: var(--text-accent);
 	}
 
 	.jobs-container {
@@ -410,7 +409,7 @@
 	.jobs-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-		gap: 1.5rem;
+		gap: var(--space-6);
 	}
 
 	.loading-state,
@@ -420,19 +419,19 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 4rem 2rem;
+		padding: var(--space-16) var(--space-8);
 		text-align: center;
-		color: var(--text-secondary, #6b7280);
+		color: var(--text-secondary);
 	}
 
 	.spinner {
 		width: 48px;
 		height: 48px;
-		border: 4px solid var(--border-color, #e5e7eb);
-		border-top-color: var(--primary-color, #3b82f6);
+		border: 4px solid var(--border-primary);
+		border-top-color: var(--text-accent);
 		border-radius: 50%;
 		animation: spin 1s linear infinite;
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-4);
 	}
 
 	@keyframes spin {
@@ -443,59 +442,58 @@
 
 	.error-state svg,
 	.empty-state svg {
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-4);
 		opacity: 0.5;
 	}
 
 	.empty-state h3 {
-		font-size: 1.25rem;
+		font-size: var(--font-size-xl);
 		font-weight: 600;
-		color: var(--text-primary, #1f2937);
-		margin: 0 0 0.5rem 0;
+		color: var(--text-primary);
+		margin: 0 0 var(--space-2) 0;
 	}
 
 	.empty-state p {
-		margin: 0 0 1.5rem 0;
+		margin: 0 0 var(--space-6) 0;
 		max-width: 400px;
 	}
 
 	.btn-primary,
 	.btn-secondary {
-		padding: 0.75rem 1.5rem;
-		border-radius: 8px;
-		font-size: 0.9375rem;
+		padding: var(--space-3) var(--space-6);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-sm);
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.2s ease;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		border: none;
 	}
 
 	.btn-primary {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
+		background: var(--bg-accent);
+		color: var(--text-on-accent);
 	}
 
 	.btn-primary:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+		box-shadow: var(--shadow-md);
 	}
 
 	.btn-secondary {
-		background: var(--card-bg, white);
-		color: var(--text-primary, #1f2937);
-		border: 1px solid var(--border-color, #e5e7eb);
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		border: 1px solid var(--border-primary);
 	}
 
 	.btn-secondary:hover {
-		background: var(--hover-bg, #f9fafb);
+		background: var(--bg-hover);
 	}
 
 	@media (max-width: 768px) {
 		.cron-page {
-			padding: 1rem;
+			padding: var(--space-4);
 		}
 
 		.page-header {
