@@ -345,6 +345,72 @@ cmd_status() {
     fi
 }
 
+# Versions command - list available Docker image versions from Docker Hub
+cmd_versions() {
+    local limit=25
+    local show_all=false
+
+    # Parse command line options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --all|-a)
+                show_all=true
+                limit=100
+                shift
+                ;;
+            --limit|-l)
+                limit="$2"
+                shift 2
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    # Check if curl is available
+    if ! command -v curl >/dev/null 2>&1; then
+        log_error "curl is required to fetch version information"
+        exit 1
+    fi
+
+    log_info "Fetching available versions from Docker Hub..."
+
+    # Fetch tags from Docker Hub API
+    local api_url="https://hub.docker.com/v2/repositories/fwdslsh/dispatch/tags?page_size=$limit"
+    local response=$(curl -s "$api_url")
+
+    if [[ $? -ne 0 ]] || [[ -z "$response" ]]; then
+        log_error "Failed to fetch version information from Docker Hub"
+        exit 1
+    fi
+
+    # Check if jq is available for better JSON parsing
+    if command -v jq >/dev/null 2>&1; then
+        # Use jq for nice formatting
+        echo "$response" | jq -r '.results[] | "\(.name)\t\(.last_updated // "N/A")"' | \
+        while IFS=$'\t' read -r name updated; do
+            # Format the date if it's not N/A
+            if [[ "$updated" != "N/A" ]]; then
+                updated=$(date -d "$updated" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$updated")
+            fi
+            printf "${GREEN}%-20s${NC} ${BLUE}%s${NC}\n" "$name" "$updated"
+        done
+    else
+        # Fallback: simple grep parsing
+        log_warn "Install 'jq' for better formatted output"
+        echo "$response" | grep -o '"name":"[^"]*"' | cut -d'"' -f4 | while read -r tag; do
+            echo -e "${GREEN}$tag${NC}"
+        done
+    fi
+
+    if [[ "$show_all" == "false" ]] && [[ "$limit" -lt 100 ]]; then
+        echo
+        log_info "Showing $limit most recent versions. Use --all to see more, or --limit N to set a custom limit."
+    fi
+}
+
 # Attach command - attach interactive shell to running container
 cmd_attach() {
     check_docker
@@ -491,6 +557,7 @@ COMMANDS:
     stop                 Stop the Dispatch container
     update               Update to the latest Docker image
     status               Show container status
+    versions             List available Docker image versions from Docker Hub
     attach               Attach interactive shell to running container
     connect              Connect to remote dispatch instance via SSH
     help                 Show this help message
@@ -510,6 +577,10 @@ ENVIRONMENT VARIABLES (in .env file):
     TERMINAL_KEY                Authentication key for web interface
     ENABLE_TUNNEL              Enable public URL via LocalTunnel (true/false)
 
+VERSIONS OPTIONS:
+    -l, --limit <N>             Number of versions to show (default: 25)
+    -a, --all                   Show more versions (sets limit to 100)
+
 CONNECT OPTIONS:
     -p, --port <PORT>           SSH port (default: 2222)
     -k, --key <PATH>            SSH private key file (auto-detected if not specified)
@@ -521,6 +592,8 @@ EXAMPLES:
     dispatch start -p 8080              Start on port 8080
     dispatch start --version v1.2.3     Start with specific version
     dispatch start -v stable            Start with stable tag
+    dispatch versions                   List available versions
+    dispatch versions --limit 50        Show 50 most recent versions
     dispatch attach                     Attach to running container
     dispatch stop                       Stop the container
     dispatch update                     Update to latest version
@@ -556,6 +629,9 @@ main() {
             ;;
         status)
             cmd_status "$@"
+            ;;
+        versions)
+            cmd_versions "$@"
             ;;
         attach)
             cmd_attach "$@"
