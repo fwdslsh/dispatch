@@ -88,6 +88,12 @@ class ServiceContainer {
 			return new ThemeState(this.config);
 		});
 
+		this.registerFactory('cronService', async () => {
+			const { CronService } = await import('./CronService.svelte.js');
+			const socket = await this.get('socket');
+			return new CronService(socket);
+		});
+
 		// ViewModels
 		this.registerFactory('sessionViewModel', async () => {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');
