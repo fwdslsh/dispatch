@@ -295,29 +295,67 @@ cmd_stop() {
     fi
 }
 
-# Update command - update to latest Docker image
+# Update command - update Docker image or CLI script
 cmd_update() {
-    check_docker
-    
-    local was_running=false
-    if is_container_running; then
-        was_running=true
-        log_info "Stopping running container for update..."
-        cmd_stop
-    fi
-    
-    log_info "Pulling latest Docker image: $DOCKER_IMAGE"
-    
-    if docker pull "$DOCKER_IMAGE"; then
-        log_success "Successfully updated to latest image"
-        
-        if [[ "$was_running" == "true" ]]; then
-            log_info "Restarting container with new image..."
-            cmd_start
+    local update_cli=false
+
+    # Parse command line options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --cli)
+                update_cli=true
+                shift
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    if [[ "$update_cli" == "true" ]]; then
+        # Update the CLI script itself
+        log_info "Updating dispatch CLI script from GitHub..."
+
+        # Check if curl is available
+        if ! command -v curl >/dev/null 2>&1; then
+            log_error "curl is required to update the CLI"
+            exit 1
+        fi
+
+        # Download and execute the install script
+        log_info "Downloading latest install script..."
+        if curl -fsSL https://raw.githubusercontent.com/fwdslsh/dispatch/main/install.sh | bash; then
+            log_success "CLI script updated successfully!"
+            log_info "Run 'dispatch --version' to verify the new version"
+        else
+            log_error "Failed to update CLI script"
+            exit 1
         fi
     else
-        log_error "Failed to pull latest image"
-        exit 1
+        # Update Docker image (default behavior)
+        check_docker
+
+        local was_running=false
+        if is_container_running; then
+            was_running=true
+            log_info "Stopping running container for update..."
+            cmd_stop
+        fi
+
+        log_info "Pulling latest Docker image: $DOCKER_IMAGE"
+
+        if docker pull "$DOCKER_IMAGE"; then
+            log_success "Successfully updated to latest image"
+
+            if [[ "$was_running" == "true" ]]; then
+                log_info "Restarting container with new image..."
+                cmd_start
+            fi
+        else
+            log_error "Failed to pull latest image"
+            exit 1
+        fi
     fi
 }
 
@@ -560,6 +598,7 @@ COMMANDS:
     versions             List available Docker image versions from Docker Hub
     attach               Attach interactive shell to running container
     connect              Connect to remote dispatch instance via SSH
+    version              Show CLI version
     help                 Show this help message
 
 START OPTIONS:
@@ -568,6 +607,9 @@ START OPTIONS:
     --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
     --home <PATH>               Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
+
+UPDATE OPTIONS:
+    --cli                       Update the dispatch CLI script itself
 
 ENVIRONMENT VARIABLES (in .env file):
     SSL_MODE                    SSL mode: none (HTTP only), self-signed, or letsencrypt
@@ -587,6 +629,7 @@ CONNECT OPTIONS:
     -u, --user <USER>           SSH username (default: dispatch)
 
 EXAMPLES:
+    dispatch version                    Show CLI version
     dispatch init                       Initialize environment
     dispatch start                      Start with default settings (uses latest)
     dispatch start -p 8080              Start on port 8080
@@ -596,7 +639,8 @@ EXAMPLES:
     dispatch versions --limit 50        Show 50 most recent versions
     dispatch attach                     Attach to running container
     dispatch stop                       Stop the container
-    dispatch update                     Update to latest version
+    dispatch update                     Update Docker image to latest
+    dispatch update --cli               Update dispatch CLI script
     dispatch connect myserver           Connect to remote instance
     dispatch connect myserver --port 2223 --key ~/.ssh/custom_key
 
@@ -638,6 +682,9 @@ main() {
             ;;
         connect)
             cmd_connect "$@"
+            ;;
+        version|--version|-V)
+            echo "Dispatch CLI v$VERSION"
             ;;
         help|--help|-h)
             show_help

@@ -32,6 +32,16 @@ dispatch attach
 
 _Note: Requires bash and Docker_
 
+**Manage versions and updates:**
+
+```bash
+dispatch versions              # List available Docker versions
+dispatch start -v v1.2.3       # Start with specific version
+dispatch update                # Update Docker image
+dispatch update --cli          # Update dispatch CLI script
+dispatch version               # Show CLI version
+```
+
 📖 **[Quick Start Guide](docs/quickstart.md)** - Complete setup and usage walkthrough
 
 ## Why Dispatch?
@@ -58,6 +68,12 @@ _Note: Requires bash and Docker_
 **⚡ Built for AI & Automation**
 
 - Multiple session types: Terminal, Claude AI, File Editor, Custom Adapters
+- **Cron Job Management** - Schedule recurring tasks with elegant UI and real-time monitoring
+  - Interactive scheduler with preset expressions (hourly, daily, weekly, etc.)
+  - Real-time validation and human-readable schedule descriptions
+  - Live execution logs with timestamps and output tracking
+  - Status indicators for active, paused, and errored jobs
+  - Socket.IO integration for instant job status updates
 - **Clean MVVM architecture** with Svelte 5 runes and dependency injection
 - **Comprehensive test coverage** - 33 E2E tests ensuring reliability
 - **VS Code Remote Tunnel integration** for seamless IDE access (requires VS Code CLI)

@@ -57,10 +57,17 @@ chmod +x ~/bin/dispatch
    dispatch stop
    ```
 
-5. **Update to latest version:**
+5. **List available versions:**
 
    ```bash
-   dispatch update
+   dispatch versions
+   ```
+
+6. **Update to latest version:**
+
+   ```bash
+   dispatch update                # Update Docker image
+   dispatch update --cli          # Update CLI script
    ```
 
 ## Commands
@@ -91,22 +98,21 @@ dispatch start
 # Start with custom port
 dispatch start --port 8080
 
+# Start with specific version
+dispatch start --version v1.2.3
+dispatch start -v stable
+
 # Start with custom directories
-dispatch start --dispatch-home ~/my-dispatch --workspace ~/my-workspace
+dispatch start --home ~/my-dispatch --workspace ~/my-workspace
 ```
 
 #### Options
 
 - `-p, --port <port>` - Port for web interface (default: 3030)
+- `-v, --version <tag>` - Docker image version/tag (default: latest)
 - `--env-file <path>` - Path to .env file (default: ~/.dispatch/.env)
-- `--dispatch-home <path>` - Dispatch home directory (default: ~/.dispatch)
+- `--home <path>` - Dispatch home directory (default: ~/.dispatch)
 - `--workspace <path>` - Workspace directory (default: ~/workspace)
-- `--notify-email <email>` - Send email notification with access link
-- `--notify-webhook <url>` - Send webhook notification with access link
-- `--smtp-host <host>` - SMTP server host for email notifications
-- `--smtp-port <port>` - SMTP server port (default: 587)
-- `--smtp-user <user>` - SMTP username for email notifications
-- `--smtp-pass <password>` - SMTP password for email notifications
 
 ### `dispatch stop`
 
@@ -122,19 +128,68 @@ dispatch stop
 - Removes the stopped container
 - Preserves all data in mounted directories
 
-### `dispatch update`
+### `dispatch versions [options]`
 
-Update to the latest Docker image:
+List available Docker image versions from Docker Hub:
 
 ```bash
-dispatch update
+# Show 25 most recent versions (default)
+dispatch versions
+
+# Show 50 most recent versions
+dispatch versions --limit 50
+dispatch versions -l 50
+
+# Show up to 100 versions
+dispatch versions --all
+dispatch versions -a
 ```
 
-**What it does:**
+#### Options
+
+- `-l, --limit <N>` - Number of versions to show (default: 25)
+- `-a, --all` - Show more versions (sets limit to 100)
+
+**Output includes:**
+
+- Version tag name (e.g., latest, v1.2.3, stable)
+- Last updated timestamp
+
+### `dispatch version`
+
+Show the installed CLI version:
+
+```bash
+dispatch version
+```
+
+### `dispatch update [options]`
+
+Update Docker image or CLI script:
+
+```bash
+# Update Docker image to latest
+dispatch update
+
+# Update the dispatch CLI script itself
+dispatch update --cli
+```
+
+#### Options
+
+- `--cli` - Update the dispatch CLI script from GitHub instead of the Docker image
+
+**What `dispatch update` does:**
 
 - Stops the current container if running
 - Pulls the latest `fwdslsh/dispatch:latest` image
 - Restarts the container if it was previously running
+
+**What `dispatch update --cli` does:**
+
+- Downloads and runs the latest install script from GitHub
+- Updates the dispatch CLI script in place
+- Preserves your existing configuration
 
 ### `dispatch status`
 
