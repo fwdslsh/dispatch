@@ -129,7 +129,9 @@ export class DirectoryBrowserViewModel {
 			});
 			if (!res.ok) {
 				const text = await res.text();
-				throw new Error(text || `HTTP ${res.status}`);
+				this.error = text || `HTTP ${res.status}`;
+				this.entries = [];
+				return;
 			}
 			const data = await res.json();
 			this.currentPath = data.path || path;
@@ -239,7 +241,9 @@ export class DirectoryBrowserViewModel {
 
 			if (!res.ok) {
 				const data = await res.json();
-				throw new Error(data.error || 'Failed to create directory');
+				this.error = data.error || 'Failed to create directory';
+				console.error('Failed to create directory:', this.error);
+				return null;
 			}
 
 			// Refresh the directory listing
@@ -323,7 +327,9 @@ export class DirectoryBrowserViewModel {
 
 			if (!res.ok) {
 				const data = await res.json();
-				throw new Error(data.error || 'Failed to clone directory');
+				this.error = data.error || 'Failed to clone directory';
+				console.error('Failed to clone directory:', this.error);
+				return null;
 			}
 
 			// Refresh the directory listing

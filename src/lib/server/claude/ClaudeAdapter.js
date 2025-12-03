@@ -55,13 +55,17 @@ export class ClaudeAdapter {
 				return;
 			}
 
-			onEvent({
-				channel: 'claude:message',
-				type: serialized.type || 'event',
-				payload: {
-					events: [serialized]
-				}
-			});
+			try {
+				onEvent({
+					channel: 'claude:message',
+					type: serialized.type || 'event',
+					payload: {
+						events: [serialized]
+					}
+				});
+			} catch (error) {
+				logger.error('CLAUDE_ADAPTER', 'Error in emitClaudeEvent:', error);
+			}
 		};
 
 		// Return adapter interface
@@ -96,14 +100,18 @@ export class ClaudeAdapter {
 					} catch (error) {
 						if (!isClosing) {
 							logger.error('CLAUDE_ADAPTER', 'Claude query error:', error);
-							onEvent({
-								channel: 'claude:error',
-								type: 'execution_error',
-								payload: {
-									error: error.message,
-									stack: error.stack
-								}
-							});
+							try {
+								onEvent({
+									channel: 'claude:error',
+									type: 'execution_error',
+									payload: {
+										error: error.message,
+										stack: error.stack
+									}
+								});
+							} catch (eventError) {
+								logger.error('CLAUDE_ADAPTER', 'Error sending error event:', eventError);
+							}
 						}
 					}
 				}

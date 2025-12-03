@@ -1,7 +1,38 @@
 <script>
 	/**
-	 * LoadingSpinner Foundation Component
-	 * Animated loading indicator with size variants
+	 * @component LoadingSpinner
+	 * @description
+	 * Animated loading spinner with multiple size and color variants.
+	 * Supports reduced motion preferences and high contrast mode.
+	 * Can be displayed inline or centered in container with optional text.
+	 *
+	 * @typedef {Object} LoadingSpinnerProps
+	 * @property {'small'|'medium'|'large'|'xl'} [size='medium'] - Spinner size
+	 * @property {'primary'|'secondary'|'muted'} [variant='primary'] - Color variant
+	 * @property {string} [text=''] - Optional loading text
+	 * @property {boolean} [inline=false] - Display inline vs centered in container
+	 * @property {string} [ariaLabel='Loading'] - Accessible label for screen readers
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic usage -->
+	 * <LoadingSpinner />
+	 *
+	 * <!-- With text -->
+	 * <LoadingSpinner
+	 *   size="large"
+	 *   text="Loading workspace..."
+	 * />
+	 *
+	 * <!-- Inline spinner -->
+	 * <LoadingSpinner
+	 *   size="small"
+	 *   variant="muted"
+	 *   inline
+	 *   text="Saving..."
+	 * />
+	 * ```
 	 */
 
 	// Props with defaults

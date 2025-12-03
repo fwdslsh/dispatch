@@ -6,6 +6,10 @@ import { CookieService } from '$lib/server/auth/CookieService.server.js';
  * OAuth Callback Handler
  * Exchanges authorization code for access token and creates user session with cookie
  * Uses OAuthManager for provider-agnostic OAuth flow handling
+ *
+ * NOTE: This endpoint uses redirect() for all error cases instead of handleApiError()
+ * because OAuth callbacks should always redirect to the login page with error parameters,
+ * never return JSON error responses.
  */
 export async function GET({ url, cookies, locals }) {
 	try {

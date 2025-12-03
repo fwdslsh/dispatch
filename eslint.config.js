@@ -54,5 +54,18 @@ export default [
 		rules: {
 			'no-console': 'off'
 		}
+	},
+	{
+		// Obsolete code warnings - warn about deprecated patterns
+		rules: {
+			// Warn about JSDoc @deprecated tags
+			'no-warning-comments': [
+				'warn',
+				{
+					terms: ['deprecated', 'obsolete', 'legacy'],
+					location: 'anywhere'
+				}
+			]
+		}
 	}
 ];

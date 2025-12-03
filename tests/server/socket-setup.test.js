@@ -22,7 +22,8 @@ describe('setupSocketIO', () => {
 		const httpServer = http.createServer();
 
 		const mockEventRecorder = {
-			subscribe: vi.fn()
+			subscribe: vi.fn(),
+			removeAllListeners: vi.fn()
 		};
 
 		const mockSessionOrchestrator = {

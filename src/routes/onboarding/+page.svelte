@@ -16,6 +16,7 @@
 	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
 	import Shell from '$lib/client/shared/components/Shell.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
+	import { COOKIE_PROPAGATION_DELAY } from '$lib/client/shared/constants/timing.js';
 
 	/**
 	 * @typedef {Object} OnboardingPageProps
@@ -156,7 +157,7 @@
 		await invalidateAll();
 
 		// Add small delay to ensure cookie propagation to browser
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => setTimeout(resolve, COOKIE_PROPAGATION_DELAY));
 
 		// Verify session is valid before navigating
 		try {

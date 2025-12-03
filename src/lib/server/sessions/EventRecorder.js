@@ -8,6 +8,7 @@
 import { EventStore } from '../database/EventStore.js';
 
 import { EventEmitter } from 'events';
+import { logger } from '../shared/utils/logger.js';
 
 export class EventRecorder {
 	#eventStore;
@@ -88,7 +89,7 @@ export class EventRecorder {
 	async recordEvent(sessionId, event) {
 		const buffer = this.#buffers.get(sessionId);
 
-		console.log(`[EventRecorder] recordEvent for ${sessionId}:`, {
+		logger.debug('EVENTS', `recordEvent for ${sessionId}:`, {
 			hasBuffer: !!buffer,
 			initializing: buffer?.initializing,
 			channel: event.channel,
@@ -97,31 +98,34 @@ export class EventRecorder {
 
 		if (!buffer) {
 			// Not a live session - record directly
-			console.log(`[EventRecorder] No buffer for ${sessionId} - recording directly`);
+			logger.debug('EVENTS', `No buffer for ${sessionId} - recording directly`);
 			return await this.#persistAndEmit(sessionId, event);
 		}
 
 		if (buffer.initializing) {
 			// Buffer during initialization
-			console.log(`[EventRecorder] Buffering event for ${sessionId} (still initializing)`);
+			logger.debug('EVENTS', `Buffering event for ${sessionId} (still initializing)`);
 			buffer.eventBuffer.push(event);
 			return;
 		}
 
 		// Serialize async operations to prevent race conditions
 		// Chain the operation but return a clean promise to caller
-		console.log(`[EventRecorder] Queueing event for ${sessionId}`);
-		const operation = buffer.eventQueue
-			.then(async () => {
+		logger.debug('EVENTS', `Queueing event for ${sessionId}`);
+
+		// Use async/await for cleaner flow control
+		const operation = (async () => {
+			try {
+				await buffer.eventQueue;
 				return await this.#persistAndEmit(sessionId, event);
-			})
-			.catch((/** @type {Error} */ err) => {
-				console.error(`Event queue error for ${sessionId}:`, err);
+			} catch (err) {
+				logger.error('EVENTS', `Event queue error for ${sessionId}:`, err);
 				// Emit error event for monitoring
 				this.#eventEmitter.emit('error', { sessionId, error: err, event });
 				// Re-throw to propagate error to caller
 				throw err;
-			});
+			}
+		})();
 
 		// Update queue to continue from this operation (swallow error to prevent chain poisoning)
 		buffer.eventQueue = operation.catch(() => {
@@ -138,11 +142,11 @@ export class EventRecorder {
 	 * @returns {Promise<Object>} Persisted event row
 	 */
 	async #persistAndEmit(sessionId, event) {
-		console.log(`[EventRecorder] Persisting event for ${sessionId}:`, event.channel, event.type);
+		logger.debug('EVENTS', `Persisting event for ${sessionId}:`, event.channel, event.type);
 		try {
 			// Persist to database
 			const row = await this.#eventStore.append(sessionId, event);
-			console.log(`[EventRecorder] Event persisted with seq:`, row.seq);
+			logger.debug('EVENTS', `Event persisted with seq:`, row.seq);
 
 			// Emit to listeners (for real-time Socket.IO broadcast)
 			this.#eventEmitter.emit('event', {
@@ -152,7 +156,7 @@ export class EventRecorder {
 
 			return row;
 		} catch (error) {
-			console.error(`[EventRecorder] Failed to persist event for ${sessionId}:`, error);
+			logger.error('EVENTS', `Failed to persist event for ${sessionId}:`, error);
 			throw error;
 		}
 	}

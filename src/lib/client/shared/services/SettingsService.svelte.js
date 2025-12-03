@@ -5,6 +5,7 @@
  */
 
 import { SvelteDate } from 'svelte/reactivity';
+import { SETTINGS_POLLING_INTERVAL } from '../constants/timing.js';
 
 export class SettingsService {
 	constructor(config = {}) {
@@ -132,7 +133,7 @@ export class SettingsService {
 
 		// Wait for loading to complete if in progress
 		while (this.isLoading) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
+			await new Promise((resolve) => setTimeout(resolve, SETTINGS_POLLING_INTERVAL));
 		}
 
 		return this.settings;

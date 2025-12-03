@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { writeFile, stat, mkdir } from 'node:fs/promises';
 import { resolve, dirname, basename, join } from 'node:path';
 import { homedir } from 'node:os';
+import { ApiError, BadRequestError, ForbiddenError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 // Get the base directory for file operations (can be configured via environment)
 function getBaseDirectory() {
@@ -59,20 +60,20 @@ export async function POST({ request }) {
 			typeof targetDirectoryEntry === 'string' ? targetDirectoryEntry : getBaseDirectory();
 
 		if (!files || files.length === 0) {
-			return json({ error: 'No files provided' }, { status: 400 });
+			throw new BadRequestError('No files provided', 'NO_FILES');
 		}
 
 		// Validate target directory
 		const resolvedDir = resolve(targetDirectory);
 		if (!isPathAllowed(resolvedDir)) {
-			return json({ error: 'Access denied to target directory' }, { status: 403 });
+			throw new ForbiddenError('Access denied to target directory');
 		}
 
 		// Ensure target directory exists
 		try {
 			const dirStat = await stat(resolvedDir);
 			if (!dirStat.isDirectory()) {
-				return json({ error: 'Target path is not a directory' }, { status: 400 });
+				throw new BadRequestError('Target path is not a directory', 'NOT_A_DIRECTORY');
 			}
 		} catch (error) {
 			if (error.code === 'ENOENT') {
@@ -154,17 +155,15 @@ export async function POST({ request }) {
 			files: uploadResults,
 			targetDirectory: resolvedDir
 		});
-	} catch (error) {
-		console.error('[API] Failed to handle file upload:', error);
-
-		if (error.code === 'EACCES') {
-			return json({ error: 'Permission denied' }, { status: 403 });
+	} catch (err) {
+		// Handle filesystem errors
+		if (err.code === 'EACCES') {
+			throw new ForbiddenError('Permission denied');
+		}
+		if (err.code === 'ENOSPC') {
+			throw new ApiError('No space left on device', 507, 'INSUFFICIENT_STORAGE');
 		}
 
-		if (error.code === 'ENOSPC') {
-			return json({ error: 'No space left on device' }, { status: 507 });
-		}
-
-		return json({ error: error.message }, { status: 500 });
+		handleApiError(err, 'POST /api/files/upload');
 	}
 }

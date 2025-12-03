@@ -7,6 +7,7 @@
 
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * GET /api/status
@@ -50,16 +51,10 @@ export async function GET({ locals }) {
 				Expires: '0'
 			}
 		});
-	} catch (error) {
-		logger.error('STATUS_API', 'Failed to get system status:', error);
-		return json(
-			{
-				error: 'Internal server error',
-				onboarding: { isComplete: false },
-				authentication: { configured: false }
-			},
-			{ status: 500 }
-		);
+	} catch (err) {
+		// Status endpoint is critical for onboarding - provide graceful degradation
+		logger.error('STATUS_API', 'Failed to get system status', { error: err.message });
+		handleApiError(err, 'GET /api/status');
 	}
 }
 

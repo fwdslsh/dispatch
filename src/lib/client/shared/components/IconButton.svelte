@@ -1,7 +1,39 @@
 <script>
 	/**
-	 * IconButton Component - Simplified
-	 * Icon-only button using unified button system with .btn--icon modifier
+	 * @component IconButton
+	 * @description
+	 * Icon-only button variant using unified button system with .btn--icon modifier.
+	 * Optimized for toolbar actions, close buttons, and compact interfaces.
+	 * Automatically handles loading states and accessibility.
+	 *
+	 * @typedef {Object} IconButtonProps
+	 * @property {'primary'|'ghost'|'warn'|'danger'} [variant='ghost'] - Visual variant
+	 * @property {'small'|'medium'|'large'} [size='medium'] - Button size
+	 * @property {boolean} [disabled=false] - Disabled state
+	 * @property {boolean} [loading=false] - Loading state with spinner
+	 * @property {string} ariaLabel - Required accessible label (no visual text)
+	 * @property {(event: MouseEvent) => void} [onclick] - Click event handler
+	 * @property {string} [class] - Additional CSS classes
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic usage -->
+	 * <IconButton ariaLabel="Close" onclick={handleClose}>
+	 *   <IconX size={18} />
+	 * </IconButton>
+	 *
+	 * <!-- Danger variant -->
+	 * <IconButton variant="danger" ariaLabel="Delete" onclick={handleDelete}>
+	 *   <IconTrash size={18} />
+	 * </IconButton>
+	 *
+	 * <!-- With loading state -->
+	 * <IconButton loading={isProcessing} ariaLabel="Processing">
+	 *   <IconCheck size={18} />
+	 * </IconButton>
+	 * ```
+	 *
+	 * @fires {MouseEvent} click - Fired when button is clicked (not disabled/loading)
 	 */
 
 	// Props

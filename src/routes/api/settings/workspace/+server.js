@@ -2,24 +2,24 @@
  * API endpoint for workspace environment variables management
  */
 
+import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/shared/utils/logger.js';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
+
 export async function GET({ locals }) {
 	try {
 		const { settingsRepository } = locals.services;
 		const workspaceSettings = await settingsRepository.getByCategory('workspace');
 
-		return new Response(
-			JSON.stringify({
-				envVariables: workspaceSettings?.envVariables || {}
-			}),
-			{
-				headers: { 'content-type': 'application/json' }
-			}
-		);
-	} catch (error) {
-		console.error('[API] Failed to get workspace environment variables:', error);
-		return new Response(JSON.stringify({ error: 'Failed to retrieve environment variables' }), {
-			status: 500
+		return json({
+			envVariables: workspaceSettings?.envVariables || {}
 		});
+	} catch (err) {
+		handleApiError(err, 'GET /api/settings/workspace');
 	}
 }
 
@@ -27,29 +27,27 @@ export async function POST({ request, locals }) {
 	try {
 		// Require authentication
 		if (!locals.auth?.authenticated) {
-			return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 });
+			throw new UnauthorizedError('Authentication required');
 		}
 		const { envVariables } = await request.json();
 
 		// Validate the input
 		if (!envVariables || typeof envVariables !== 'object') {
-			return new Response(JSON.stringify({ error: 'Invalid environment variables format' }), {
-				status: 400
-			});
+			throw new BadRequestError('Invalid environment variables format', 'INVALID_ENV_FORMAT');
 		}
 
 		// Validate environment variable names
 		for (const [key, value] of Object.entries(envVariables)) {
 			if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
-				return new Response(
-					JSON.stringify({ error: `Invalid environment variable name: ${key}` }),
-					{ status: 400 }
+				throw new BadRequestError(
+					`Invalid environment variable name: ${key}`,
+					'INVALID_ENV_NAME'
 				);
 			}
 			if (typeof value !== 'string') {
-				return new Response(
-					JSON.stringify({ error: `Environment variable values must be strings: ${key}` }),
-					{ status: 400 }
+				throw new BadRequestError(
+					`Environment variable values must be strings: ${key}`,
+					'INVALID_ENV_VALUE'
 				);
 			}
 		}
@@ -71,20 +69,12 @@ export async function POST({ request, locals }) {
 			'Workspace-level environment variables for all sessions'
 		);
 
-		return new Response(
-			JSON.stringify({
-				success: true,
-				envVariables
-			}),
-			{
-				headers: { 'content-type': 'application/json' }
-			}
-		);
-	} catch (error) {
-		console.error('[API] Failed to save workspace environment variables:', error);
-		return new Response(JSON.stringify({ error: 'Failed to save environment variables' }), {
-			status: 500
+		return json({
+			success: true,
+			envVariables
 		});
+	} catch (err) {
+		handleApiError(err, 'POST /api/settings/workspace');
 	}
 }
 
@@ -92,7 +82,7 @@ export async function DELETE({ locals }) {
 	try {
 		// Require authentication
 		if (!locals.auth?.authenticated) {
-			return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 });
+			throw new UnauthorizedError('Authentication required');
 		}
 		// Get current workspace settings
 		const { settingsRepository } = locals.services;
@@ -111,19 +101,11 @@ export async function DELETE({ locals }) {
 			'Workspace-level environment variables for all sessions'
 		);
 
-		return new Response(
-			JSON.stringify({
-				success: true,
-				envVariables: {}
-			}),
-			{
-				headers: { 'content-type': 'application/json' }
-			}
-		);
-	} catch (error) {
-		console.error('[API] Failed to clear workspace environment variables:', error);
-		return new Response(JSON.stringify({ error: 'Failed to clear environment variables' }), {
-			status: 500
+		return json({
+			success: true,
+			envVariables: {}
 		});
+	} catch (err) {
+		handleApiError(err, 'DELETE /api/settings/workspace');
 	}
 }

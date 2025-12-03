@@ -65,6 +65,7 @@ export class SessionState {
 	addSession(sessionData) {
 		const newSession = {
 			...sessionData,
+			sessionType: sessionData.type || sessionData.sessionType, // Normalize property name
 			createdAt: new SvelteDate().toISOString(),
 			lastActivity: new SvelteDate().toISOString(),
 			isActive: true,
@@ -78,7 +79,12 @@ export class SessionState {
 	updateSession(sessionId, updates) {
 		const index = this.sessions.findIndex((s) => s.id === sessionId);
 		if (index >= 0) {
-			this.sessions[index] = { ...this.sessions[index], ...updates };
+			// Normalize sessionType property if type is provided in updates
+			const normalizedUpdates = {
+				...updates,
+				...(updates.type && { sessionType: updates.type })
+			};
+			this.sessions[index] = { ...this.sessions[index], ...normalizedUpdates };
 			log.info('Session updated', sessionId);
 		}
 	}

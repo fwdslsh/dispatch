@@ -16,6 +16,7 @@ import { promises as fs } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
+import { logger } from '../shared/utils/logger.js';
 
 /**
  * Hardcoded Phosphor Green theme - System fallback for recovery scenarios
@@ -134,7 +135,7 @@ export class ThemeManager {
 
 			this.isInitialized = true;
 		} catch (error) {
-			console.error('ThemeManager initialization failed:', error);
+			logger.error('THEME', 'ThemeManager initialization failed:', error);
 			throw error;
 		}
 	}
@@ -151,7 +152,7 @@ export class ThemeManager {
 			const presetThemes = await this.loadFromDirectory(this.presetThemesDir, 'preset');
 			themes.push(...presetThemes);
 		} catch (error) {
-			console.error('Failed to load preset themes:', error);
+			logger.error('THEME', 'Failed to load preset themes:', error);
 			// Continue - custom themes may still load
 		}
 
@@ -160,13 +161,13 @@ export class ThemeManager {
 			const customThemes = await this.loadFromDirectory(this.customThemesDir, 'custom');
 			themes.push(...customThemes);
 		} catch (error) {
-			console.error('Failed to load custom themes:', error);
+			logger.error('THEME', 'Failed to load custom themes:', error);
 			// Continue - preset themes may have loaded
 		}
 
 		// If no themes loaded at all, ensure fallback exists
 		if (themes.length === 0) {
-			console.warn('No themes found, recreating fallback theme');
+			logger.warn('THEME', 'No themes found, recreating fallback theme');
 			await this.recreateFallbackTheme();
 			const fallbackThemes = await this.loadFromDirectory(this.customThemesDir, 'custom');
 			themes.push(...fallbackThemes);
@@ -213,7 +214,7 @@ export class ThemeManager {
 					// Validate theme
 					const validation = this.parser.validate(themeData);
 					if (!validation.valid) {
-						console.error(`Invalid theme ${themeId}:`, validation.errors);
+						logger.error('THEME', `Invalid theme ${themeId}:`, validation.errors);
 						continue;
 					}
 
@@ -235,12 +236,12 @@ export class ThemeManager {
 
 					themes.push(metadata);
 				} catch (error) {
-					console.error(`Failed to load theme ${file}:`, error);
+					logger.error('THEME', `Failed to load theme ${file}:`, error);
 					// Continue to next file
 				}
 			}
 		} catch (error) {
-			console.error(`Failed to read directory ${dirPath}:`, error);
+			logger.error('THEME', `Failed to read directory ${dirPath}:`, error);
 		}
 
 		return themes;
@@ -441,7 +442,7 @@ export class ThemeManager {
 				};
 			}
 		} catch (error) {
-			console.error('Failed to check global default:', error);
+			logger.error('THEME', 'Failed to check global default:', error);
 		}
 
 		// Check if theme is used by any workspace
@@ -459,7 +460,7 @@ export class ThemeManager {
 				};
 			}
 		} catch (error) {
-			console.error('Failed to check workspace usage:', error);
+			logger.error('THEME', 'Failed to check workspace usage:', error);
 		}
 
 		return { canDelete: true };
@@ -477,7 +478,7 @@ export class ThemeManager {
 
 		// Just verify preset directory exists
 		if (!existsSync(this.presetThemesDir)) {
-			console.warn(`Preset themes directory not found: ${this.presetThemesDir}`);
+			logger.warn('THEME', `Preset themes directory not found: ${this.presetThemesDir}`);
 		}
 	}
 
@@ -496,9 +497,9 @@ export class ThemeManager {
 			// Write hardcoded fallback theme
 			await fs.writeFile(fallbackPath, JSON.stringify(FALLBACK_THEME, null, 2), 'utf-8');
 
-			console.log('Recreated fallback theme: phosphor-green.json');
+			logger.info('THEME', 'Recreated fallback theme: phosphor-green.json');
 		} catch (error) {
-			console.error('Failed to recreate fallback theme:', error);
+			logger.error('THEME', 'Failed to recreate fallback theme:', error);
 			throw error;
 		}
 	}

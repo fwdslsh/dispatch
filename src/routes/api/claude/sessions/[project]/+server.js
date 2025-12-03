@@ -1,33 +1,38 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
+import { NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 export async function GET({ params, request: _request, locals: _locals }) {
-	const { project } = params;
-	const base = projectsRoot();
-	const dir = join(base, project);
-
-	let files;
 	try {
-		files = await readdir(dir, { withFileTypes: true });
-	} catch {
-		throw error(404, 'Project not found');
-	}
+		const { project } = params;
+		const base = projectsRoot();
+		const dir = join(base, project);
 
-	const sessions = [];
-	for (const f of files) {
-		if (!f.isFile() || !f.name.endsWith('.jsonl')) continue;
-		const full = join(dir, f.name);
-		const st = await stat(full).catch(() => null);
-		sessions.push({
-			id: f.name.replace(/\.jsonl$/i, ''),
-			file: f.name,
-			size: st?.size ?? 0,
-			lastModified: st?.mtimeMs ?? 0
-		});
-	}
+		let files;
+		try {
+			files = await readdir(dir, { withFileTypes: true });
+		} catch {
+			throw new NotFoundError('Project not found');
+		}
 
-	sessions.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
-	return json({ project, sessions });
+		const sessions = [];
+		for (const f of files) {
+			if (!f.isFile() || !f.name.endsWith('.jsonl')) continue;
+			const full = join(dir, f.name);
+			const st = await stat(full).catch(() => null);
+			sessions.push({
+				id: f.name.replace(/\.jsonl$/i, ''),
+				file: f.name,
+				size: st?.size ?? 0,
+				lastModified: st?.mtimeMs ?? 0
+			});
+		}
+
+		sessions.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
+		return json({ project, sessions });
+	} catch (err) {
+		handleApiError(err, 'GET /api/claude/sessions/[project]');
+	}
 }

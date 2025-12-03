@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm, writeFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { POST } from '../../src/routes/api/browse/clone/+server.js';
+import { wrapHandler } from '../helpers/api-test-helper.js';
 
 describe('Directory Clone API', () => {
 	const testDir = resolve('./test-clone-workspace');
 	const sourceDir = join(testDir, 'source');
 	const targetDir = join(testDir, 'target');
+	const handler = wrapHandler(POST);
 
 	beforeEach(async () => {
 		// Create test directories
@@ -50,7 +52,7 @@ describe('Directory Clone API', () => {
 		);
 
 		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-		const response = await POST(event);
+		const response = await handler(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(200);
@@ -84,7 +86,7 @@ describe('Directory Clone API', () => {
 		);
 
 		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-		const response = await POST(event);
+		const response = await handler(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(404);
@@ -110,7 +112,7 @@ describe('Directory Clone API', () => {
 		);
 
 		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-		const response = await POST(event);
+		const response = await handler(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(409);
@@ -132,7 +134,7 @@ describe('Directory Clone API', () => {
 		);
 
 		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-		const response = await POST(event);
+		const response = await handler(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(400);
@@ -154,7 +156,7 @@ describe('Directory Clone API', () => {
 		);
 
 		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-		const response = await POST(event);
+		const response = await handler(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(400);

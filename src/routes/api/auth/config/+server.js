@@ -6,6 +6,12 @@
  */
 
 import { json } from '@sveltejs/kit';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
+import { logger } from '$lib/server/shared/utils/logger.js';
 
 /**
  * GET /api/auth/config
@@ -45,7 +51,7 @@ export async function GET({ locals }) {
 				// OAuth is considered configured if ANY provider is available
 				oauthConfigured = oauthProviders.some((provider) => provider.available);
 			} catch (err) {
-				console.error('Failed to check OAuth providers:', err);
+				logger.warn('AUTH_CONFIG', 'Failed to check OAuth providers:', err);
 			}
 		}
 
@@ -66,9 +72,8 @@ export async function GET({ locals }) {
 				Expires: '0'
 			}
 		});
-	} catch (error) {
-		console.error('Auth config GET error:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/auth/config');
 	}
 }
 
@@ -82,7 +87,7 @@ export async function PUT({ request, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			return json({ error: 'Authentication failed' }, { status: 401 });
+			throw new UnauthorizedError('Authentication required');
 		}
 
 		const body = await request.json();
@@ -104,13 +109,16 @@ export async function PUT({ request, locals }) {
 		}
 
 		if (Object.keys(authSettings).length === 0) {
-			return json({ error: 'No authentication settings provided' }, { status: 400 });
+			throw new BadRequestError('No authentication settings provided', 'MISSING_AUTH_SETTINGS');
 		}
 
 		// Basic validation for terminal_key
 		if (authSettings.terminal_key !== undefined) {
 			if (typeof authSettings.terminal_key !== 'string' || authSettings.terminal_key.length < 8) {
-				return json({ error: 'Terminal key must be at least 8 characters long' }, { status: 400 });
+				throw new BadRequestError(
+					'Terminal key must be at least 8 characters long',
+					'INVALID_TERMINAL_KEY'
+				);
 			}
 		}
 
@@ -142,9 +150,8 @@ export async function PUT({ request, locals }) {
 				'Cache-Control': 'no-cache, no-store, must-revalidate'
 			}
 		});
-	} catch (error) {
-		console.error('Auth config PUT error:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'PUT /api/auth/config');
 	}
 }
 

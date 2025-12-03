@@ -1,4 +1,19 @@
 <script>
+	/**
+	 * @component AppVersion
+	 * @description
+	 * Displays application version number fetched from environment service.
+	 * Shows version in compact format with hover tooltip.
+	 * Automatically hidden on very small screens (<400px) to save space.
+	 *
+	 * @example
+	 * ```svelte
+	 * <!-- Basic usage in status bar -->
+	 * <StatusBar>
+	 *   <AppVersion />
+	 * </StatusBar>
+	 * ```
+	 */
 	import { useService } from '../services/ServiceContainer.svelte.js';
 	import { onMount } from 'svelte';
 

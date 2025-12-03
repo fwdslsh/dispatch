@@ -1,5 +1,10 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import {
+	BadRequestError,
+	ServiceUnavailableError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * OAuth Settings API
@@ -11,7 +16,10 @@ export async function GET({ locals }) {
 	try {
 		const services = locals.services;
 		if (!services?.oauthManager) {
-			throw error(500, 'OAuth manager not initialized');
+			throw new ServiceUnavailableError(
+				'OAuth manager not initialized',
+				'OAUTH_MANAGER_UNAVAILABLE'
+			);
 		}
 
 		// Get all OAuth providers
@@ -29,8 +37,7 @@ export async function GET({ locals }) {
 
 		return json(responseData);
 	} catch (err) {
-		logger.error('OAUTH_API', 'Error fetching OAuth settings:', err);
-		throw error(500, 'Failed to load OAuth settings');
+		handleApiError(err, 'GET /api/settings/oauth');
 	}
 }
 
@@ -39,14 +46,17 @@ export async function POST({ request, locals }) {
 	try {
 		const services = locals.services;
 		if (!services?.oauthManager) {
-			throw error(500, 'OAuth manager not initialized');
+			throw new ServiceUnavailableError(
+				'OAuth manager not initialized',
+				'OAUTH_MANAGER_UNAVAILABLE'
+			);
 		}
 
 		const body = await request.json();
 		const { providers } = body;
 
 		if (!providers || typeof providers !== 'object') {
-			throw error(400, 'Invalid request: providers object required');
+			throw new BadRequestError('Invalid request: providers object required', 'MISSING_PROVIDERS');
 		}
 
 		// Update each provider
@@ -56,7 +66,10 @@ export async function POST({ request, locals }) {
 				if (config.enabled) {
 					// Validate required fields
 					if (!config.clientId) {
-						throw error(400, `Client ID required for ${providerName}`);
+						throw new BadRequestError(
+							`Client ID required for ${providerName}`,
+							'MISSING_CLIENT_ID'
+						);
 					}
 
 					// Enable provider (only update secret if provided)
@@ -115,12 +128,6 @@ export async function POST({ request, locals }) {
 			results
 		});
 	} catch (err) {
-		logger.error('OAUTH_API', 'Error updating OAuth settings:', err);
-
-		if (err.status) {
-			throw err; // Re-throw SvelteKit errors
-		}
-
-		throw error(500, 'Failed to update OAuth settings');
+		handleApiError(err, 'POST /api/settings/oauth');
 	}
 }

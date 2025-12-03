@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 import WorktreeManager from '../../src/lib/client/shared/components/WorktreeManager.svelte';
 
 // Mock fetch
@@ -21,6 +21,10 @@ describe('WorktreeManager Component', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		mockFetch.mockClear();
+	});
+
+	afterEach(() => {
+		cleanup();
 	});
 
 	it('should render worktree manager with empty state', async () => {
@@ -135,7 +139,15 @@ describe('WorktreeManager Component', () => {
 		await fireEvent.click(addButton);
 
 		await waitFor(() => {
-			expect(fetch).toHaveBeenCalledWith('/api/git/worktree/init-detect?path=%2Ftest%2Frepo');
+			// Check that fetch was called with correct URL and headers
+			expect(fetch).toHaveBeenCalledWith(
+				'/api/git/worktree/init-detect?path=%2Ftest%2Frepo',
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						'Content-Type': 'application/json'
+					})
+				})
+			);
 			expect(getByText('Run initialization commands')).toBeInTheDocument();
 		});
 	});
@@ -176,9 +188,12 @@ describe('WorktreeManager Component', () => {
 			json: () => Promise.resolve({ worktrees: [] })
 		});
 
-		const { getByTitle, getByPlaceholderText, getByText } = render(WorktreeManager, {
-			props: defaultProps
-		});
+		const { getByTitle, getByPlaceholderText, getByText, getByLabelText } = render(
+			WorktreeManager,
+			{
+				props: defaultProps
+			}
+		);
 
 		// Open add form
 		const addButton = getByTitle('Add Worktree');
@@ -192,7 +207,8 @@ describe('WorktreeManager Component', () => {
 		const pathInput = getByPlaceholderText('/path/to/new/worktree');
 		await fireEvent.input(pathInput, { target: { value: '/test/repo-feature' } });
 
-		const newBranchCheckbox = getByText('Create new branch').previousElementSibling;
+		// Use getByLabelText to find the checkbox by its label text
+		const newBranchCheckbox = getByLabelText('Create new branch');
 		await fireEvent.click(newBranchCheckbox);
 
 		await waitFor(() => {
@@ -205,20 +221,25 @@ describe('WorktreeManager Component', () => {
 		await fireEvent.click(submitButton);
 
 		await waitFor(() => {
-			expect(fetch).toHaveBeenCalledWith(
-				'/api/git/worktree/add',
-				expect.objectContaining({
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						path: '/test/repo',
-						worktreePath: '/test/repo-feature',
-						newBranch: 'feature-branch',
-						runInit: true,
-						initCommands: ['npm install']
-					})
-				})
+			// Find the fetch call for worktree add
+			const addCall = mockFetch.mock.calls.find(
+				(call) => call[0] === '/api/git/worktree/add'
 			);
+
+			expect(addCall).toBeDefined();
+
+			// Parse the body to check the payload structure
+			const body = JSON.parse(addCall[1].body);
+			expect(body).toEqual({
+				path: '/test/repo',
+				worktreePath: '/test/repo-feature',
+				newBranch: 'feature-branch',
+				runInit: true,
+				initCommands: ['npm install']
+			});
+
+			expect(addCall[1].method).toBe('POST');
+			expect(addCall[1].headers).toHaveProperty('Content-Type', 'application/json');
 		});
 	});
 
@@ -262,17 +283,23 @@ describe('WorktreeManager Component', () => {
 
 		await waitFor(() => {
 			expect(window.confirm).toHaveBeenCalledWith('Remove worktree at /test/repo-feature?');
-			expect(fetch).toHaveBeenCalledWith(
-				'/api/git/worktree/remove',
-				expect.objectContaining({
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						path: '/test/repo',
-						worktreePath: '/test/repo-feature'
-					})
-				})
+
+			// Find the fetch call for worktree remove
+			const removeCall = mockFetch.mock.calls.find(
+				(call) => call[0] === '/api/git/worktree/remove'
 			);
+
+			expect(removeCall).toBeDefined();
+
+			// Parse the body to check the payload structure
+			const body = JSON.parse(removeCall[1].body);
+			expect(body).toEqual({
+				path: '/test/repo',
+				worktreePath: '/test/repo-feature'
+			});
+
+			expect(removeCall[1].method).toBe('POST');
+			expect(removeCall[1].headers).toHaveProperty('Content-Type', 'application/json');
 		});
 	});
 

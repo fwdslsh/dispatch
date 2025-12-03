@@ -167,7 +167,6 @@
 				: Promise.resolve(themeStatePromise));
 
 			if (themeState) {
-				console.log('[Layout] Applying theme selected during onboarding:', selectedTheme);
 				await themeState.activateTheme(selectedTheme);
 				// Clear the flag so we don't apply it again
 				localStorage.removeItem('onboarding-selected-theme');
@@ -193,35 +192,23 @@
 				: Promise.resolve(apiClientPromise));
 
 			if (!apiClient) {
-				console.warn('API client not available for onboarding check');
+				console.warn('[Layout] ⚠️ API client not available for onboarding check');
 				return;
 			}
 
 			// Check system status (includes onboarding completion)
 			const status = await apiClient.getSystemStatus();
 
-			console.log('[Layout] System status loaded:', {
-				onboardingComplete: status.onboarding.isComplete,
-				authConfigured: status.authentication.configured
-			});
-
 			// Check if we need to redirect to onboarding
 			const currentPath = page.url.pathname;
 			const isOnOnboardingPage = currentPath.startsWith('/onboarding');
 			const isOnSettingsPage = currentPath.startsWith('/settings');
+			const isOnLoginPage = currentPath === '/login'; // Only exempt explicit /login, not root /
+			const isOnApiDocsPage = currentPath === '/api-docs';
 			const shouldOnboard = !status.onboarding.isComplete;
 
-			console.log('[Layout] Redirect logic:', {
-				currentPath,
-				isOnOnboardingPage,
-				isOnSettingsPage,
-				shouldOnboard,
-				isComplete: status.onboarding.isComplete
-			});
-
-			// Don't redirect if user is on settings page - allow settings access
-			if (isOnSettingsPage) {
-				console.log('[Layout] User is on settings page, skipping onboarding redirect');
+			// Don't redirect if user is on settings, login, or API docs page - allow access
+			if (isOnSettingsPage || isOnLoginPage || isOnApiDocsPage) {
 				return;
 			}
 
@@ -235,9 +222,10 @@
 				/* eslint-disable svelte/no-navigation-without-resolve */
 				goto('/workspace', { replaceState: true });
 				/* eslint-enable svelte/no-navigation-without-resolve */
-			}
+		}
 		} catch (error) {
-			console.error('Failed to check onboarding status:', error);
+			console.error('[Layout] ❌ Failed to check onboarding status:', error);
+			console.error('[Layout] ❌ Error stack:', error.stack);
 		}
 	}
 </script>

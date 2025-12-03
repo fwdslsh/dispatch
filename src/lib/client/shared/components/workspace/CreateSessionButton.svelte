@@ -55,16 +55,17 @@
 		user-select: none;
 		animation: pulse 2s infinite;
 		position: relative;
+		transform: translateY(-10px);
 	}
 
 	.create-session-btn:hover {
 		background: color-mix(in oklab, var(--primary) 90%, white 10%);
-		transform: scale(1.1);
+		transform: translateY(-10px) scale(1.1);
 		box-shadow: 0 4px 12px var(--primary-glow);
 	}
 
 	.create-session-btn:active {
-		transform: scale(0.95);
+		transform: translateY(-10px) scale(0.95);
 	}
 
 	.create-session-btn svg {
@@ -99,7 +100,7 @@
 		}
 
 		.create-session-btn:active {
-			transform: scale(0.9);
+			transform: translateY(-10px) scale(0.9);
 		}
 	}
 

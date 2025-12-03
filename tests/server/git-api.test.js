@@ -4,6 +4,7 @@ import { GET } from '../../src/routes/api/git/status/+server.js';
 import { POST as commitPost } from '../../src/routes/api/git/commit/+server.js';
 import { POST as stagePost } from '../../src/routes/api/git/stage/+server.js';
 import { POST as checkoutPost } from '../../src/routes/api/git/checkout/+server.js';
+import { wrapHandler } from '../helpers/api-test-helper.js';
 
 // Mock child_process spawn
 vi.mock('node:child_process', () => ({
@@ -30,6 +31,10 @@ vi.mock('node:fs', () => ({
 
 describe('Git API Endpoints', () => {
 	let mockSpawn;
+	const statusHandler = wrapHandler(GET);
+	const commitHandler = wrapHandler(commitPost);
+	const stageHandler = wrapHandler(stagePost);
+	const checkoutHandler = wrapHandler(checkoutPost);
 
 	beforeEach(async () => {
 		mockSpawn = spawn;
@@ -78,7 +83,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await GET(event);
+			const response = await statusHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -108,7 +113,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await GET(event);
+			const response = await statusHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(404);
@@ -121,7 +126,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await GET(event);
+			const response = await statusHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -154,7 +159,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await commitPost(event);
+			const response = await commitHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -177,7 +182,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await commitPost(event);
+			const response = await commitHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -208,7 +213,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await commitPost(event);
+			const response = await commitHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(500);
@@ -242,7 +247,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await stagePost(event);
+			const response = await stageHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -276,7 +281,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await stagePost(event);
+			const response = await stageHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -301,7 +306,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await stagePost(event);
+			const response = await stageHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -323,7 +328,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await stagePost(event);
+			const response = await stageHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -356,7 +361,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await checkoutPost(event);
+			const response = await checkoutHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -380,7 +385,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await checkoutPost(event);
+			const response = await checkoutHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -411,7 +416,7 @@ describe('Git API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await checkoutPost(event);
+			const response = await checkoutHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(500);

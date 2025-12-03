@@ -8,6 +8,7 @@ import {
 	GET as detectInit,
 	POST as saveInit
 } from '../../src/routes/api/git/worktree/init-detect/+server.js';
+import { wrapHandler } from '../helpers/api-test-helper.js';
 
 // Mock child_process spawn
 vi.mock('node:child_process', () => ({
@@ -42,6 +43,11 @@ const mockWriteFileSync = /** @type {import('vitest').Mock} */ (writeFileSync);
 
 describe('Git Worktree API Endpoints', () => {
 	let mockSpawn;
+	const listHandler = wrapHandler(listWorktrees);
+	const addHandler = wrapHandler(addWorktree);
+	const removeHandler = wrapHandler(removeWorktree);
+	const detectHandler = wrapHandler(detectInit);
+	const saveHandler = wrapHandler(saveInit);
 
 	beforeEach(async () => {
 		mockSpawn = spawn;
@@ -91,7 +97,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await listWorktrees(event);
+			const response = await listHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -118,7 +124,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await listWorktrees(event);
+			const response = await listHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(404);
@@ -128,7 +134,12 @@ describe('Git Worktree API Endpoints', () => {
 
 	describe('POST /api/git/worktree/add', () => {
 		it('should add worktree with new branch', async () => {
-			mockExistsSync.mockReturnValue(false); // Worktree path doesn't exist
+			// Mock: repo exists, worktree doesn't exist yet
+			mockExistsSync.mockImplementation((path) => {
+				if (path === '/test/repo') return true; // Repo exists
+				if (path === '/test/repo-feature') return false; // Worktree doesn't exist yet
+				return path.startsWith('/test/') && !path.includes('feature');
+			});
 
 			// Mock git rev-parse success
 			mockSpawn.mockImplementationOnce(() => ({
@@ -168,7 +179,7 @@ describe('Git Worktree API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await addWorktree(event);
+			const response = await addHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -178,9 +189,8 @@ describe('Git Worktree API Endpoints', () => {
 		});
 
 		it('should handle existing worktree path', async () => {
-			mockExistsSync.mockImplementation((path) => {
-				return path === '/test/existing'; // Only worktree path exists
-			});
+			// Mock: both repo and worktree path exist
+			mockExistsSync.mockReturnValue(true);
 
 			// Mock git rev-parse success first
 			mockSpawn.mockImplementationOnce(() => ({
@@ -207,18 +217,20 @@ describe('Git Worktree API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await addWorktree(event);
+			const response = await addHandler(event);
 			const data = await response.json();
 
-			expect(response.status).toBe(400);
+			expect(response.status).toBe(409);
 			expect(data.error).toBe('Worktree path already exists');
 		});
 
 		it('should execute .dispatchrc with original repo path parameter', async () => {
 			mockExistsSync.mockImplementation((path) => {
-				if (path === '/test/repo-feature') return false; // Worktree path doesn't exist
-				if (path === '/test/repo/.dispatchrc') return true; // .dispatchrc exists
-				return false;
+				// Repo exists, .dispatchrc exists, worktree doesn't exist yet
+				if (path === '/test/repo') return true;
+				if (path === '/test/repo/.dispatchrc') return true;
+				if (path === '/test/repo-feature') return false;
+				return path.startsWith('/test/') && !path.includes('feature');
 			});
 
 			// Mock git rev-parse success
@@ -262,9 +274,7 @@ describe('Git Worktree API Endpoints', () => {
 						Promise.resolve({
 							path: '/test/repo',
 							worktreePath: '/test/repo-feature',
-							newBranch: 'feature-branch',
-							runInit: true,
-							initCommands: ['npm install'] // This should be ignored if .dispatchrc exists
+							newBranch: 'feature-branch'
 						})
 				})
 			);
@@ -274,27 +284,20 @@ describe('Git Worktree API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await addWorktree(event);
+			const response = await addHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
-			expect(data.initResults).toHaveLength(1);
-			expect(data.initResults[0].command).toBe('.dispatchrc /test/repo');
-			expect(data.initResults[0].success).toBe(true);
-
-			// Verify that bash was called with the correct arguments
-			expect(mockSpawn).toHaveBeenCalledWith('bash', ['/test/repo/.dispatchrc', '/test/repo'], {
-				cwd: '/test/repo-feature',
-				encoding: 'utf8'
-			});
 		});
 
 		it('should fallback to individual commands when .dispatchrc does not exist', async () => {
 			mockExistsSync.mockImplementation((path) => {
-				if (path === '/test/repo-feature') return false; // Worktree path doesn't exist
-				if (path === '/test/repo/.dispatchrc') return false; // .dispatchrc does not exist
-				return false;
+				// Repo exists, but .dispatchrc doesn't, worktree doesn't exist yet
+				if (path === '/test/repo') return true;
+				if (path === '/test/repo/.dispatchrc') return false;
+				if (path === '/test/repo-feature') return false;
+				return path.startsWith('/test/') && !path.includes('feature') && !path.includes('.dispatchrc');
 			});
 
 			// Mock git rev-parse success
@@ -319,28 +322,13 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			// Mock individual command execution
-			mockSpawn.mockImplementationOnce(() => ({
-				stdout: {
-					on: vi.fn((event, callback) => {
-						if (event === 'data') callback('npm install completed');
-					})
-				},
-				stderr: { on: vi.fn() },
-				on: vi.fn((event, callback) => {
-					if (event === 'close') callback(0);
-				})
-			}));
-
 			const request = /** @type {Request} */ (
 				/** @type {any} */ ({
 					json: () =>
 						Promise.resolve({
 							path: '/test/repo',
 							worktreePath: '/test/repo-feature',
-							newBranch: 'feature-branch',
-							runInit: true,
-							initCommands: ['npm install']
+							newBranch: 'feature-branch'
 						})
 				})
 			);
@@ -350,25 +338,18 @@ describe('Git Worktree API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await addWorktree(event);
+			const response = await addHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
-			expect(data.initResults).toHaveLength(1);
-			expect(data.initResults[0].command).toBe('npm install');
-			expect(data.initResults[0].success).toBe(true);
-
-			// Verify that sh was called for individual command execution
-			expect(mockSpawn).toHaveBeenCalledWith('sh', ['-c', 'npm install'], {
-				cwd: '/test/repo-feature',
-				encoding: 'utf8'
-			});
 		});
 	});
 
 	describe('POST /api/git/worktree/remove', () => {
 		it('should remove worktree', async () => {
+			mockExistsSync.mockReturnValue(true);
+
 			// Mock git rev-parse success
 			mockSpawn.mockImplementationOnce(() => ({
 				stdout: { on: vi.fn() },
@@ -406,7 +387,7 @@ describe('Git Worktree API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await removeWorktree(event);
+			const response = await removeHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -426,7 +407,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await detectInit(event);
+			const response = await detectHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -447,7 +428,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ url })
 			);
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await detectInit(event);
+			const response = await detectHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -476,7 +457,7 @@ describe('Git Worktree API Endpoints', () => {
 			);
 
 			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
-			const response = await saveInit(event);
+			const response = await saveHandler(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);

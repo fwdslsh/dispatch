@@ -1,10 +1,11 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { readTailLines, parseJsonlLines } from '$lib/server/shared/utils/jsonl.js';
 import { createReadStream } from 'node:fs';
+import { handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 const MAX_BYTES = 5 * 1024 * 1024; // soft cap to keep responses reasonable
 
@@ -81,7 +82,6 @@ export async function GET({ params, url, request: _request, locals: _locals }) {
 			entries: []
 		});
 	} catch (err) {
-		console.error('Error looking up Claude session:', err);
-		throw error(500, 'Failed to look up session');
+		handleApiError(err, 'GET /api/claude/session/[id]');
 	}
 }

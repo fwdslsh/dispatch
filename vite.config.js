@@ -6,6 +6,7 @@ import {
 	getViteSSLConfig,
 	printSSLInstructions
 } from './src/lib/server/shared/utils/ssl-certificates.js';
+import { buildMetricsPlugin } from './src/lib/server/shared/utils/build-metrics.js';
 
 /**
  * @returns {import('vite').Plugin}
@@ -48,9 +49,48 @@ export default defineConfig(async () => {
 				$lib: fileURLToPath(new URL('./src/lib', import.meta.url))
 			}
 		},
-		plugins: [sveltekit(), socketIOPlugin(), devtoolsJson()],
+		plugins: [sveltekit(), socketIOPlugin(), devtoolsJson(), buildMetricsPlugin()],
 		build: {
 			rollupOptions: {
+				output: {
+					manualChunks(id) {
+						// Only apply manual chunking to client-side bundles
+						// Terminal vendor chunk - Terminal-related libraries
+						if (
+							id.includes('node_modules/@xterm/xterm') ||
+							id.includes('node_modules/@xterm/addon-fit') ||
+							id.includes('node_modules/@battlefieldduck/xterm-svelte') ||
+							id.includes('node_modules/ansi_up')
+						) {
+							return 'vendor-terminal';
+						}
+						// Socket vendor chunk - Real-time communication
+						if (id.includes('node_modules/socket.io-client')) {
+							return 'vendor-socket';
+						}
+						// Markdown vendor chunk - Markdown processing
+						if (
+							id.includes('node_modules/markdown-it') ||
+							id.includes('node_modules/marked') ||
+							id.includes('node_modules/prismjs')
+						) {
+							return 'vendor-markdown';
+						}
+						// UI vendor chunk - Svelte UI components and utilities
+						if (
+							id.includes('node_modules/svelte') ||
+							id.includes('node_modules/@floating-ui/dom') ||
+							id.includes('node_modules/augmented-ui') ||
+							id.includes('node_modules/hammerjs') ||
+							id.includes('node_modules/sv-window-manager') ||
+							id.includes('node_modules/svelte-virtual-list')
+						) {
+							return 'vendor-ui';
+						}
+						// Let other packages be handled automatically
+						return undefined;
+					}
+				},
 				onwarn(warning, warn) {
 					// Suppress warning about unused default export from node:path
 					// We correctly use only named imports (join, resolve, etc.)
@@ -73,6 +113,30 @@ export default defineConfig(async () => {
 		},
 		test: {
 			expect: { requireAssertions: true },
+			coverage: {
+				provider: 'v8',
+				reporter: ['text', 'json', 'html', 'lcov'],
+				reportsDirectory: './coverage',
+				exclude: [
+					'node_modules/**',
+					'tests/**',
+					'e2e/**',
+					'**/*.spec.{js,ts}',
+					'**/*.test.{js,ts}',
+					'**/test-*.{js,ts}',
+					'**/*.config.{js,ts}',
+					'.svelte-kit/**',
+					'build/**',
+					'dist/**'
+				],
+				include: ['src/**/*.{js,ts,svelte}'],
+				all: true,
+				clean: true,
+				lines: 70,
+				functions: 70,
+				branches: 70,
+				statements: 70
+			},
 			projects: [
 				{
 					extends: './vite.config.js',

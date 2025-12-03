@@ -1,5 +1,12 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { resolve, normalize } from 'path';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	ConflictError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, locals }) {
@@ -7,7 +14,7 @@ export async function GET({ url, locals }) {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
 			logger.info('WORKSPACE_API', 'Unauthenticated request to list workspaces');
-			return json({ error: 'Authentication required to list workspaces' }, { status: 401 });
+			throw new UnauthorizedError('Authentication required to list workspaces');
 		}
 
 		const { workspaceRepository, database } = locals.services;
@@ -18,36 +25,52 @@ export async function GET({ url, locals }) {
 		const limit = parseInt(url.searchParams.get('limit') || '50', 10);
 		const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
-		// Get workspaces with session counts
-		let workspaces = await workspaceRepository.findAll();
+	// Get workspaces with session counts in a single query (fixes N+1 problem)
+	const workspacesWithCounts = await database.all(`
+		SELECT
+			w.path,
+			w.name,
+			w.created_at,
+			w.last_active,
+			w.updated_at,
+			COUNT(CASE WHEN s.status = 'running' THEN 1 END) as running_count,
+			COUNT(CASE WHEN s.status = 'stopped' THEN 1 END) as stopped_count,
+			COUNT(CASE WHEN s.status = 'error' THEN 1 END) as error_count,
+			COUNT(s.run_id) as total_count
+		FROM workspaces w
+		LEFT JOIN sessions s ON JSON_EXTRACT(s.meta_json, '$.workspacePath') = w.path
+		GROUP BY w.path, w.name, w.created_at, w.last_active, w.updated_at
+		ORDER BY w.last_active DESC NULLS LAST
+	`);
 
-		// Get session counts for each workspace
-		for (const workspace of workspaces) {
-			const sessions = await database.all(
-				`SELECT COUNT(*) as count, status
-				 FROM sessions
-				 WHERE JSON_EXTRACT(meta_json, '$.workspacePath') = ?
-				 GROUP BY status`,
-				[workspace.path]
-			);
-
-			workspace.sessionCounts = {
-				total: sessions.reduce((sum, s) => sum + s.count, 0),
-				running: sessions.find((s) => s.status === 'running')?.count || 0,
-				stopped: sessions.find((s) => s.status === 'stopped')?.count || 0,
-				error: sessions.find((s) => s.status === 'error')?.count || 0
-			};
-
-			// Add derived status based on activity and session state
-			if (workspace.sessionCounts.running > 0) {
-				workspace.status = 'active';
-			} else if (workspace.lastActive) {
-				const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
-				workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
-			} else {
-				workspace.status = 'new';
+	// Build workspace objects with session counts
+	let workspaces = workspacesWithCounts.map((row) => {
+		const workspace = {
+			path: row.path,
+			name: row.name,
+			createdAt: row.created_at,
+			lastActive: row.last_active,
+			updatedAt: row.updated_at,
+			sessionCounts: {
+				total: row.total_count,
+				running: row.running_count,
+				stopped: row.stopped_count,
+				error: row.error_count
 			}
+		};
+
+		// Add derived status based on activity and session state
+		if (workspace.sessionCounts.running > 0) {
+			workspace.status = 'active';
+		} else if (workspace.lastActive) {
+			const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
+			workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
+		} else {
+			workspace.status = 'new';
 		}
+
+		return workspace;
+	});
 
 		// Filter by status if specified
 		if (status && ['active', 'inactive', 'archived', 'new'].includes(status)) {
@@ -86,11 +109,7 @@ export async function GET({ url, locals }) {
 		);
 		return json(response);
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to list workspaces:', err);
-		throw error(500, { message: 'Failed to retrieve workspaces' });
+		handleApiError(err, 'GET /api/workspaces');
 	}
 }
 
@@ -102,17 +121,17 @@ export async function POST({ request, locals }) {
 
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
-			throw error(401, { message: 'Authentication required for workspace creation' });
+			throw new UnauthorizedError('Authentication required for workspace creation');
 		}
 
 		// Validate required fields
 		if (!path) {
-			throw error(400, { message: 'Workspace path is required' });
+			throw new BadRequestError('Workspace path is required', 'MISSING_PATH');
 		}
 
 		// Validate path format and accessibility
 		if (!isValidWorkspacePath(path)) {
-			throw error(400, { message: 'Invalid workspace path format' });
+			throw new BadRequestError('Invalid workspace path format', 'INVALID_PATH');
 		}
 
 		const { workspaceRepository } = locals.services;
@@ -120,7 +139,7 @@ export async function POST({ request, locals }) {
 		// Check if workspace already exists
 		const existing = await workspaceRepository.findById(path);
 		if (existing) {
-			throw error(409, { message: 'Workspace already exists at this path' });
+			throw new ConflictError('Workspace already exists at this path');
 		}
 
 		const displayName =
@@ -132,7 +151,7 @@ export async function POST({ request, locals }) {
 			workspace = await workspaceRepository.create({ path, name: displayName });
 		} catch (err) {
 			if (err?.message?.includes('already exists')) {
-				throw error(409, { message: 'Workspace already exists at this path' });
+				throw new ConflictError('Workspace already exists at this path');
 			}
 			throw err;
 		}
@@ -156,11 +175,7 @@ export async function POST({ request, locals }) {
 		logger.info('WORKSPACE_API', `Created workspace: ${path}`);
 		return json(response, { status: 201 });
 	} catch (err) {
-		if (err?.status && err?.body) {
-			throw err;
-		}
-		logger.error('WORKSPACE_API', 'Failed to create workspace:', err);
-		throw error(500, { message: 'Failed to create workspace' });
+		handleApiError(err, 'POST /api/workspaces');
 	}
 }
 
@@ -174,17 +189,51 @@ function extractWorkspaceName(path) {
 }
 
 /**
- * Validate workspace path format and constraints
+ * Validate workspace path format and constraints with comprehensive security checks
+ * @param {string} path - Path to validate
+ * @param {string} [allowedRoot] - Allowed workspace root directory (defaults to WORKSPACES_ROOT)
+ * @returns {boolean} True if path is valid and safe
  */
-function isValidWorkspacePath(path) {
+function isValidWorkspacePath(path, allowedRoot = null) {
 	if (!path || typeof path !== 'string') return false;
-
-	// Basic path validation
-	if (path.includes('..') || path.includes('~')) return false;
 	if (path.length > 500) return false;
 
-	// Must be absolute path
-	if (!path.startsWith('/')) return false;
+	try {
+		// Decode any URL-encoded characters (防止 %2e%2e 等编码绕过)
+		const decoded = decodeURIComponent(path);
 
-	return true;
+		// Normalize path to resolve . and .. segments
+		const normalized = normalize(decoded);
+
+		// Resolve to absolute path (handles symlinks and relative paths)
+		const resolved = resolve(normalized);
+
+		// Must be absolute path
+		if (!resolved.startsWith('/')) return false;
+
+		// Check for path traversal attempts after normalization
+		if (normalized.includes('..') || normalized.includes('~')) {
+			logger.warn('WORKSPACE_API', `Path traversal attempt blocked: ${path}`);
+			return false;
+		}
+
+		// Validate against allowed workspace root if provided
+		const workspaceRoot = allowedRoot || process.env.WORKSPACES_ROOT;
+		if (workspaceRoot) {
+			const resolvedRoot = resolve(workspaceRoot);
+			if (!resolved.startsWith(resolvedRoot)) {
+				logger.warn(
+					'WORKSPACE_API',
+					`Path outside workspace root blocked: ${resolved} (root: ${resolvedRoot})`
+				);
+				return false;
+			}
+		}
+
+		return true;
+	} catch (err) {
+		// Handle decodeURIComponent errors or other path processing errors
+		logger.warn('WORKSPACE_API', `Path validation error for "${path}":`, err);
+		return false;
+	}
 }

@@ -274,6 +274,7 @@ sqlite3 .testing-home/dispatch/data/workspace.db "PRAGMA table_info('sessions');
 - **Terminal**: @battlefieldduck/xterm-svelte + node-pty
 - **Claude**: @anthropic-ai/claude-code 1.0.98
 - **Database**: SQLite3 5.1.7
+- **Window Manager**: sv-window-manager ([GitHub](https://github.com/itlackey/sv-window-manager/)) - Svelte 5 tiling window manager with `onpaneremoved` event support
 
 ## Important File Paths & Organization
 
@@ -400,6 +401,7 @@ Dispatch implements dual authentication supporting both session cookies and API 
 - **Displays key once** with "copy now" warning (security best practice)
 - **Immediately creates browser session cookie** for seamless login
 - **Stores onboarding completion** in settings to prevent re-display
+- **Route exemptions**: `/login`, `/settings`, and `/api-docs` accessible during onboarding (allows key entry and configuration)
 - **Comprehensive E2E tests**: See `e2e/ONBOARDING_TEST_PLAN.md` for 30+ test scenarios
 - **Route protection**: Server-side `+page.server.js` redirects if already onboarded
 
@@ -433,6 +435,26 @@ Dynamic session component loading via `src/lib/client/shared/session-modules/`:
 - Header and pane component mapping
 
 ## API Documentation
+
+### Interactive API Explorer
+
+📖 **Visit `/api-docs`** for interactive API documentation with live request testing.
+
+**Features:**
+- Browse all API endpoints with request/response schemas
+- Test endpoints with authentication (API keys or session cookies)
+- Download OpenAPI 3.0 specification at `/openapi.json`
+- Search endpoints and schemas
+- Server selection (development, test, production)
+
+**Access:**
+```
+http://localhost:5173/api-docs      # Development server
+http://localhost:7173/api-docs      # Test server
+http://localhost:3030/api-docs      # Production server
+```
+
+📖 **See [API Documentation Guide](docs/contributing/api-documentation-guide.md)** for maintaining the OpenAPI spec and API explorer.
 
 ### Workspace Management
 

@@ -1,4 +1,5 @@
 <script>
+	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 
@@ -51,16 +52,16 @@
 		}
 	}
 
-	// Initialize socket connection
-	$effect(() => {
+	// Initialize socket connection on mount
+	onMount(() => {
 		connectSocket();
+	});
 
-		return () => {
-			if (socket) {
-				socket.disconnect();
-				socket = null;
-			}
-		};
+	onDestroy(() => {
+		if (socket) {
+			socket.disconnect();
+			socket = null;
+		}
 	});
 
 	// Derive display state

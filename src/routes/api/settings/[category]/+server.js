@@ -6,6 +6,11 @@
 
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * PUT /api/settings/{category}
@@ -26,7 +31,7 @@ export async function PUT({ params, request, locals }) {
 		// Auth must be handled in hooks only
 		if (!locals.auth?.authenticated) {
 			logger.info('SETTINGS_API', `Unauthenticated on PUT /api/settings/${params.category}`);
-			return json({ error: 'Authentication failed' }, { status: 401 });
+			throw new UnauthorizedError('Authentication required');
 		}
 
 		const { category } = params;
@@ -34,7 +39,7 @@ export async function PUT({ params, request, locals }) {
 
 		// Validate request body
 		if (!body.settings || typeof body.settings !== 'object') {
-			return json({ error: 'Missing or invalid settings object' }, { status: 400 });
+			throw new BadRequestError('Missing or invalid settings object', 'INVALID_SETTINGS_OBJECT');
 		}
 
 		const { settingsRepository } = locals.services;
@@ -71,9 +76,8 @@ export async function PUT({ params, request, locals }) {
 				'Cache-Control': 'no-cache, no-store, must-revalidate'
 			}
 		});
-	} catch (error) {
-		console.error('Settings update error:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, `PUT /api/settings/${params.category}`);
 	}
 }
 

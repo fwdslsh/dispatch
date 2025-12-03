@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { ServiceUnavailableError, BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * VS Code Remote Tunnel API
@@ -10,14 +11,13 @@ export async function GET({ url: _url, locals }) {
 	try {
 		const vscodeManager = locals.services?.vscodeManager;
 		if (!vscodeManager) {
-			return json({ error: 'VS Code tunnel manager not available' }, { status: 503 });
+			throw new ServiceUnavailableError('VS Code tunnel manager not available');
 		}
 
 		const status = vscodeManager.getStatus();
 		return json(status);
-	} catch (error) {
-		console.error('Failed to get VS Code tunnel status:', error);
-		return json({ error: 'Failed to get tunnel status' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'GET /api/admin/vscode-tunnel');
 	}
 }
 
@@ -28,7 +28,7 @@ export async function POST({ request, url: _url, locals }) {
 
 		const vscodeManager = locals.services?.vscodeManager;
 		if (!vscodeManager) {
-			return json({ error: 'VS Code tunnel manager not available' }, { status: 503 });
+			throw new ServiceUnavailableError('VS Code tunnel manager not available');
 		}
 
 		if (action === 'start') {
@@ -40,16 +40,15 @@ export async function POST({ request, url: _url, locals }) {
 				});
 				return json({ ok: true, state });
 			} catch (error) {
-				return json({ ok: false, error: error.message }, { status: 400 });
+				throw new BadRequestError(error.message, 'TUNNEL_START_FAILED');
 			}
 		} else if (action === 'stop') {
 			const success = await vscodeManager.stopTunnel();
 			return json({ ok: success });
 		} else {
-			return json({ ok: false, error: 'Invalid action' }, { status: 400 });
+			throw new BadRequestError('Invalid action', 'INVALID_ACTION');
 		}
-	} catch (error) {
-		console.error('VS Code tunnel API error:', error);
-		return json({ ok: false, error: 'Internal server error' }, { status: 500 });
+	} catch (err) {
+		handleApiError(err, 'POST /api/admin/vscode-tunnel');
 	}
 }

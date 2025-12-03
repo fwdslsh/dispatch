@@ -13,109 +13,82 @@
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 
 	// Props
 	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();
 
-	// State
-	let sessionType = $state(initialType);
-	let workspacePath = $state('');
-	let loading = $state(false);
-	let error = $state(null);
-	let sessionApi = $state(null);
-	// eslint-disable-next-line svelte/prefer-writable-derived -- sessionSettings is reset in multiple effects, not derived from single source
-	let sessionSettings = $state({});
+	// ViewModel (business logic)
+	let viewModel = $state(null);
 
-	// Reset settings when session type changes
+	// Get ViewModel from service container
 	$effect(() => {
-		sessionSettings = {};
-	});
-
-	// Get API client from service container
-	$effect(() => {
-		// Get the service container and initialize the API client
 		try {
 			const container = useServiceContainer();
-			const maybePromise = container.get('sessionApi');
-			if (maybePromise && typeof maybePromise.then === 'function') {
-				maybePromise
-					.then((api) => {
-						sessionApi = api;
+			const vmPromise = container.get('createSessionViewModel');
+			if (vmPromise && typeof vmPromise.then === 'function') {
+				vmPromise
+					.then((vm) => {
+						viewModel = vm;
+						// Initialize with the provided session type
+						viewModel.reset(initialType);
 					})
 					.catch((error) => {
-						console.error('Failed to get sessionApi from service container:', error);
-						// Don't fall back to static import - let the service container handle it
+						console.error('Failed to get createSessionViewModel from service container:', error);
 					});
 			} else {
-				sessionApi = maybePromise;
+				viewModel = vmPromise;
+				viewModel.reset(initialType);
 			}
 		} catch (e) {
 			console.error('Failed to access service container:', e);
-			// Don't fall back to static import - service container should be available
 		}
 	});
 
-	// Set default workspace path (will be set when modal opens)
-	async function setDefaultWorkspace() {
-		// Use the global defaultWorkspaceDirectory setting if available
-		if (!workspacePath) {
-			const defaultWorkspaceDirectory = settingsService.get('global.defaultWorkspaceDirectory', '');
-			workspacePath = defaultWorkspaceDirectory;
-		}
-	}
+	// Handle session creation (delegates to ViewModel)
+	async function handleCreateSession() {
+		if (!viewModel) return;
 
-	// Create session
-	async function createSession() {
-		if (!workspacePath) {
-			error = 'Please select a workspace';
-			return;
-		}
-
-		if (!sessionApi) {
-			error = 'API client not initialized';
-			return;
-		}
-
-		loading = true;
-		error = null;
-
-		try {
-			// Create the session using SessionApiClient
-			const session = await sessionApi.create({
-				type: sessionType,
-				workspacePath,
-				options: sessionSettings
-			});
-
+		const result = await viewModel.createSession();
+		if (result) {
+			// Success - notify parent and close modal
 			if (oncreated) {
 				oncreated({
-					id: session.id,
-					type: sessionType,
-					workspacePath,
-					typeSpecificId: session.typeSpecificId
+					id: result.id,
+					type: result.type,
+					workspacePath: result.workspacePath,
+					typeSpecificId: result.typeSpecificId
 				});
 			}
-			// Close the modal by setting open to false
 			open = false;
-		} catch (err) {
-			error = 'Error creating session: ' + err.message;
-		} finally {
-			loading = false;
 		}
+		// On failure, error is set in viewModel.error and displayed in UI
 	}
 
 	// Handle directory selection
 	function handleDirectorySelect(path) {
-		workspacePath = path;
+		if (viewModel) {
+			viewModel.setWorkspacePath(path);
+		}
 	}
 
-	// Load default workspace when modal opens
+	// Handle session type selection
+	function handleTypeSelect(type) {
+		if (viewModel) {
+			viewModel.setSessionType(type);
+		}
+	}
+
+	// Handle session settings update
+	function handleSettingsUpdate(settings) {
+		if (viewModel) {
+			viewModel.setSessionSettings(settings);
+		}
+	}
+
+	// Initialize when modal opens
 	$effect(() => {
-		if (open) {
-			setDefaultWorkspace();
-			error = null;
-			sessionSettings = {};
+		if (open && viewModel) {
+			viewModel.initialize();
 		}
 	});
 
@@ -146,9 +119,9 @@
 				<TypeCard
 					title="Claude Code"
 					description="AI-powered coding assistant"
-					active={sessionType === SESSION_TYPE.CLAUDE}
-					disabled={loading}
-					onclick={() => (sessionType = SESSION_TYPE.CLAUDE)}
+					active={viewModel?.sessionType === SESSION_TYPE.CLAUDE}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.CLAUDE)}
 					aria-label="Select Claude Code session type"
 					role="button"
 					tabindex="0"
@@ -158,9 +131,9 @@
 				<TypeCard
 					title="Terminal"
 					description="Direct shell access"
-					active={sessionType === SESSION_TYPE.PTY}
-					disabled={loading}
-					onclick={() => (sessionType = SESSION_TYPE.PTY)}
+					active={viewModel?.sessionType === SESSION_TYPE.PTY}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.PTY)}
 					aria-label="Select Terminal session type"
 					role="button"
 					tabindex="0"
@@ -170,9 +143,9 @@
 				<TypeCard
 					title="File Editor"
 					description="Browse, edit, and upload files"
-					active={sessionType === SESSION_TYPE.FILE_EDITOR}
-					disabled={loading}
-					onclick={() => (sessionType = SESSION_TYPE.FILE_EDITOR)}
+					active={viewModel?.sessionType === SESSION_TYPE.FILE_EDITOR}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.FILE_EDITOR)}
 					aria-label="Select File Editor session type"
 					role="button"
 					tabindex="0"
@@ -188,26 +161,30 @@
 
 			<div class="directory-browser-container surface border-2 border-primary-dim p-4">
 				<DirectoryBrowser
-					bind:selected={workspacePath}
-					startPath={workspacePath || settingsService.get('global.defaultWorkspaceDirectory', '')}
+					selected={viewModel?.workspacePath}
+					startPath={viewModel?.workspacePath || viewModel?.defaultWorkspace}
 					onSelect={handleDirectorySelect}
 				/>
 			</div>
 		</FormSection>
 
 		<!-- Session Type Settings -->
-		{#if sessionType}
-			{@const currentModule = getClientSessionModule(sessionType)}
+		{#if viewModel?.sessionType}
+			{@const currentModule = getClientSessionModule(viewModel.sessionType)}
 			{#if currentModule?.settingsComponent}
 				{@const SettingsComponent = currentModule.settingsComponent}
-				<SettingsComponent bind:settings={sessionSettings} disabled={loading} />
+				<SettingsComponent
+					bind:settings={viewModel.sessionSettings}
+					disabled={viewModel?.loading}
+					onupdate={handleSettingsUpdate}
+				/>
 			{/if}
 		{/if}
 
 		<!-- Error Display -->
-		{#if error}
+		{#if viewModel?.error}
 			<div class="error-message border border-err text-err p-3 font-mono text-sm text-center">
-				{error}
+				{viewModel.error}
 			</div>
 		{/if}
 	</div>
@@ -217,26 +194,26 @@
 			variant="ghost"
 			augmented="tl-clip br-clip both"
 			onclick={() => (open = false)}
-			disabled={loading}
+			disabled={viewModel?.loading}
 		>
 			Cancel
 		</Button>
 		<Button
 			variant="primary"
 			augmented="tl-clip br-clip both"
-			onclick={createSession}
-			disabled={loading || !workspacePath}
-			{loading}
+			onclick={handleCreateSession}
+			disabled={!viewModel?.canSubmit}
+			loading={viewModel?.loading}
 			hideTextOnLoading={false}
 		>
 			{#snippet icon()}
-				{#if loading}
+				{#if viewModel?.loading}
 					<IconBolt size={18} />
 				{:else}
 					<IconPlus size={18} />
 				{/if}
 			{/snippet}
-			{loading ? 'Creating...' : 'Create Session'}
+			{viewModel?.loading ? 'Creating...' : 'Create Session'}
 		</Button>
 	{/snippet}
 </Modal>

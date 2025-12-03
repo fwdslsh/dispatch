@@ -36,10 +36,12 @@ export class SessionViewModel {
 	/**
 	 * @param {import('../state/AppState.svelte.js').AppState} appStateManager
 	 * @param {import('../services/SessionApiClient.js').SessionApiClient} sessionApi
+	 * @param {import('../services/SettingsService.svelte.js').SettingsService} [settingsService] - Settings service for accessing configuration
 	 */
-	constructor(appStateManager, sessionApi) {
+	constructor(appStateManager, sessionApi, settingsService = null) {
 		this.appStateManager = appStateManager;
 		this.sessionApi = sessionApi;
+		this.settingsService = settingsService;
 
 		// Pure business state - no UI concerns
 		this.operationState = $state({
@@ -296,10 +298,22 @@ export class SessionViewModel {
 	}
 
 	/**
+	 * Remove a session from local state (without API call)
+	 * Used when session is closed via Socket.IO event
+	 * @param {string} sessionId - Session ID
+	 */
+	removeSession(sessionId) {
+		log.info('Removing session from local state', sessionId);
+		this.appStateManager.removeSession(sessionId);
+	}
+
+	/**
 	 * Close/terminate a session
 	 * @param {string} sessionId - Session ID
 	 */
 	async closeSession(sessionId) {
+		let apiSuccess = false;
+
 		try {
 			log.info('Closing session', sessionId);
 
@@ -309,41 +323,43 @@ export class SessionViewModel {
 			// Get session to obtain workspacePath for API call
 			const session = this.getSession(sessionId);
 			if (!session) {
-				throw new Error(`Session ${sessionId} not found`);
+				log.warn('Session not found in local state, removing anyway', sessionId);
+				// Session not in state, but still try to clean up
+				this.appStateManager.removeSession(sessionId);
+				return true;
 			}
 
-			// Ensure workspacePath is valid
-			const workspacePath = session.workspacePath || '';
-			if (!workspacePath) {
-				log.warn('Session has missing workspacePath, attempting fallback', sessionId);
-				// Try to get from current workspace selection as fallback
-				const currentWorkspace = this.appStateManager.workspaces.selectedWorkspace;
-				let fallbackPath = currentWorkspace?.path || '';
-
-				// If still no valid workspace path, use a default or force cleanup
-				if (!fallbackPath) {
-					log.warn('No valid workspace path available, forcing session cleanup', sessionId);
-					// Use a placeholder path for corrupted sessions
-					fallbackPath = '/tmp/corrupted-session-cleanup';
-				}
-
+			// Try to delete via API - this may fail, but we still want to clean up locally
+			try {
 				await this.sessionApi.delete(sessionId);
-			} else {
-				await this.sessionApi.delete(sessionId);
+				apiSuccess = true;
+				log.info('Session deleted from server successfully', sessionId);
+			} catch (apiError) {
+				log.warn('Failed to delete session from server, cleaning up locally anyway', {
+					sessionId,
+					error: apiError.message
+				});
+				// Continue to local cleanup even if API fails
 			}
 
-			// Dispatch session removal to AppStateManager
-			// Cleanup socket manager registration
-			// Socket cleanup handled automatically by RunSessionClient when detaching
+			// Always remove from local state to prevent zombie sessions
 			this.appStateManager.removeSession(sessionId);
 
-			log.info('Session closed successfully', sessionId);
+			log.info('Session closed and removed from local state', sessionId);
+			return true;
 		} catch (error) {
 			log.error('Failed to close session', error);
 			this.operationState.error = error.message || 'Failed to close session';
 
-			// Dispatch error
+			// Still try to remove from local state as last resort
+			try {
+				this.appStateManager.removeSession(sessionId);
+			} catch (removeError) {
+				log.error('Failed to remove session from state', removeError);
+			}
+
 			this.appStateManager.sessions.setError(error.message);
+			return false;
 		} finally {
 			this.sessionOperations.delete(sessionId);
 		}
@@ -613,6 +629,104 @@ export class SessionViewModel {
 	 */
 	getCurrentError() {
 		return this.operationState.error || this.appStateManager.ui.errors.sessions;
+	}
+
+	// =================================================================
+	// SETTINGS AND DEFAULTS
+	// =================================================================
+
+	/**
+	 * Get the default workspace directory from settings
+	 * @returns {string} Default workspace path
+	 */
+	getDefaultWorkspace() {
+		if (!this.settingsService) {
+			log.warn('Settings service not available, returning empty string');
+			return '';
+		}
+		return this.settingsService.get('global.defaultWorkspaceDirectory', '');
+	}
+
+	/**
+	 * Get default session options for a given session type
+	 * Processes settings the same way session-specific settings components do
+	 * @param {string} sessionType - Session type (e.g., 'claude', 'pty')
+	 * @returns {Object} Processed session options
+	 */
+	getDefaultSessionOptions(sessionType) {
+		if (!this.settingsService) {
+			log.warn('Settings service not available, returning empty options');
+			return {};
+		}
+
+		switch (sessionType) {
+			case SESSION_TYPE.CLAUDE: {
+				// Get raw values from settings service
+				const model = this.settingsService.get('claude.model', '');
+				const customSystemPrompt = this.settingsService.get('claude.customSystemPrompt', '');
+				const appendSystemPrompt = this.settingsService.get('claude.appendSystemPrompt', '');
+				const maxTurns = this.settingsService.get('claude.maxTurns', null);
+				const maxThinkingTokens = this.settingsService.get('claude.maxThinkingTokens', null);
+				const fallbackModel = this.settingsService.get('claude.fallbackModel', '');
+				const includePartialMessages = this.settingsService.get(
+					'claude.includePartialMessages',
+					false
+				);
+				const continueConversation = this.settingsService.get('claude.continueConversation', false);
+				const permissionMode = this.settingsService.get('claude.permissionMode', 'default');
+				const executable = this.settingsService.get('claude.executable', 'auto');
+				const executableArgs = this.settingsService.get('claude.executableArgs', '');
+				const allowedTools = this.settingsService.get('claude.allowedTools', '');
+				const disallowedTools = this.settingsService.get('claude.disallowedTools', '');
+				const additionalDirectories = this.settingsService.get('claude.additionalDirectories', '');
+				const strictMcpConfig = this.settingsService.get('claude.strictMcpConfig', false);
+
+				// Process settings the same way ClaudeSettings component does for session mode
+				const cleanSettings = {
+					model: model.trim() || undefined,
+					customSystemPrompt: customSystemPrompt.trim() || undefined,
+					appendSystemPrompt: appendSystemPrompt.trim() || undefined,
+					maxTurns: maxTurns || undefined,
+					maxThinkingTokens: maxThinkingTokens || undefined,
+					fallbackModel: fallbackModel.trim() || undefined,
+					includePartialMessages: includePartialMessages || undefined,
+					continue: continueConversation || undefined,
+					permissionMode: permissionMode !== 'default' ? permissionMode : undefined,
+					executable: executable !== 'auto' ? executable : undefined,
+					executableArgs: executableArgs.trim()
+						? executableArgs
+								.split(',')
+								.map((arg) => arg.trim())
+								.filter(Boolean)
+						: undefined,
+					allowedTools: allowedTools.trim()
+						? allowedTools
+								.split(',')
+								.map((tool) => tool.trim())
+								.filter(Boolean)
+						: undefined,
+					disallowedTools: disallowedTools.trim()
+						? disallowedTools
+								.split(',')
+								.map((tool) => tool.trim())
+								.filter(Boolean)
+						: undefined,
+					additionalDirectories: additionalDirectories.trim()
+						? additionalDirectories
+								.split(',')
+								.map((dir) => dir.trim())
+								.filter(Boolean)
+						: undefined,
+					strictMcpConfig: strictMcpConfig || undefined
+				};
+
+				// Filter out undefined values to keep payload clean
+				return Object.fromEntries(Object.entries(cleanSettings).filter(([_, v]) => v !== undefined));
+			}
+
+			default:
+				return {};
+		}
 	}
 
 	// =================================================================
