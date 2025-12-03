@@ -15,6 +15,7 @@ import parser from 'cron-parser';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { logger } from '../shared/utils/logger.js';
+import * as CronRepo from '../shared/db/CronRepository.js';
 
 /**
  * Generate unique ID for cron jobs
@@ -84,7 +85,7 @@ export class CronSchedulerService {
 			logger.info('CRON', 'Initializing CronSchedulerService...');
 
 			// Load all active jobs from database
-			const jobs = await this.db.listCronJobs('active');
+			const jobs = await CronRepo.listCronJobs(this.db, 'active');
 
 			logger.info('CRON', `Loading ${jobs.length} active cron jobs`);
 
@@ -129,7 +130,7 @@ export class CronSchedulerService {
 		};
 
 		// Save to database
-		await this.db.createCronJob(job);
+		await CronRepo.createCronJob(this.db, job);
 
 		// Schedule if active
 		if (job.status === 'active') {
@@ -168,7 +169,7 @@ export class CronSchedulerService {
 			logger.error('CRON', `Failed to schedule job ${job.id}:`, error);
 
 			// Update job status to error
-			await this.db.updateCronJob(job.id, {
+			await CronRepo.updateCronJob(this.db, job.id, {
 				status: 'error',
 				last_error: error.message
 			});
@@ -202,7 +203,7 @@ export class CronSchedulerService {
 			logger.info('CRON', `Executing job: ${job.name} (${job.id})`);
 
 			// Create log entry
-			logId = await this.db.createCronLog({
+			logId = await CronRepo.createCronLog(this.db, {
 				jobId: job.id,
 				startedAt: startTime,
 				status: 'running'
@@ -249,7 +250,7 @@ export class CronSchedulerService {
 			const status = exitCode === 0 ? 'success' : 'failed';
 
 			// Update log
-			await this.db.updateCronLog(logId, {
+			await CronRepo.updateCronLog(this.db, logId, {
 				completed_at: completedAt,
 				status,
 				exit_code: exitCode,
@@ -258,7 +259,7 @@ export class CronSchedulerService {
 			});
 
 			// Update job
-			await this.db.updateCronJob(job.id, {
+			await CronRepo.updateCronJob(this.db, job.id, {
 				last_run: startTime,
 				last_status: status,
 				last_error: status === 'failed' ? errorOutput.substring(0, 500) : null,
@@ -287,7 +288,7 @@ export class CronSchedulerService {
 				this.runningTasks.delete(logId);
 
 				// Update log
-				await this.db.updateCronLog(logId, {
+				await CronRepo.updateCronLog(this.db, logId, {
 					completed_at: completedAt,
 					status: 'failed',
 					error: error.message
@@ -295,7 +296,7 @@ export class CronSchedulerService {
 			}
 
 			// Update job
-			await this.db.updateCronJob(job.id, {
+			await CronRepo.updateCronJob(this.db, job.id, {
 				last_run: startTime,
 				last_status: 'failed',
 				last_error: error.message.substring(0, 500),
@@ -319,7 +320,7 @@ export class CronSchedulerService {
 	 * @returns {Promise<Object>} Updated job
 	 */
 	async updateJob(jobId, updates) {
-		const job = await this.db.getCronJob(jobId);
+		const job = await CronRepo.getCronJob(this.db, jobId);
 		if (!job) {
 			throw new Error(`Job not found: ${jobId}`);
 		}
@@ -336,7 +337,7 @@ export class CronSchedulerService {
 		}
 
 		// Update database
-		const updatedJob = await this.db.updateCronJob(jobId, updates);
+		const updatedJob = await CronRepo.updateCronJob(this.db, jobId, updates);
 
 		// Handle status changes
 		if (updates.status) {
@@ -385,7 +386,7 @@ export class CronSchedulerService {
 		this.unscheduleJob(jobId);
 
 		// Delete from database (cascade deletes logs)
-		await this.db.deleteCronJob(jobId);
+		await CronRepo.deleteCronJob(this.db, jobId);
 
 		// Emit update
 		this.emitUpdate('job:deleted', { id: jobId });
@@ -408,7 +409,7 @@ export class CronSchedulerService {
 	 * @returns {Promise<Object>} Job details
 	 */
 	async getJob(jobId) {
-		return await this.db.getCronJob(jobId);
+		return await CronRepo.getCronJob(this.db, jobId);
 	}
 
 	/**
@@ -418,7 +419,7 @@ export class CronSchedulerService {
 	 * @returns {Promise<Array>} Job execution logs
 	 */
 	async getJobLogs(jobId, limit = 100) {
-		return await this.db.getCronLogs(jobId, limit);
+		return await CronRepo.getCronLogs(this.db, jobId, limit);
 	}
 
 	/**
@@ -427,7 +428,7 @@ export class CronSchedulerService {
 	 * @returns {Promise<Array>} Recent execution logs
 	 */
 	async getAllLogs(limit = 100) {
-		return await this.db.getAllCronLogs(limit);
+		return await CronRepo.getAllCronLogs(this.db, limit);
 	}
 
 	/**

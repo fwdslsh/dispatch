@@ -39,7 +39,7 @@
 			<button class="close-btn" onclick={onCancel}>×</button>
 		</div>
 
-		<form onsubmit|preventDefault={handleSubmit}>
+		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
 			<div class="form-group">
 				<label for="name">Task Name *</label>
 				<input

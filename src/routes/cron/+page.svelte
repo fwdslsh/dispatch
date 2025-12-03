@@ -1,12 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
-	import { getServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { CRON_PRESETS, formatRelativeTime, formatDuration } from '$lib/shared/cron-utils.js';
 	import CronJobCard from './CronJobCard.svelte';
 	import CronJobForm from './CronJobForm.svelte';
 	import CronLogViewer from './CronLogViewer.svelte';
 
-	const container = getServiceContainer();
+	const container = useServiceContainer();
 	let cronService = $state(null);
 
 	let showCreateModal = $state(false);

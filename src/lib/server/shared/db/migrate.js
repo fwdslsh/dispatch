@@ -630,14 +630,63 @@ export function createMigrationManager(database) {
 		)
 	);
 
-	// Future migrations can be added here as new Migration instances
-	// Example:
-	// manager.registerMigration(new Migration(
-	//     4,
-	//     'Add workspace templates table',
-	//     'CREATE TABLE workspace_templates (...)',
-	//     'DROP TABLE workspace_templates'
-	// ));
+	// Migration 4: Cron job scheduling system
+	manager.registerMigration(
+		new Migration(
+			4,
+			'Cron job scheduling - jobs and execution logs',
+			[
+				// Cron jobs table for scheduled task management
+				`CREATE TABLE IF NOT EXISTS cron_jobs (
+					id TEXT PRIMARY KEY,
+					name TEXT NOT NULL,
+					description TEXT,
+					cron_expression TEXT NOT NULL,
+					command TEXT NOT NULL,
+					workspace_path TEXT,
+					status TEXT NOT NULL DEFAULT 'active',
+					last_run INTEGER,
+					last_status TEXT,
+					last_error TEXT,
+					next_run INTEGER,
+					run_count INTEGER DEFAULT 0,
+					created_at INTEGER NOT NULL,
+					updated_at INTEGER NOT NULL,
+					created_by TEXT DEFAULT 'default'
+				)`,
+
+				// Cron execution logs table for tracking task history
+				`CREATE TABLE IF NOT EXISTS cron_logs (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					job_id TEXT NOT NULL,
+					started_at INTEGER NOT NULL,
+					completed_at INTEGER,
+					status TEXT NOT NULL,
+					exit_code INTEGER,
+					output TEXT,
+					error TEXT,
+					FOREIGN KEY (job_id) REFERENCES cron_jobs(id) ON DELETE CASCADE
+				)`,
+
+				// Create indexes for cron_jobs
+				'CREATE INDEX IF NOT EXISTS ix_cron_jobs_status ON cron_jobs(status)',
+				'CREATE INDEX IF NOT EXISTS ix_cron_jobs_next_run ON cron_jobs(next_run)',
+
+				// Create indexes for cron_logs
+				'CREATE INDEX IF NOT EXISTS ix_cron_logs_job_id ON cron_logs(job_id)',
+				'CREATE INDEX IF NOT EXISTS ix_cron_logs_started_at ON cron_logs(started_at)'
+			],
+			[
+				// Rollback: Drop indexes and tables in reverse order
+				'DROP INDEX IF EXISTS ix_cron_logs_started_at',
+				'DROP INDEX IF EXISTS ix_cron_logs_job_id',
+				'DROP INDEX IF EXISTS ix_cron_jobs_next_run',
+				'DROP INDEX IF EXISTS ix_cron_jobs_status',
+				'DROP TABLE IF EXISTS cron_logs',
+				'DROP TABLE IF EXISTS cron_jobs'
+			]
+		)
+	);
 
 	return manager;
 }

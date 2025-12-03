@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '../utils/logger.js';
+import * as CronRepo from './CronRepository.js';
 
 const deriveWorkspaceName = (path) => {
 	if (!path) return 'Unnamed Workspace';
@@ -150,41 +151,8 @@ export class DatabaseManager {
 			)
 		`);
 
-		// Cron jobs table for scheduled task management
-		await this.run(`
-			CREATE TABLE IF NOT EXISTS cron_jobs (
-				id TEXT PRIMARY KEY,
-				name TEXT NOT NULL,
-				description TEXT,
-				cron_expression TEXT NOT NULL,
-				command TEXT NOT NULL,
-				workspace_path TEXT,
-				status TEXT NOT NULL DEFAULT 'active',     -- 'active', 'paused', 'error'
-				last_run INTEGER,
-				last_status TEXT,                          -- 'success', 'failed'
-				last_error TEXT,
-				next_run INTEGER,
-				run_count INTEGER DEFAULT 0,
-				created_at INTEGER NOT NULL,
-				updated_at INTEGER NOT NULL,
-				created_by TEXT DEFAULT 'default'
-			)
-		`);
-
-		// Cron execution logs table for tracking task history
-		await this.run(`
-			CREATE TABLE IF NOT EXISTS cron_logs (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				job_id TEXT NOT NULL,
-				started_at INTEGER NOT NULL,
-				completed_at INTEGER,
-				status TEXT NOT NULL,                      -- 'running', 'success', 'failed'
-				exit_code INTEGER,
-				output TEXT,
-				error TEXT,
-				FOREIGN KEY (job_id) REFERENCES cron_jobs(id) ON DELETE CASCADE
-			)
-		`);
+		// NOTE: Cron tables are created via Migration 4 (see migrate.js)
+		// cron_jobs and cron_logs tables with indexes
 
 		// Create indexes for performance
 		await this.run(
@@ -197,11 +165,6 @@ export class DatabaseManager {
 			'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)'
 		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_cron_jobs_status ON cron_jobs(status)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_cron_logs_job_id ON cron_logs(job_id)');
-		await this.run(
-			'CREATE INDEX IF NOT EXISTS ix_cron_logs_started_at ON cron_logs(started_at)'
-		);
 		// No index needed since category is the primary key
 	}
 
@@ -779,163 +742,45 @@ export class DatabaseManager {
 		return preferences;
 	}
 
-	// ========== CRON JOB MANAGEMENT ==========
+	// ========== CRON JOB MANAGEMENT (delegated to CronRepository) ==========
 
-	/**
-	 * Create a new cron job
-	 */
-	async createCronJob(job) {
-		const now = Date.now();
-		await this.run(
-			`INSERT INTO cron_jobs
-			 (id, name, description, cron_expression, command, workspace_path, status,
-			  next_run, created_at, updated_at, created_by)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			[
-				job.id,
-				job.name,
-				job.description || null,
-				job.cronExpression,
-				job.command,
-				job.workspacePath || null,
-				job.status || 'active',
-				job.nextRun || null,
-				now,
-				now,
-				job.createdBy || 'default'
-			]
-		);
-		return this.getCronJob(job.id);
-	}
-
-	/**
-	 * Get a cron job by ID
-	 */
-	async getCronJob(id) {
-		return await this.get('SELECT * FROM cron_jobs WHERE id = ?', [id]);
-	}
-
-	/**
-	 * List all cron jobs
-	 */
 	async listCronJobs(status = null) {
-		if (status) {
-			return await this.all('SELECT * FROM cron_jobs WHERE status = ? ORDER BY created_at DESC', [
-				status
-			]);
-		}
-		return await this.all('SELECT * FROM cron_jobs ORDER BY created_at DESC');
+		return await CronRepo.listCronJobs(this, status);
 	}
 
-	/**
-	 * Update a cron job
-	 */
+	async getCronJob(id) {
+		return await CronRepo.getCronJob(this, id);
+	}
+
+	async createCronJob(job) {
+		return await CronRepo.createCronJob(this, job);
+	}
+
 	async updateCronJob(id, updates) {
-		const fields = [];
-		const values = [];
-
-		// Build dynamic update query
-		const allowedFields = [
-			'name',
-			'description',
-			'cron_expression',
-			'command',
-			'workspace_path',
-			'status',
-			'last_run',
-			'last_status',
-			'last_error',
-			'next_run',
-			'run_count'
-		];
-
-		for (const field of allowedFields) {
-			if (updates[field] !== undefined) {
-				fields.push(`${field} = ?`);
-				values.push(updates[field]);
-			}
-		}
-
-		if (fields.length === 0) return;
-
-		fields.push('updated_at = ?');
-		values.push(Date.now());
-		values.push(id);
-
-		await this.run(`UPDATE cron_jobs SET ${fields.join(', ')} WHERE id = ?`, values);
-		return this.getCronJob(id);
+		return await CronRepo.updateCronJob(this, id, updates);
 	}
 
-	/**
-	 * Delete a cron job (cascade deletes logs)
-	 */
 	async deleteCronJob(id) {
-		await this.run('DELETE FROM cron_jobs WHERE id = ?', [id]);
+		return await CronRepo.deleteCronJob(this, id);
 	}
 
-	/**
-	 * Create a cron log entry
-	 */
 	async createCronLog(log) {
-		const result = await this.run(
-			`INSERT INTO cron_logs (job_id, started_at, completed_at, status, exit_code, output, error)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			[
-				log.jobId,
-				log.startedAt,
-				log.completedAt || null,
-				log.status,
-				log.exitCode !== undefined ? log.exitCode : null,
-				log.output || null,
-				log.error || null
-			]
-		);
-		return result.lastID;
+		return await CronRepo.createCronLog(this, log);
 	}
 
-	/**
-	 * Update a cron log entry
-	 */
 	async updateCronLog(id, updates) {
-		const fields = [];
-		const values = [];
-
-		const allowedFields = ['completed_at', 'status', 'exit_code', 'output', 'error'];
-
-		for (const field of allowedFields) {
-			if (updates[field] !== undefined) {
-				fields.push(`${field} = ?`);
-				values.push(updates[field]);
-			}
-		}
-
-		if (fields.length === 0) return;
-
-		values.push(id);
-		await this.run(`UPDATE cron_logs SET ${fields.join(', ')} WHERE id = ?`, values);
+		return await CronRepo.updateCronLog(this, id, updates);
 	}
 
-	/**
-	 * Get cron logs for a specific job
-	 */
 	async getCronLogs(jobId, limit = 100) {
-		return await this.all(
-			'SELECT * FROM cron_logs WHERE job_id = ? ORDER BY started_at DESC LIMIT ?',
-			[jobId, limit]
-		);
+		return await CronRepo.getCronLogs(this, jobId, limit);
 	}
 
-	/**
-	 * Get all recent cron logs
-	 */
 	async getAllCronLogs(limit = 100) {
-		return await this.all('SELECT * FROM cron_logs ORDER BY started_at DESC LIMIT ?', [limit]);
+		return await CronRepo.getAllCronLogs(this, limit);
 	}
 
-	/**
-	 * Delete old cron logs (cleanup)
-	 */
 	async deleteOldCronLogs(olderThanTimestamp) {
-		await this.run('DELETE FROM cron_logs WHERE started_at < ?', [olderThanTimestamp]);
+		return await CronRepo.deleteOldCronLogs(this, olderThanTimestamp);
 	}
 }
