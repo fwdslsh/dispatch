@@ -66,8 +66,9 @@ chmod +x ~/bin/dispatch
 6. **Update to latest version:**
 
    ```bash
-   dispatch update                # Update Docker image
-   dispatch update --cli          # Update CLI script
+   dispatch update                     # Update both CLI and container
+   dispatch update --cli-only          # Update only CLI script
+   dispatch update --container-only    # Update only container
    ```
 
 ## Commands
@@ -157,39 +158,61 @@ dispatch versions -a
 
 ### `dispatch version`
 
-Show the installed CLI version:
+Show both CLI and Docker container versions:
 
 ```bash
 dispatch version
 ```
 
+**Output includes:**
+
+- CLI version number
+- Docker container image and tag
+- Resolved version if using "latest" tag
+- Container creation date
+- Container status (running/stopped)
+
 ### `dispatch update [options]`
 
-Update Docker image or CLI script:
+Update CLI script and/or Docker image:
 
 ```bash
-# Update Docker image to latest
+# Update both CLI and container (default)
 dispatch update
 
-# Update the dispatch CLI script itself
-dispatch update --cli
+# Update only the CLI script
+dispatch update --cli-only
+
+# Update only the Docker container
+dispatch update --container-only
 ```
 
 #### Options
 
-- `--cli` - Update the dispatch CLI script from GitHub instead of the Docker image
+- `--cli-only` - Update only the dispatch CLI script from GitHub
+- `--container-only` - Update only the Docker container image
+- (default: updates both CLI and container)
 
-**What `dispatch update` does:**
+**What `dispatch update` does (default):**
 
-- Stops the current container if running
-- Pulls the latest `fwdslsh/dispatch:latest` image
-- Restarts the container if it was previously running
+1. Updates the CLI script from GitHub
+2. Stops the current container if running
+3. Pulls the latest `fwdslsh/dispatch:latest` image
+4. Restarts the container if it was previously running
 
-**What `dispatch update --cli` does:**
+**What `dispatch update --cli-only` does:**
 
 - Downloads and runs the latest install script from GitHub
 - Updates the dispatch CLI script in place
+- Does not touch the Docker container
 - Preserves your existing configuration
+
+**What `dispatch update --container-only` does:**
+
+- Stops the current container if running
+- Pulls the latest Docker image
+- Restarts the container if it was previously running
+- Does not update the CLI script
 
 ### `dispatch status`
 

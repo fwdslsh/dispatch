@@ -35,11 +35,12 @@ _Note: Requires bash and Docker_
 **Manage versions and updates:**
 
 ```bash
-dispatch versions              # List available Docker versions
-dispatch start -v v1.2.3       # Start with specific version
-dispatch update                # Update Docker image
-dispatch update --cli          # Update dispatch CLI script
-dispatch version               # Show CLI version
+dispatch version                    # Show CLI and Docker versions
+dispatch versions                   # List available Docker versions
+dispatch start -v v1.2.3            # Start with specific version
+dispatch update                     # Update both CLI and container
+dispatch update --cli-only          # Update only CLI script
+dispatch update --container-only    # Update only container
 ```
 
 📖 **[Quick Start Guide](docs/quickstart.md)** - Complete setup and usage walkthrough

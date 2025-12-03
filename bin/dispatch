@@ -295,15 +295,20 @@ cmd_stop() {
     fi
 }
 
-# Update command - update Docker image or CLI script
+# Update command - update Docker image and/or CLI script
 cmd_update() {
-    local update_cli=false
+    local update_cli=true
+    local update_container=true
 
     # Parse command line options
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --cli)
-                update_cli=true
+            --cli-only)
+                update_container=false
+                shift
+                ;;
+            --container-only)
+                update_cli=false
                 shift
                 ;;
             *)
@@ -313,8 +318,8 @@ cmd_update() {
         esac
     done
 
+    # Update CLI if requested
     if [[ "$update_cli" == "true" ]]; then
-        # Update the CLI script itself
         log_info "Updating dispatch CLI script from GitHub..."
 
         # Check if curl is available
@@ -327,13 +332,14 @@ cmd_update() {
         log_info "Downloading latest install script..."
         if curl -fsSL https://raw.githubusercontent.com/fwdslsh/dispatch/main/install.sh | bash; then
             log_success "CLI script updated successfully!"
-            log_info "Run 'dispatch --version' to verify the new version"
         else
             log_error "Failed to update CLI script"
             exit 1
         fi
-    else
-        # Update Docker image (default behavior)
+    fi
+
+    # Update Docker image if requested
+    if [[ "$update_container" == "true" ]]; then
         check_docker
 
         local was_running=false
@@ -356,6 +362,10 @@ cmd_update() {
             log_error "Failed to pull latest image"
             exit 1
         fi
+    fi
+
+    if [[ "$update_cli" == "true" ]] || [[ "$update_container" == "true" ]]; then
+        log_success "Update complete!"
     fi
 }
 
@@ -380,6 +390,62 @@ cmd_status() {
         fi
     else
         log_warn "Container '$CONTAINER_NAME' exists but is not running ($status)"
+    fi
+}
+
+# Version command - show CLI and Docker versions
+cmd_version() {
+    echo -e "${BLUE}Dispatch CLI${NC}"
+    echo -e "  Version: ${GREEN}v$VERSION${NC}"
+    echo
+
+    # Check if Docker is available
+    if ! command -v docker >/dev/null 2>&1; then
+        log_warn "Docker not available - cannot check container version"
+        return 0
+    fi
+
+    # Check if container exists
+    if docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        echo -e "${BLUE}Docker Container${NC}"
+
+        # Get image name
+        local image=$(docker inspect "$CONTAINER_NAME" --format='{{.Config.Image}}' 2>/dev/null)
+        if [[ -n "$image" ]]; then
+            echo -e "  Image: ${GREEN}$image${NC}"
+
+            # Extract tag from image name
+            local tag="${image##*:}"
+
+            # If it's latest, try to resolve to actual version
+            if [[ "$tag" == "latest" ]] || [[ "$tag" == "$image" ]]; then
+                if command -v curl >/dev/null 2>&1; then
+                    local latest_tag=$(curl -s "https://hub.docker.com/v2/repositories/fwdslsh/dispatch/tags?page_size=1" 2>/dev/null | \
+                        grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+                    if [[ -n "$latest_tag" ]]; then
+                        echo -e "  Latest tag: ${GREEN}$latest_tag${NC}"
+                    fi
+                fi
+            fi
+
+            # Get image creation date
+            local created=$(docker inspect "$CONTAINER_NAME" --format='{{.Created}}' 2>/dev/null)
+            if [[ -n "$created" ]]; then
+                created=$(date -d "$created" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$created")
+                echo -e "  Created: ${BLUE}$created${NC}"
+            fi
+        fi
+
+        # Show container status
+        local status=$(get_container_status)
+        if is_container_running; then
+            echo -e "  Status: ${GREEN}Running${NC}"
+        elif [[ -n "$status" ]]; then
+            echo -e "  Status: ${YELLOW}Stopped${NC}"
+        fi
+    else
+        log_info "No container found. Run 'dispatch start' to create one."
     fi
 }
 
@@ -609,7 +675,9 @@ START OPTIONS:
     --workspace <PATH>          Workspace directory (default: ~/workspace)
 
 UPDATE OPTIONS:
-    --cli                       Update the dispatch CLI script itself
+    --cli-only                  Update only the CLI script (not the container)
+    --container-only            Update only the container (not the CLI script)
+    (default: updates both CLI and container)
 
 ENVIRONMENT VARIABLES (in .env file):
     SSL_MODE                    SSL mode: none (HTTP only), self-signed, or letsencrypt
@@ -629,7 +697,7 @@ CONNECT OPTIONS:
     -u, --user <USER>           SSH username (default: dispatch)
 
 EXAMPLES:
-    dispatch version                    Show CLI version
+    dispatch version                    Show CLI and Docker versions
     dispatch init                       Initialize environment
     dispatch start                      Start with default settings (uses latest)
     dispatch start -p 8080              Start on port 8080
@@ -639,8 +707,9 @@ EXAMPLES:
     dispatch versions --limit 50        Show 50 most recent versions
     dispatch attach                     Attach to running container
     dispatch stop                       Stop the container
-    dispatch update                     Update Docker image to latest
-    dispatch update --cli               Update dispatch CLI script
+    dispatch update                     Update both CLI and container
+    dispatch update --cli-only          Update only CLI script
+    dispatch update --container-only    Update only container
     dispatch connect myserver           Connect to remote instance
     dispatch connect myserver --port 2223 --key ~/.ssh/custom_key
 
@@ -684,7 +753,7 @@ main() {
             cmd_connect "$@"
             ;;
         version|--version|-V)
-            echo "Dispatch CLI v$VERSION"
+            cmd_version "$@"
             ;;
         help|--help|-h)
             show_help
