@@ -30,6 +30,19 @@
 		<BrandLogo />
 	</div>
 
+	<!-- Navigation Links -->
+	<nav class="header-nav">
+		<a href="/workspace" class="nav-link" class:active={globalThis.location?.pathname === '/workspace'}>
+			Workspace
+		</a>
+		<a href="/cron" class="nav-link" class:active={globalThis.location?.pathname === '/cron'}>
+			Cron Jobs
+		</a>
+		<a href="/settings" class="nav-link" class:active={globalThis.location?.pathname === '/settings'}>
+			Settings
+		</a>
+	</nav>
+
 	<div class="flex-1"></div>
 
 	<!-- Tunnel indicator -->
@@ -62,11 +75,41 @@
 		gap: var(--space-3);
 	}
 
+	.header-nav {
+		display: flex;
+		gap: var(--space-2);
+		align-items: center;
+	}
+
+	.nav-link {
+		padding: var(--space-2) var(--space-3);
+		font-size: var(--font-size-sm);
+		font-weight: 500;
+		color: var(--text-secondary);
+		text-decoration: none;
+		border-radius: var(--radius-md);
+		transition: all 0.2s ease;
+	}
+
+	.nav-link:hover {
+		color: var(--text-primary);
+		background: var(--bg-hover);
+	}
+
+	.nav-link.active {
+		color: var(--text-primary);
+		background: var(--bg-secondary);
+	}
+
 	@media (max-width: 800px) {
 		.workspace-header {
 			padding: var(--space-2) var(--space-3);
 			padding-block: 0;
 			gap: var(--space-2);
+		}
+
+		.header-nav {
+			display: none;
 		}
 	}
 </style>

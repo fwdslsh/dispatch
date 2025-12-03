@@ -236,13 +236,6 @@
 		gap: var(--space-2);
 	}
 
-	.form-label {
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		font-weight: 500;
-	}
-
 	.form-input {
 		width: 100%;
 		padding: var(--space-3);

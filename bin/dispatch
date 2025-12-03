@@ -149,7 +149,8 @@ cmd_start() {
     local env_file="$HOME/.dispatch/.env"
     local dispatch_home="$HOME/.dispatch"
     local workspace_dir="$HOME/workspace"
-    
+    local version="${DISPATCH_VERSION:-latest}"
+
     # Parse command line options
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -167,6 +168,10 @@ cmd_start() {
                 ;;
             --workspace)
                 workspace_dir="$2"
+                shift 2
+                ;;
+            -v|--version)
+                version="$2"
                 shift 2
                 ;;
             *)
@@ -212,11 +217,15 @@ cmd_start() {
     log_info "Dispatch home: $dispatch_home"
     log_info "Workspace: $workspace_dir"
     log_info "Port: $port"
-    
+    log_info "Version: $version"
+
     # Get current user UID/GID for proper file permissions
     local uid=$(id -u)
     local gid=$(id -g)
-    
+
+    # Build Docker image name with specified version
+    local docker_image="fwdslsh/dispatch:$version"
+
     # Start the container
     docker run -d \
         --name "$CONTAINER_NAME" \
@@ -227,7 +236,7 @@ cmd_start() {
         -e "HOST_GID=$gid" \
         -v "$dispatch_home:/home/dispatch" \
         -v "$workspace_dir:/workspace" \
-        "$DOCKER_IMAGE"
+        "$docker_image"
     
     # Wait a moment for container to start
     sleep 3
@@ -286,29 +295,77 @@ cmd_stop() {
     fi
 }
 
-# Update command - update to latest Docker image
+# Update command - update Docker image and/or CLI script
 cmd_update() {
-    check_docker
-    
-    local was_running=false
-    if is_container_running; then
-        was_running=true
-        log_info "Stopping running container for update..."
-        cmd_stop
-    fi
-    
-    log_info "Pulling latest Docker image: $DOCKER_IMAGE"
-    
-    if docker pull "$DOCKER_IMAGE"; then
-        log_success "Successfully updated to latest image"
-        
-        if [[ "$was_running" == "true" ]]; then
-            log_info "Restarting container with new image..."
-            cmd_start
+    local update_cli=true
+    local update_container=true
+
+    # Parse command line options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --cli-only)
+                update_container=false
+                shift
+                ;;
+            --container-only)
+                update_cli=false
+                shift
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    # Update CLI if requested
+    if [[ "$update_cli" == "true" ]]; then
+        log_info "Updating dispatch CLI script from GitHub..."
+
+        # Check if curl is available
+        if ! command -v curl >/dev/null 2>&1; then
+            log_error "curl is required to update the CLI"
+            exit 1
         fi
-    else
-        log_error "Failed to pull latest image"
-        exit 1
+
+        # Download and execute the install script
+        log_info "Downloading latest install script..."
+        if curl -fsSL https://raw.githubusercontent.com/fwdslsh/dispatch/main/install.sh | bash; then
+            log_success "CLI script updated successfully!"
+        else
+            log_error "Failed to update CLI script"
+            exit 1
+        fi
+    fi
+
+    # Update Docker image if requested
+    if [[ "$update_container" == "true" ]]; then
+        check_docker
+
+        local was_running=false
+        if is_container_running; then
+            was_running=true
+            log_info "Stopping running container for update..."
+            cmd_stop
+        fi
+
+        log_info "Pulling latest Docker image: $DOCKER_IMAGE"
+
+        if docker pull "$DOCKER_IMAGE"; then
+            log_success "Successfully updated to latest image"
+
+            if [[ "$was_running" == "true" ]]; then
+                log_info "Restarting container with new image..."
+                cmd_start
+            fi
+        else
+            log_error "Failed to pull latest image"
+            exit 1
+        fi
+    fi
+
+    if [[ "$update_cli" == "true" ]] || [[ "$update_container" == "true" ]]; then
+        log_success "Update complete!"
     fi
 }
 
@@ -333,6 +390,128 @@ cmd_status() {
         fi
     else
         log_warn "Container '$CONTAINER_NAME' exists but is not running ($status)"
+    fi
+}
+
+# Version command - show CLI and Docker versions
+cmd_version() {
+    echo -e "${BLUE}Dispatch CLI${NC}"
+    echo -e "  Version: ${GREEN}v$VERSION${NC}"
+    echo
+
+    # Check if Docker is available
+    if ! command -v docker >/dev/null 2>&1; then
+        log_warn "Docker not available - cannot check container version"
+        return 0
+    fi
+
+    # Check if container exists
+    if docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        echo -e "${BLUE}Docker Container${NC}"
+
+        # Get image name
+        local image=$(docker inspect "$CONTAINER_NAME" --format='{{.Config.Image}}' 2>/dev/null)
+        if [[ -n "$image" ]]; then
+            echo -e "  Image: ${GREEN}$image${NC}"
+
+            # Extract tag from image name
+            local tag="${image##*:}"
+
+            # If it's latest, try to resolve to actual version
+            if [[ "$tag" == "latest" ]] || [[ "$tag" == "$image" ]]; then
+                if command -v curl >/dev/null 2>&1; then
+                    local latest_tag=$(curl -s "https://hub.docker.com/v2/repositories/fwdslsh/dispatch/tags?page_size=1" 2>/dev/null | \
+                        grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+                    if [[ -n "$latest_tag" ]]; then
+                        echo -e "  Latest tag: ${GREEN}$latest_tag${NC}"
+                    fi
+                fi
+            fi
+
+            # Get image creation date
+            local created=$(docker inspect "$CONTAINER_NAME" --format='{{.Created}}' 2>/dev/null)
+            if [[ -n "$created" ]]; then
+                created=$(date -d "$created" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$created")
+                echo -e "  Created: ${BLUE}$created${NC}"
+            fi
+        fi
+
+        # Show container status
+        local status=$(get_container_status)
+        if is_container_running; then
+            echo -e "  Status: ${GREEN}Running${NC}"
+        elif [[ -n "$status" ]]; then
+            echo -e "  Status: ${YELLOW}Stopped${NC}"
+        fi
+    else
+        log_info "No container found. Run 'dispatch start' to create one."
+    fi
+}
+
+# Versions command - list available Docker image versions from Docker Hub
+cmd_versions() {
+    local limit=25
+    local show_all=false
+
+    # Parse command line options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --all|-a)
+                show_all=true
+                limit=100
+                shift
+                ;;
+            --limit|-l)
+                limit="$2"
+                shift 2
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    # Check if curl is available
+    if ! command -v curl >/dev/null 2>&1; then
+        log_error "curl is required to fetch version information"
+        exit 1
+    fi
+
+    log_info "Fetching available versions from Docker Hub..."
+
+    # Fetch tags from Docker Hub API
+    local api_url="https://hub.docker.com/v2/repositories/fwdslsh/dispatch/tags?page_size=$limit"
+    local response=$(curl -s "$api_url")
+
+    if [[ $? -ne 0 ]] || [[ -z "$response" ]]; then
+        log_error "Failed to fetch version information from Docker Hub"
+        exit 1
+    fi
+
+    # Check if jq is available for better JSON parsing
+    if command -v jq >/dev/null 2>&1; then
+        # Use jq for nice formatting
+        echo "$response" | jq -r '.results[] | "\(.name)\t\(.last_updated // "N/A")"' | \
+        while IFS=$'\t' read -r name updated; do
+            # Format the date if it's not N/A
+            if [[ "$updated" != "N/A" ]]; then
+                updated=$(date -d "$updated" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$updated")
+            fi
+            printf "${GREEN}%-20s${NC} ${BLUE}%s${NC}\n" "$name" "$updated"
+        done
+    else
+        # Fallback: simple grep parsing
+        log_warn "Install 'jq' for better formatted output"
+        echo "$response" | grep -o '"name":"[^"]*"' | cut -d'"' -f4 | while read -r tag; do
+            echo -e "${GREEN}$tag${NC}"
+        done
+    fi
+
+    if [[ "$show_all" == "false" ]] && [[ "$limit" -lt 100 ]]; then
+        echo
+        log_info "Showing $limit most recent versions. Use --all to see more, or --limit N to set a custom limit."
     fi
 }
 
@@ -482,15 +661,23 @@ COMMANDS:
     stop                 Stop the Dispatch container
     update               Update to the latest Docker image
     status               Show container status
+    versions             List available Docker image versions from Docker Hub
     attach               Attach interactive shell to running container
     connect              Connect to remote dispatch instance via SSH
+    version              Show CLI version
     help                 Show this help message
 
 START OPTIONS:
     -p, --port <PORT>           Port for web interface (default: $DEFAULT_PORT)
+    -v, --version <VERSION>     Docker image version/tag (default: latest)
     --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
-    --home <PATH>      Dispatch home directory (default: ~/.dispatch)
+    --home <PATH>               Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
+
+UPDATE OPTIONS:
+    --cli-only                  Update only the CLI script (not the container)
+    --container-only            Update only the container (not the CLI script)
+    (default: updates both CLI and container)
 
 ENVIRONMENT VARIABLES (in .env file):
     SSL_MODE                    SSL mode: none (HTTP only), self-signed, or letsencrypt
@@ -500,19 +687,30 @@ ENVIRONMENT VARIABLES (in .env file):
     TERMINAL_KEY                Authentication key for web interface
     ENABLE_TUNNEL              Enable public URL via LocalTunnel (true/false)
 
+VERSIONS OPTIONS:
+    -l, --limit <N>             Number of versions to show (default: 25)
+    -a, --all                   Show more versions (sets limit to 100)
+
 CONNECT OPTIONS:
     -p, --port <PORT>           SSH port (default: 2222)
     -k, --key <PATH>            SSH private key file (auto-detected if not specified)
     -u, --user <USER>           SSH username (default: dispatch)
 
 EXAMPLES:
-    dispatch init               Initialize environment
-    dispatch start              Start with default settings
-    dispatch start -p 8080      Start on port 8080
-    dispatch attach             Attach to running container
-    dispatch stop               Stop the container
-    dispatch update             Update to latest version
-    dispatch connect myserver   Connect to remote instance
+    dispatch version                    Show CLI and Docker versions
+    dispatch init                       Initialize environment
+    dispatch start                      Start with default settings (uses latest)
+    dispatch start -p 8080              Start on port 8080
+    dispatch start --version v1.2.3     Start with specific version
+    dispatch start -v stable            Start with stable tag
+    dispatch versions                   List available versions
+    dispatch versions --limit 50        Show 50 most recent versions
+    dispatch attach                     Attach to running container
+    dispatch stop                       Stop the container
+    dispatch update                     Update both CLI and container
+    dispatch update --cli-only          Update only CLI script
+    dispatch update --container-only    Update only container
+    dispatch connect myserver           Connect to remote instance
     dispatch connect myserver --port 2223 --key ~/.ssh/custom_key
 
 For more information, visit: https://github.com/fwdslsh/dispatch
@@ -545,11 +743,17 @@ main() {
         status)
             cmd_status "$@"
             ;;
+        versions)
+            cmd_versions "$@"
+            ;;
         attach)
             cmd_attach "$@"
             ;;
         connect)
             cmd_connect "$@"
+            ;;
+        version|--version|-V)
+            cmd_version "$@"
             ;;
         help|--help|-h)
             show_help

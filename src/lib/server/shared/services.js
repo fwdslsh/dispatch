@@ -31,6 +31,9 @@ import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 
+// Cron scheduler
+import { CronSchedulerService } from '../cron/CronSchedulerService.js';
+
 /**
  * Services object containing all initialized application services
  *
@@ -58,6 +61,7 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {PtyAdapter} ptyAdapter
  * @property {ClaudeAdapter} claudeAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
+ * @property {CronSchedulerService} cronScheduler
  * @property {() => DatabaseManager} getDatabase
  */
 
@@ -138,6 +142,9 @@ export async function createServices(config = {}) {
 	adapterRegistry.register(SESSION_TYPE.CLAUDE, claudeAdapter);
 	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
+	// Layer 8: Cron scheduler (needs db, will get io instance later)
+	const cronScheduler = new CronSchedulerService(db, null);
+
 	return {
 		// Core
 		config: configService,
@@ -173,6 +180,9 @@ export async function createServices(config = {}) {
 		ptyAdapter,
 		claudeAdapter,
 		fileEditorAdapter,
+
+		// Cron scheduler
+		cronScheduler,
 
 		// Convenience methods
 		getDatabase: () => db
@@ -225,6 +235,10 @@ export async function initializeServices(config = {}) {
 		// Initialize tunnel managers
 		await services.tunnelManager.init();
 		await services.vscodeManager.init();
+
+		// Initialize cron scheduler
+		await services.cronScheduler.init();
+		logger.info('SERVICES', 'Cron scheduler initialized');
 
 		logger.info('SERVICES', 'Services initialized successfully');
 		logger.info('SERVICES', `SessionOrchestrator stats:`, services.sessionOrchestrator.getStats());

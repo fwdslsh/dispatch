@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '../utils/logger.js';
+import * as CronRepo from './CronRepository.js';
 
 const deriveWorkspaceName = (path) => {
 	if (!path) return 'Unnamed Workspace';
@@ -149,6 +150,9 @@ export class DatabaseManager {
 				PRIMARY KEY (user_id, category)
 			)
 		`);
+
+		// NOTE: Cron tables are created via Migration 4 (see migrate.js)
+		// cron_jobs and cron_logs tables with indexes
 
 		// Create indexes for performance
 		await this.run(
@@ -736,5 +740,47 @@ export class DatabaseManager {
 		await this.run(sql, [userId, category, preferencesJson, new Date().toISOString()]);
 
 		return preferences;
+	}
+
+	// ========== CRON JOB MANAGEMENT (delegated to CronRepository) ==========
+
+	async listCronJobs(status = null) {
+		return await CronRepo.listCronJobs(this, status);
+	}
+
+	async getCronJob(id) {
+		return await CronRepo.getCronJob(this, id);
+	}
+
+	async createCronJob(job) {
+		return await CronRepo.createCronJob(this, job);
+	}
+
+	async updateCronJob(id, updates) {
+		return await CronRepo.updateCronJob(this, id, updates);
+	}
+
+	async deleteCronJob(id) {
+		return await CronRepo.deleteCronJob(this, id);
+	}
+
+	async createCronLog(log) {
+		return await CronRepo.createCronLog(this, log);
+	}
+
+	async updateCronLog(id, updates) {
+		return await CronRepo.updateCronLog(this, id, updates);
+	}
+
+	async getCronLogs(jobId, limit = 100) {
+		return await CronRepo.getCronLogs(this, jobId, limit);
+	}
+
+	async getAllCronLogs(limit = 100) {
+		return await CronRepo.getAllCronLogs(this, limit);
+	}
+
+	async deleteOldCronLogs(olderThanTimestamp) {
+		return await CronRepo.deleteOldCronLogs(this, olderThanTimestamp);
 	}
 }
