@@ -149,7 +149,8 @@ cmd_start() {
     local env_file="$HOME/.dispatch/.env"
     local dispatch_home="$HOME/.dispatch"
     local workspace_dir="$HOME/workspace"
-    
+    local version="${DISPATCH_VERSION:-latest}"
+
     # Parse command line options
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -167,6 +168,10 @@ cmd_start() {
                 ;;
             --workspace)
                 workspace_dir="$2"
+                shift 2
+                ;;
+            -v|--version)
+                version="$2"
                 shift 2
                 ;;
             *)
@@ -212,11 +217,15 @@ cmd_start() {
     log_info "Dispatch home: $dispatch_home"
     log_info "Workspace: $workspace_dir"
     log_info "Port: $port"
-    
+    log_info "Version: $version"
+
     # Get current user UID/GID for proper file permissions
     local uid=$(id -u)
     local gid=$(id -g)
-    
+
+    # Build Docker image name with specified version
+    local docker_image="fwdslsh/dispatch:$version"
+
     # Start the container
     docker run -d \
         --name "$CONTAINER_NAME" \
@@ -227,7 +236,7 @@ cmd_start() {
         -e "HOST_GID=$gid" \
         -v "$dispatch_home:/home/dispatch" \
         -v "$workspace_dir:/workspace" \
-        "$DOCKER_IMAGE"
+        "$docker_image"
     
     # Wait a moment for container to start
     sleep 3
@@ -488,8 +497,9 @@ COMMANDS:
 
 START OPTIONS:
     -p, --port <PORT>           Port for web interface (default: $DEFAULT_PORT)
+    -v, --version <VERSION>     Docker image version/tag (default: latest)
     --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
-    --home <PATH>      Dispatch home directory (default: ~/.dispatch)
+    --home <PATH>               Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
 
 ENVIRONMENT VARIABLES (in .env file):
@@ -506,13 +516,15 @@ CONNECT OPTIONS:
     -u, --user <USER>           SSH username (default: dispatch)
 
 EXAMPLES:
-    dispatch init               Initialize environment
-    dispatch start              Start with default settings
-    dispatch start -p 8080      Start on port 8080
-    dispatch attach             Attach to running container
-    dispatch stop               Stop the container
-    dispatch update             Update to latest version
-    dispatch connect myserver   Connect to remote instance
+    dispatch init                       Initialize environment
+    dispatch start                      Start with default settings (uses latest)
+    dispatch start -p 8080              Start on port 8080
+    dispatch start --version v1.2.3     Start with specific version
+    dispatch start -v stable            Start with stable tag
+    dispatch attach                     Attach to running container
+    dispatch stop                       Stop the container
+    dispatch update                     Update to latest version
+    dispatch connect myserver           Connect to remote instance
     dispatch connect myserver --port 2223 --key ~/.ssh/custom_key
 
 For more information, visit: https://github.com/fwdslsh/dispatch
