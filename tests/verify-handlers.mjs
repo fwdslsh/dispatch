@@ -2,7 +2,7 @@
  * Verification script to check all event types are handled
  */
 
-import { ClaudeEventHandlers } from './src/lib/client/claude/services/EventHandlers.js';
+import { ClaudeEventHandlers } from '../src/lib/client/claude/services/EventHandlers.js';
 
 // Mock ViewModel for testing
 class MockViewModel {

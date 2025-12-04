@@ -30,10 +30,23 @@
 		formData.cronExpression = preset.value;
 		usePreset = true;
 	}
+
+	function handleKeyDown(event) {
+		if (event.key === 'Escape') {
+			onCancel();
+		}
+	}
+
+	function handleOverlayClick(event) {
+		if (event.target === event.currentTarget) {
+			onCancel();
+		}
+	}
 </script>
 
-<div class="modal-overlay" onclick={onCancel}>
-	<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="modal-overlay" onclick={handleOverlayClick} onkeydown={handleKeyDown}>
+	<div class="modal-content">
 		<div class="modal-header">
 			<h2>{job ? 'Edit Task' : 'Create New Task'}</h2>
 			<button class="close-btn" onclick={onCancel}>×</button>

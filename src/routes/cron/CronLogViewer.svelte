@@ -2,10 +2,23 @@
 	import { formatRelativeTime, formatDuration } from '$lib/shared/cron-utils.js';
 
 	let { job, logs, onClose } = $props();
+
+	function handleKeyDown(event) {
+		if (event.key === 'Escape') {
+			onClose();
+		}
+	}
+
+	function handleOverlayClick(event) {
+		if (event.target === event.currentTarget) {
+			onClose();
+		}
+	}
 </script>
 
-<div class="modal-overlay" onclick={onClose}>
-	<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="modal-overlay" onclick={handleOverlayClick} onkeydown={handleKeyDown}>
+	<div class="modal-content">
 		<div class="modal-header">
 			<div>
 				<h2>Execution History</h2>

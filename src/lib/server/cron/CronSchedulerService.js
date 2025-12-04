@@ -400,7 +400,7 @@ export class CronSchedulerService {
 	 * @returns {Promise<Array>} List of jobs
 	 */
 	async listJobs(status = null) {
-		return await this.db.listCronJobs(status);
+		return await CronRepo.listCronJobs(this.db, status);
 	}
 
 	/**
@@ -437,7 +437,7 @@ export class CronSchedulerService {
 	 */
 	async cleanupOldLogs(days = 30) {
 		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
-		await this.db.deleteOldCronLogs(cutoffTime);
+		await CronRepo.deleteOldCronLogs(this.db, cutoffTime);
 		logger.info('CRON', `Cleaned up logs older than ${days} days`);
 	}
 
