@@ -1,8 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
-	import Input from '$lib/client/shared/components/Input.svelte';
-	import Select from '$lib/client/shared/components/Select.svelte';
 	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
 	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
 	import IconCloudCheck from '$lib/client/shared/components/Icons/IconCloudCheck.svelte';

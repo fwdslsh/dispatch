@@ -92,6 +92,9 @@
 		"sv-window-manager": "^0.2.2",
 		"svelte-virtual-list": "^3.0.1"
 	},
+	"optionalDependencies": {
+		"@opencode-ai/sdk": "^1.0.107"
+	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.11.0",
 		"@eslint/compat": "^1.4.0",
