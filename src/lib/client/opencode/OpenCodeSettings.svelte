@@ -43,24 +43,31 @@
 	];
 
 	// Update settings binding when values change
+	// Use untrack to prevent infinite loops from bindable props
 	$effect(() => {
-		if (mode === 'global') {
-			// Global mode: save all values (including empty ones for defaults)
-			settings = {
-				baseUrl,
-				model,
-				provider,
-				timeout,
-				maxRetries
-			};
-		} else {
-			// Session mode: only save non-empty values (empty = use global default)
-			settings = {};
-			if (baseUrl) settings.baseUrl = baseUrl;
-			if (model) settings.model = model;
-			if (provider) settings.provider = provider;
-			if (timeout !== null && timeout !== undefined) settings.timeout = timeout;
-			if (maxRetries !== null && maxRetries !== undefined) settings.maxRetries = maxRetries;
+		const newSettings = mode === 'global'
+			? {
+					baseUrl,
+					model,
+					provider,
+					timeout,
+					maxRetries
+				}
+			: Object.fromEntries(
+					Object.entries({
+						baseUrl,
+						model,
+						provider,
+						timeout,
+						maxRetries
+					}).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+				);
+
+		// Only update if settings have actually changed to prevent loops
+		const currentStr = JSON.stringify(settings);
+		const newStr = JSON.stringify(newSettings);
+		if (currentStr !== newStr) {
+			settings = newSettings;
 		}
 	});
 </script>
@@ -70,9 +77,9 @@
 	<FormSection
 		title="Server"
 		description="OpenCode server connection settings"
-		icon={IconRobot}
 		{disabled}
 	>
+		{#snippet icon()}<IconRobot size={18} />{/snippet}
 		<div class="form-field">
 			<label for="baseUrl">
 				<span class="label-text">Server URL</span>
@@ -118,9 +125,9 @@
 	<FormSection
 		title="Advanced"
 		description="Connection timeouts and retry settings"
-		icon={IconRobot}
 		{disabled}
 	>
+		{#snippet icon()}<IconRobot size={18} />{/snippet}
 		<div class="form-field">
 			<label for="timeout">
 				<span class="label-text">Timeout (ms)</span>

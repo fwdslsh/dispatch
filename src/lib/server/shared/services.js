@@ -65,6 +65,7 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
  * @property {PtyAdapter} ptyAdapter
  * @property {ClaudeAdapter} claudeAdapter
  * @property {OpenCodeAdapter} opencodeAdapter
+ * @property {OpenCodeTuiAdapter} opencodeTuiAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
  * @property {CronSchedulerService} cronScheduler
  * @property {() => DatabaseManager} getDatabase
@@ -193,6 +194,7 @@ export async function createServices(config = {}) {
 		ptyAdapter,
 		claudeAdapter,
 		opencodeAdapter,
+		opencodeTuiAdapter,
 		fileEditorAdapter,
 
 		// Cron scheduler

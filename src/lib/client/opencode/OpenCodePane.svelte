@@ -36,8 +36,28 @@
 		console.log('[OpenCodePane] Received event:', event);
 
 		if (event.channel === 'opencode:message') {
-			// Add message to list
-			messages = [...messages, event.payload];
+			// Extract events array from payload
+			const opencodeEvents = event.payload?.events || [];
+
+			// Process each OpenCode event
+			opencodeEvents.forEach((ocEvent) => {
+
+				// Add event to messages based on type
+				if (ocEvent.type && ocEvent.data) {
+					messages = [
+						...messages,
+						{
+							type: 'assistant',
+							text: JSON.stringify(ocEvent.data, null, 2),
+							eventType: ocEvent.type,
+							timestamp: Date.now()
+						}
+					];
+				} else {
+					// Fallback: display entire event
+					messages = [...messages, { type: 'system', ...ocEvent, timestamp: Date.now() }];
+				}
+			});
 		} else if (event.channel === 'opencode:error') {
 			error = event.payload.error || 'Unknown error occurred';
 		}
@@ -56,8 +76,10 @@
 			// Add user message to display
 			messages = [...messages, { type: 'user', text: message, timestamp: Date.now() }];
 
-			// Send to session
-			await client.write(sessionId, message);
+			// Send to session using the correct RunSessionClient method
+			client.sendInput(sessionId, message);
+
+			console.log('[OpenCodePane] Sent message:', message);
 		} catch (err) {
 			console.error('[OpenCodePane] Failed to send message:', err);
 			error = err.message || 'Failed to send message';
@@ -76,16 +98,16 @@
 
 	// Mount lifecycle
 	onMount(async () => {
-		console.log('[OpenCodePane] Mounting with:', { sessionId, opencodeSessionId, shouldResume });
 
 		try {
-			// Attach to session
-			await client.attach(sessionId, {
-				onEvent: handleEvent,
-				seq: 0
-			});
+			// Attach to the run session using the correct method
+			const result = await client.attachToRunSession(
+				sessionId,
+				handleEvent,
+				0 // Start from sequence 0
+			);
 			attached = true;
-			console.log('[OpenCodePane] Attached to session:', sessionId);
+			console.log('[OpenCodePane] Attached to session:', sessionId, result);
 		} catch (err) {
 			console.error('[OpenCodePane] Failed to attach:', err);
 			error = 'Failed to connect to session';
@@ -96,7 +118,7 @@
 	onDestroy(() => {
 		console.log('[OpenCodePane] Unmounting, detaching from session:', sessionId);
 		if (attached) {
-			client.detach(sessionId);
+			client.detachFromRunSession(sessionId);
 		}
 	});
 </script>
@@ -138,6 +160,11 @@
 		{#if error}
 			<div class="error-message">
 				<p>{error}</p>
+				{#if error.includes('Cannot connect to OpenCode server')}
+					<p class="error-hint">
+						💡 Tip: Go to Settings → OpenCode to start the managed OpenCode server.
+					</p>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -245,6 +272,20 @@
 		color: var(--error);
 		font-family: var(--font-mono);
 		font-size: 0.875rem;
+	}
+
+	.error-message p {
+		margin: 0 0 var(--space-2) 0;
+	}
+
+	.error-message p:last-child {
+		margin-bottom: 0;
+	}
+
+	.error-hint {
+		color: var(--text);
+		font-size: 0.8rem;
+		opacity: 0.8;
 	}
 
 	.input-area {

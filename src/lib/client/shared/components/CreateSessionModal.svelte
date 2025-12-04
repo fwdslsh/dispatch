@@ -129,6 +129,30 @@
 					{#snippet icon()}<IconRobot size={32} />{/snippet}
 				</TypeCard>
 				<TypeCard
+					title="OpenCode"
+					description="OpenCode SDK session"
+					active={viewModel?.sessionType === SESSION_TYPE.OPENCODE}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.OPENCODE)}
+					aria-label="Select OpenCode session type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconRobot size={32} />{/snippet}
+				</TypeCard>
+				<TypeCard
+					title="OpenCode TUI"
+					description="OpenCode terminal interface"
+					active={viewModel?.sessionType === SESSION_TYPE.OPENCODE_TUI}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.OPENCODE_TUI)}
+					aria-label="Select OpenCode TUI session type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconTerminal2 size={32} />{/snippet}
+				</TypeCard>
+				<TypeCard
 					title="Terminal"
 					description="Direct shell access"
 					active={viewModel?.sessionType === SESSION_TYPE.PTY}
@@ -228,8 +252,14 @@
 	/* Type Selection Grid */
 	.type-grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(2, 1fr);
 		gap: 1rem;
+	}
+
+	@media (min-width: 1024px) {
+		.type-grid {
+			grid-template-columns: repeat(3, 1fr);
+		}
 	}
 
 	@media (max-width: 768px) {

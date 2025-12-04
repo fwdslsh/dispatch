@@ -3,7 +3,7 @@ import { SESSION_TYPE } from '../../shared/session-types.js';
 import { buildOpenCodeOptions } from './opencode-options.js';
 
 /**
- * @typedef {import('@opencode-ai/sdk').default} Opencode
+ * @typedef {import('@opencode-ai/sdk').OpencodeClient} OpencodeClient
  */
 
 /**
@@ -18,11 +18,23 @@ export class OpenCodeAdapter {
 	 * @param {Function} params.onEvent - Event callback
 	 */
 	async create({ cwd, options = {}, onEvent }) {
+		logger.info('OPENCODE_ADAPTER', 'create() called with params:', {
+			cwd,
+			options,
+			hasOnEvent: typeof onEvent === 'function'
+		});
+
 		// Lazy load OpenCode SDK
-		let Opencode;
+		let OpencodeClient;
 		try {
 			const opencodeModule = await import('@opencode-ai/sdk');
-			Opencode = opencodeModule.default;
+			OpencodeClient = opencodeModule.OpencodeClient;
+			if (!OpencodeClient) {
+				const availableExports = Object.keys(opencodeModule).join(', ');
+				logger.error('OPENCODE_ADAPTER', 'Available exports:', availableExports);
+				throw new Error('OpencodeClient not found in @opencode-ai/sdk exports');
+			}
+			logger.info('OPENCODE_ADAPTER', 'Successfully loaded OpencodeClient');
 		} catch (error) {
 			logger.error('OPENCODE_ADAPTER', 'Failed to load @opencode-ai/sdk:', error);
 			throw new Error(`OpenCode SDK functionality not available: ${error.message}`);
@@ -34,15 +46,23 @@ export class OpenCodeAdapter {
 		logger.info('OPENCODE_ADAPTER', `Creating OpenCode session with options:`, {
 			cwd: opencodeOptions.cwd,
 			baseUrl: opencodeOptions.baseUrl,
-			model: opencodeOptions.model
+			model: opencodeOptions.model,
+			provider: opencodeOptions.provider
 		});
 
 		// Create OpenCode client
-		const client = new Opencode({
-			baseUrl: opencodeOptions.baseUrl,
-			timeout: opencodeOptions.timeout || 60000,
-			maxRetries: opencodeOptions.maxRetries || 2
-		});
+		let client;
+		try {
+			client = new OpencodeClient({
+				baseUrl: opencodeOptions.baseUrl,
+				timeout: opencodeOptions.timeout || 60000,
+				maxRetries: opencodeOptions.maxRetries || 2
+			});
+			logger.info('OPENCODE_ADAPTER', 'OpencodeClient instance created successfully');
+		} catch (error) {
+			logger.error('OPENCODE_ADAPTER', 'Failed to create OpencodeClient:', error);
+			throw new Error(`Failed to create OpenCode client: ${error.message}`);
+		}
 
 		let activeSession = null;
 		let isClosing = false;
@@ -77,11 +97,29 @@ export class OpenCodeAdapter {
 			try {
 				eventStream = await client.event.subscribe();
 
-				for await (const event of eventStream) {
+				// Debug: log the event stream response
+				logger.info('OPENCODE_ADAPTER', 'Event subscribe response type:', typeof eventStream);
+				logger.info('OPENCODE_ADAPTER', 'Event stream keys:', Object.keys(eventStream || {}));
+
+				// The SDK might return a response object, not an async iterable
+				// Try to get the actual stream
+				const stream = eventStream?.stream || eventStream?.data || eventStream;
+
+				logger.info('OPENCODE_ADAPTER', 'Starting event loop for session:', sessionId);
+				for await (const event of stream) {
+					logger.info('OPENCODE_ADAPTER', 'Received event:', event);
 					if (isClosing) break;
 
+					// Extract sessionID from various event structures
+					const eventSessionId =
+						event.properties?.sessionID ||
+						event.properties?.part?.sessionID ||
+						event.properties?.info?.sessionID ||
+						event.sessionID;
+
 					// Filter events for this session
-					if (event.sessionID === sessionId) {
+					if (eventSessionId === sessionId) {
+						logger.info('OPENCODE_ADAPTER', 'Event matches session, emitting:', event.type);
 						emitOpenCodeEvent(event);
 
 						// Session completed or idle
@@ -89,6 +127,8 @@ export class OpenCodeAdapter {
 							logger.info('OPENCODE_ADAPTER', `Session ${sessionId} completed`);
 							break;
 						}
+					} else {
+						logger.info('OPENCODE_ADAPTER', `Event for different session. Got: ${eventSessionId}, Expected: ${sessionId}`);
 					}
 				}
 			} catch (error) {
@@ -132,7 +172,18 @@ export class OpenCodeAdapter {
 									provider: opencodeOptions.provider || 'anthropic'
 								}
 							});
-							activeSession = createResponse;
+
+							// Debug: log the full response structure
+							logger.info('OPENCODE_ADAPTER', 'Full createResponse:', JSON.stringify(createResponse, null, 2));
+
+							// openapi-fetch returns { data, error, response }
+							// The data field contains the Session object with id field
+							if (createResponse.error) {
+								throw new Error(`Failed to create session: ${JSON.stringify(createResponse.error)}`);
+							}
+
+							// Extract the Session object from the response
+							activeSession = createResponse.data || createResponse;
 							logger.info('OPENCODE_ADAPTER', `Created session: ${activeSession.id}`);
 
 							// Start event streaming
@@ -142,7 +193,8 @@ export class OpenCodeAdapter {
 						}
 
 						// Send prompt to session
-						await client.session.prompt({
+						logger.info('OPENCODE_ADAPTER', `Sending prompt to session ${activeSession.id}:`, message);
+						const promptResponse = await client.session.prompt({
 							path: { id: activeSession.id },
 							body: {
 								skipInference: false,
@@ -154,15 +206,25 @@ export class OpenCodeAdapter {
 								]
 							}
 						});
+						logger.info('OPENCODE_ADAPTER', 'Prompt response:', JSON.stringify(promptResponse, null, 2));
 					} catch (error) {
 						if (!isClosing) {
 							logger.error('OPENCODE_ADAPTER', 'OpenCode query error:', error);
+
+							// Determine user-friendly error message
+							let userMessage = error.message;
+							if (error.cause?.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+								userMessage = `Cannot connect to OpenCode server at ${opencodeOptions.baseUrl}. Please ensure the OpenCode server is running.`;
+							}
+
 							try {
 								onEvent({
 									channel: 'opencode:error',
 									type: 'execution_error',
 									payload: {
-										error: error.message,
+										error: userMessage,
+										originalError: error.message,
+										code: error.cause?.code,
 										stack: error.stack
 									}
 								});

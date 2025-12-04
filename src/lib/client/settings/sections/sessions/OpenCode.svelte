@@ -130,7 +130,7 @@
 		serverError = '';
 
 		try {
-			const response = await fetch('/api/opencode/server/start', {
+			const response = await fetch('/api/opencode/server', {
 				method: 'POST',
 				headers: getAuthHeaders(),
 				body: JSON.stringify({})
@@ -159,7 +159,7 @@
 		serverError = '';
 
 		try {
-			const response = await fetch('/api/opencode/server/stop', {
+			const response = await fetch('/api/opencode/server', {
 				method: 'DELETE',
 				headers: getAuthHeaders()
 			});
