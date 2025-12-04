@@ -92,7 +92,7 @@ RUN mkdir -p /workspaces /tmp/dispatch \
     && chown -R dispatch:dispatch /app
 
 # Install global packages
-RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
+RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex @opencode-ai/sdk
 
 # Copy built application
 WORKDIR /app

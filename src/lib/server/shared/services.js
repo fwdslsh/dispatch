@@ -29,6 +29,7 @@ import { validateEnvironment } from './utils/env-validation.js';
 // Adapters
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
+import { OpenCodeAdapter } from '../opencode/OpenCodeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 
 // Cron scheduler
@@ -60,6 +61,7 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
  * @property {VSCodeTunnelManager} vscodeManager
  * @property {PtyAdapter} ptyAdapter
  * @property {ClaudeAdapter} claudeAdapter
+ * @property {OpenCodeAdapter} opencodeAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
  * @property {CronSchedulerService} cronScheduler
  * @property {() => DatabaseManager} getDatabase
@@ -136,10 +138,12 @@ export async function createServices(config = {}) {
 	// Layer 7: Register adapters
 	const ptyAdapter = new PtyAdapter();
 	const claudeAdapter = new ClaudeAdapter();
+	const opencodeAdapter = new OpenCodeAdapter();
 	const fileEditorAdapter = new FileEditorAdapter();
 
 	adapterRegistry.register(SESSION_TYPE.PTY, ptyAdapter);
 	adapterRegistry.register(SESSION_TYPE.CLAUDE, claudeAdapter);
+	adapterRegistry.register(SESSION_TYPE.OPENCODE, opencodeAdapter);
 	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
 	// Layer 8: Cron scheduler (needs db, will get io instance later)
@@ -179,6 +183,7 @@ export async function createServices(config = {}) {
 		// Adapters (direct access)
 		ptyAdapter,
 		claudeAdapter,
+		opencodeAdapter,
 		fileEditorAdapter,
 
 		// Cron scheduler

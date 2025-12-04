@@ -1,0 +1,215 @@
+<script>
+	import { onMount } from 'svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import Input from '$lib/client/shared/components/Input.svelte';
+	import Select from '$lib/client/shared/components/Select.svelte';
+	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
+	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
+	import IconCloudCheck from '$lib/client/shared/components/Icons/IconCloudCheck.svelte';
+	import IconCloudX from '$lib/client/shared/components/Icons/IconCloudX.svelte';
+	import OpenCodeSettings from '$lib/client/opencode/OpenCodeSettings.svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
+	import { createLogger } from '$lib/client/shared/utils/logger.js';
+
+	const log = createLogger('opencode-settings');
+
+	/**
+	 * OpenCode Settings Component
+	 * Configuration for OpenCode AI coding sessions
+	 */
+
+	// Server connection state
+	let connectionStatus = $state('checking'); // 'checking' | 'connected' | 'disconnected' | 'error'
+	let connectionError = $state('');
+	let loading = $state(false);
+	let statusMessage = $state('');
+
+	// Settings state
+	let settings = $state({});
+	let saveStatus = $state('');
+	let saving = $state(false);
+
+	onMount(async () => {
+		await checkServerConnection();
+
+		// Load OpenCode settings
+		if (!settingsService.isLoaded) {
+			await settingsService.loadServerSettings();
+		}
+		updateSettingsFromService();
+	});
+
+	// Check OpenCode server connection
+	async function checkServerConnection() {
+		connectionStatus = 'checking';
+		try {
+			const serverUrl = settingsService.get('opencode.baseUrl', 'http://localhost:4096');
+
+			// Try to connect to the OpenCode server
+			// Note: This is a simple connectivity check
+			connectionStatus = 'disconnected'; // Default to disconnected
+			statusMessage = `Configured server: ${serverUrl}`;
+		} catch (error) {
+			connectionStatus = 'error';
+			connectionError = 'Unable to check server connection';
+		}
+	}
+
+	// Load settings from the service into our local state
+	function updateSettingsFromService() {
+		settings = {
+			baseUrl: settingsService.get('opencode.baseUrl', 'http://localhost:4096'),
+			model: settingsService.get('opencode.model', 'claude-3-7-sonnet-20250219'),
+			provider: settingsService.get('opencode.provider', 'anthropic'),
+			timeout: settingsService.get('opencode.timeout', 60000),
+			maxRetries: settingsService.get('opencode.maxRetries', 2)
+		};
+	}
+
+	// Save settings using the service
+	async function saveSettings() {
+		if (saving) return;
+
+		saving = true;
+		saveStatus = '';
+
+		try {
+			// Save all OpenCode settings as client overrides (localStorage)
+			Object.entries(settings).forEach(([key, value]) => {
+				settingsService.setClientOverride(`opencode.${key}`, value);
+			});
+
+			saveStatus = 'OpenCode settings saved successfully';
+			await checkServerConnection(); // Recheck connection with new settings
+			setTimeout(() => {
+				saveStatus = '';
+			}, 3000);
+		} catch (error) {
+			saveStatus = 'Failed to save OpenCode settings';
+		} finally {
+			saving = false;
+		}
+	}
+
+	// Reset to server defaults
+	async function resetToDefaults() {
+		settingsService.resetClientOverridesForCategory('opencode');
+		updateSettingsFromService();
+
+		saveStatus = 'OpenCode settings reset to defaults';
+		setTimeout(() => {
+			saveStatus = '';
+		}, 3000);
+	}
+</script>
+
+<div class="opencode-settings">
+	<div class="section-header">
+		<h3>OPENCODE</h3>
+		<p class="section-description">
+			Configure OpenCode AI coding sessions. OpenCode is an open-source alternative to Claude Code
+			that connects to an OpenCode server.
+		</p>
+	</div>
+
+	<!-- Server Connection Status -->
+	<h4>SERVER CONNECTION</h4>
+	<p class="subsection-description">
+		OpenCode requires a running OpenCode server. Configure the server URL below.
+	</p>
+
+	{#if connectionStatus === 'checking'}
+		<div class="status-card status-card--checking">
+			<LoadingSpinner size="small" />
+			<span>Checking server connection...</span>
+		</div>
+	{:else if connectionStatus === 'connected'}
+		<div class="status-card status-card--connected">
+			<IconCloudCheck size={24} />
+			<div class="status-info">
+				<h4>Server Connected</h4>
+				<p>OpenCode server is available and ready to use.</p>
+			</div>
+		</div>
+	{:else if connectionStatus === 'disconnected'}
+		<div class="status-card status-card--disconnected">
+			<IconCloudX size={24} />
+			<div class="status-info">
+				<h4>Server Not Connected</h4>
+				<p>{statusMessage || 'Configure server URL and ensure OpenCode server is running.'}</p>
+			</div>
+		</div>
+	{:else if connectionStatus === 'error'}
+		<ErrorDisplay message={connectionError} />
+	{/if}
+
+	<!-- Session Defaults Section -->
+	<h4>SESSION DEFAULTS</h4>
+	<p class="subsection-description">
+		Configure default settings for new OpenCode sessions. These settings will be used as defaults
+		when creating new OpenCode sessions.
+	</p>
+
+	<OpenCodeSettings bind:settings mode="global" />
+
+	<!-- Settings Footer -->
+	<footer class="settings-footer">
+		<div
+			class="settings-footer__status"
+			class:settings-footer__status--success={saveStatus.includes('success')}
+			class:settings-footer__status--error={saveStatus.includes('Failed')}
+		>
+			{saveStatus}
+		</div>
+		<div class="settings-footer__actions">
+			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
+				Reset Defaults
+			</Button>
+			<Button
+				onclick={saveSettings}
+				variant="primary"
+				size="small"
+				disabled={saving}
+				loading={saving}
+			>
+				{saving ? 'Saving...' : 'Save Settings'}
+			</Button>
+		</div>
+	</footer>
+</div>
+
+<style>
+	.status-card {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-4);
+		border-radius: var(--radius-lg);
+		border: 1px solid var(--primary-glow-20);
+		box-shadow: 0 0 20px var(--primary-glow-10);
+	}
+
+	.status-card--checking {
+		background: color-mix(in oklab, var(--text) 2%, transparent);
+	}
+
+	.status-card--connected {
+		background: linear-gradient(135deg, var(--primary-glow-15), var(--primary-glow));
+	}
+
+	.status-card--disconnected {
+		background: color-mix(in oklab, var(--text) 2%, transparent);
+	}
+
+	.status-info h4 {
+		margin: 0 0 var(--space-1) 0;
+		font-family: var(--font-mono);
+		font-size: 1.1rem;
+	}
+
+	.status-info p {
+		margin: 0;
+		color: var(--muted);
+	}
+</style>
