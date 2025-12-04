@@ -10,7 +10,6 @@
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import IconLogout from '$lib/client/shared/components/Icons/IconLogout.svelte';
 	import TunnelIndicator from '$lib/client/shared/components/TunnelIndicator.svelte';
-	import LayoutControls from './LayoutControls.svelte';
 
 	// Props
 	let {
@@ -18,8 +17,6 @@
 		sessionCount = 0,
 		currentSessionIndex = 0,
 		onLogout = () => {},
-		viewMode = 'window-manager',
-		onViewModeChange = () => {},
 		onInstallPWA: _onInstallPWA = () => {},
 		isSingleSessionMode = false
 	} = $props();
@@ -59,7 +56,6 @@
 				</span>
 			</div>
 		{/if}
-		<LayoutControls {viewMode} onSelectView={onViewModeChange} />
 		<IconButton onclick={onLogout} aria-label="Logout">
 			<IconLogout size={18} />
 		</IconButton>
