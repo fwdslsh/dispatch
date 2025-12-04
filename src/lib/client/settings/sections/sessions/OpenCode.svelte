@@ -25,12 +25,18 @@
 	let loading = $state(false);
 	let statusMessage = $state('');
 
+	// Managed server state
+	let serverStatus = $state(null); // Server status from API
+	let serverLoading = $state(false);
+	let serverError = $state('');
+
 	// Settings state
 	let settings = $state({});
 	let saveStatus = $state('');
 	let saving = $state(false);
 
 	onMount(async () => {
+		await checkServerStatus();
 		await checkServerConnection();
 
 		// Load OpenCode settings
@@ -102,6 +108,78 @@
 			saveStatus = '';
 		}, 3000);
 	}
+
+	// Get managed server status
+	async function checkServerStatus() {
+		try {
+			const response = await fetch('/api/opencode/server', {
+				headers: getAuthHeaders()
+			});
+
+			if (response.ok) {
+				serverStatus = await response.json();
+			}
+		} catch (error) {
+			log.error('[OpenCode] Failed to check server status:', error);
+		}
+	}
+
+	// Start the managed OpenCode server
+	async function startServer() {
+		if (serverLoading) return;
+
+		serverLoading = true;
+		serverError = '';
+
+		try {
+			const response = await fetch('/api/opencode/server/start', {
+				method: 'POST',
+				headers: getAuthHeaders(),
+				body: JSON.stringify({})
+			});
+
+			if (response.ok) {
+				serverStatus = await response.json();
+				statusMessage = 'Managed server started successfully';
+			} else {
+				const data = await response.json();
+				serverError = data.error || 'Failed to start server';
+			}
+		} catch (error) {
+			serverError = error.message || 'Failed to start server';
+		} finally {
+			serverLoading = false;
+			await checkServerStatus();
+		}
+	}
+
+	// Stop the managed OpenCode server
+	async function stopServer() {
+		if (serverLoading) return;
+
+		serverLoading = true;
+		serverError = '';
+
+		try {
+			const response = await fetch('/api/opencode/server/stop', {
+				method: 'DELETE',
+				headers: getAuthHeaders()
+			});
+
+			if (response.ok) {
+				serverStatus = await response.json();
+				statusMessage = 'Managed server stopped';
+			} else {
+				const data = await response.json();
+				serverError = data.error || 'Failed to stop server';
+			}
+		} catch (error) {
+			serverError = error.message || 'Failed to stop server';
+		} finally {
+			serverLoading = false;
+			await checkServerStatus();
+		}
+	}
 </script>
 
 <div class="opencode-settings">
@@ -113,10 +191,66 @@
 		</p>
 	</div>
 
-	<!-- Server Connection Status -->
-	<h4>SERVER CONNECTION</h4>
+	<!-- Managed Server Section -->
+	<h4>MANAGED SERVER</h4>
 	<p class="subsection-description">
-		OpenCode requires a running OpenCode server. Configure the server URL below.
+		Start and manage an OpenCode server directly from Dispatch. The managed server runs on localhost:4096.
+	</p>
+
+	{#if serverStatus}
+		<div class="server-controls">
+			<div class="server-status">
+				<div class="status-indicator" class:active={serverStatus.running}></div>
+				<span class="status-text">
+					{serverStatus.running ? 'Running' : 'Stopped'}
+					{#if serverStatus.url}
+						- {serverStatus.url}
+					{/if}
+				</span>
+			</div>
+
+			<div class="server-actions">
+				{#if !serverStatus.running}
+					<Button
+						onclick={startServer}
+						variant="primary"
+						size="small"
+						disabled={serverLoading}
+						loading={serverLoading}
+					>
+						Start Server
+					</Button>
+				{:else}
+					<Button
+						onclick={stopServer}
+						variant="danger"
+						size="small"
+						disabled={serverLoading}
+						loading={serverLoading}
+					>
+						Stop Server
+					</Button>
+				{/if}
+			</div>
+		</div>
+
+		{#if serverError}
+			<div class="server-error">
+				<ErrorDisplay message={serverError} />
+			</div>
+		{/if}
+
+		{#if serverStatus.error}
+			<div class="server-error">
+				<ErrorDisplay message={serverStatus.error} />
+			</div>
+		{/if}
+	{/if}
+
+	<!-- External Server Connection Status -->
+	<h4>EXTERNAL SERVER</h4>
+	<p class="subsection-description">
+		Alternatively, you can connect to an external OpenCode server running elsewhere.
 	</p>
 
 	{#if connectionStatus === 'checking'}
@@ -211,5 +345,56 @@
 	.status-info p {
 		margin: 0;
 		color: var(--muted);
+	}
+
+	.server-controls {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--space-4);
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		border-radius: var(--radius-lg);
+		margin-bottom: var(--space-3);
+	}
+
+	.server-status {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.status-indicator {
+		width: 12px;
+		height: 12px;
+		border-radius: var(--radius-full);
+		background: var(--text-muted);
+		transition: all 0.2s;
+	}
+
+	.status-indicator.active {
+		background: var(--primary);
+		box-shadow: 0 0 8px var(--primary-glow);
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
+	}
+
+	.status-text {
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+		color: var(--text);
+	}
+
+	.server-error {
+		margin-top: var(--space-2);
 	}
 </style>
