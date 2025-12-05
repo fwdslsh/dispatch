@@ -105,7 +105,7 @@ class WebViewProcess extends EventEmitter {
 				const command = JSON.parse(text);
 				if (command && typeof command === 'object' && command.type === 'navigate') {
 					isJsonCommand = true;
-					
+
 					// Validate command structure
 					if (typeof command.url !== 'string' || !command.url) {
 						throw new Error('Invalid URL in navigate command');
@@ -124,13 +124,13 @@ class WebViewProcess extends EventEmitter {
 				if (isJsonCommand) {
 					throw parseError;
 				}
-				
+
 				// Not JSON or not a navigate command, treat as plain URL - but still validate it
 				if (url && parseError.name !== 'SyntaxError') {
 					// It parsed as JSON but wasn't a valid command, so it might be invalid
 					throw parseError;
 				}
-				
+
 				// Treat as plain URL
 				if (url) {
 					const testUrl = url.startsWith('http') ? url : `http://${url}`;
@@ -139,13 +139,11 @@ class WebViewProcess extends EventEmitter {
 						throw new Error('Only HTTP and HTTPS protocols are allowed');
 					}
 					// Don't normalize - keep original URL if it's valid
-					if (url.startsWith('http')) {
-						// Already has protocol, keep it as-is
-						url = url;
-					} else {
+					if (!url.startsWith('http')) {
 						// Need to add protocol
 						url = parsed.href;
 					}
+					// Otherwise keep original URL as-is
 				}
 			}
 
