@@ -68,7 +68,7 @@ dispatch update --container-only    # Update only container
 
 **⚡ Built for AI & Automation**
 
-- Multiple session types: Terminal, Claude AI, File Editor, Custom Adapters
+- Multiple session types: Terminal, Claude AI, File Editor, Web View, Custom Adapters
 - **Cron Job Management** - Schedule recurring tasks with elegant UI and real-time monitoring
   - Interactive scheduler with preset expressions (hourly, daily, weekly, etc.)
   - Real-time validation and human-readable schedule descriptions
@@ -102,6 +102,7 @@ On first launch, Dispatch guides you through a quick onboarding process:
 4. **Auto-Login** - Seamlessly logs you in with a secure session cookie
 
 After onboarding, you can:
+
 - **Manage API Keys** - Create labeled keys for different tools/scripts
 - **Configure OAuth** - Optional GitHub/Google authentication
 - **Customize Settings** - Themes, workspace variables, and more
@@ -120,14 +121,14 @@ Dispatch supports three authentication methods:
 
 When using the dispatch CLI the init command will create a `~/dispatch/home/.env` file with these variables.
 
-| Variable          | Default                          | Description                           |
-| ----------------- | -------------------------------- | ------------------------------------- |
-| `TERMINAL_KEY`    | `change-me-to-a-strong-password` | Initial setup key (first run only)    |
-| `PORT`            | `3030`                           | Web interface port                    |
-| `WORKSPACES_ROOT` | `/workspace`                     | Project directory                     |
-| `ENABLE_TUNNEL`   | `false`                          | Public URL sharing via LocalTunnel    |
-| `LT_SUBDOMAIN`    | `""`                             | Custom subdomain for tunnel           |
-| `SSL_ENABLED`     | `true`                           | Enable HTTPS (dev: self-signed cert)  |
+| Variable          | Default                          | Description                          |
+| ----------------- | -------------------------------- | ------------------------------------ |
+| `TERMINAL_KEY`    | `change-me-to-a-strong-password` | Initial setup key (first run only)   |
+| `PORT`            | `3030`                           | Web interface port                   |
+| `WORKSPACES_ROOT` | `/workspace`                     | Project directory                    |
+| `ENABLE_TUNNEL`   | `false`                          | Public URL sharing via LocalTunnel   |
+| `LT_SUBDOMAIN`    | `""`                             | Custom subdomain for tunnel          |
+| `SSL_ENABLED`     | `true`                           | Enable HTTPS (dev: self-signed cert) |
 
 📖 **[Complete Configuration Reference](docs/configuration/configuration-reference.md)**
 
@@ -198,23 +199,27 @@ npm run dev:test        # Start test server (port 7173, no SSL)
 ## Documentation & Support
 
 **Getting Started**
+
 - 📖 [Quick Start Guide](docs/quickstart.md) - Complete setup walkthrough
 - 🎯 [Configuration Reference](docs/configuration/configuration-reference.md) - All settings explained
 - 📋 [CHANGELOG](CHANGELOG.md) - Version history and release notes
 
 **Features & Guides**
+
 - 🌿 [Git Worktree Guide](docs/features/git-worktrees.md) - Multiple working directories
 - 🏗️ [MVVM Patterns](docs/architecture/mvvm-patterns.md) - Frontend architecture
 - 🔌 [Adapter Guide](docs/architecture/adapter-guide.md) - Adding session types
 - 🐛 [Error Handling](docs/contributing/error-handling.md) - Best practices
 
 **API & Development**
+
 - 🔗 [API Routes Reference](docs/reference/api-routes.md) - REST API documentation
 - 🔌 [Socket Events Reference](docs/reference/socket-events.md) - WebSocket protocol
 - 💾 [Database Schema](docs/reference/database-schema.md) - SQLite structure
 - 🏢 [Workspace API](docs/reference/workspace-api.md) - Workspace management
 
 **Support**
+
 - 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues) - Bug reports and features
 - 💬 [Discussions](https://github.com/fwdslsh/dispatch/discussions) - Community help
 
@@ -256,6 +261,7 @@ npm run preview         # Preview production build
 ```
 
 **Key Development Features:**
+
 - 🔄 Hot module reload with Vite
 - 🧪 Comprehensive test suite (33 E2E + unit tests)
 - 🔍 Type checking with JSDoc

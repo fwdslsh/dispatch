@@ -8,7 +8,8 @@ export const SESSION_TYPE = {
 	CLAUDE: 'claude',
 	OPENCODE: 'opencode',
 	OPENCODE_TUI: 'opencode-tui',
-	FILE_EDITOR: 'file-editor'
+	FILE_EDITOR: 'file-editor',
+	WEB_VIEW: 'web-view'
 };
 
 /**
