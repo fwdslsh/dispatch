@@ -11,11 +11,21 @@
  */
 
 import cron from 'node-cron';
-import parser from 'cron-parser';
-import { spawn } from 'node:child_process';
+import cronParserModule from 'cron-parser';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { logger } from '../shared/utils/logger.js';
 import * as CronRepo from '../shared/db/CronRepository.js';
+
+const execAsync = promisify(exec);
+
+// Extract the CronExpressionParser class from the CommonJS module
+// When importing from CommonJS, the default export is the module.exports.default
+const CronParser = cronParserModule.default || cronParserModule;
 
 /**
  * Generate unique ID for cron jobs
@@ -35,8 +45,9 @@ function calculateNextRun(expression) {
 			return null;
 		}
 
-		// Parse cron expression and get next occurrence
-		const interval = parser.parseExpression(expression, {
+		// Parse cron expression using CronExpressionParser.parse()
+		// This is the correct API for the cron-parser library
+		const interval = CronParser.parse(expression, {
 			currentDate: new Date(),
 			tz: 'UTC'
 		});
@@ -212,39 +223,39 @@ export class CronSchedulerService {
 			// Emit real-time update
 			this.emitUpdate('job:started', { id: job.id, logId, startTime });
 
-			// Parse command (handle shell syntax)
-			const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
-			const shellFlag = process.platform === 'win32' ? '/c' : '-c';
+			// Determine and validate working directory
+			let cwd = job.workspace_path || job.workspacePath;
 
-			// Execute command
-			const childProcess = spawn(shell, [shellFlag, job.command], {
-				cwd: job.workspace_path || job.workspacePath || process.cwd(),
-				env: { ...process.env },
-				timeout: 3600000 // 1 hour max execution time
-			});
+			// If no path specified or path doesn't exist, use default
+			if (!cwd || !existsSync(cwd)) {
+				const defaultWorkspace = resolve(homedir(), '.dispatch', 'workspaces');
+				if (!existsSync(defaultWorkspace)) {
+					mkdirSync(defaultWorkspace, { recursive: true });
+					logger.info('CRON', `Created default workspace directory: ${defaultWorkspace}`);
+				}
+				cwd = defaultWorkspace;
+			}
 
-			// Track running task
-			this.runningTasks.set(logId, { process: childProcess, startTime });
-
+			// Execute command using exec (standard approach)
 			let output = '';
 			let errorOutput = '';
+			let exitCode = 0;
 
-			childProcess.stdout?.on('data', (data) => {
-				output += data.toString();
-			});
-
-			childProcess.stderr?.on('data', (data) => {
-				errorOutput += data.toString();
-			});
-
-			// Wait for completion
-			const exitCode = await new Promise((resolve, reject) => {
-				childProcess.on('close', resolve);
-				childProcess.on('error', reject);
-			});
-
-			// Remove from running tasks
-			this.runningTasks.delete(logId);
+			try {
+				const result = await execAsync(job.command, {
+					cwd,
+					env: process.env,
+					timeout: 3600000, // 1 hour max execution time
+					maxBuffer: 50 * 1024 * 1024 // 50MB buffer
+				});
+				output = result.stdout || '';
+				errorOutput = result.stderr || '';
+			} catch (execError) {
+				// exec throws on non-zero exit codes
+				output = execError.stdout || '';
+				errorOutput = execError.stderr || execError.message || '';
+				exitCode = typeof execError.code === 'number' ? execError.code : 1;
+			}
 
 			const completedAt = Date.now();
 			const status = exitCode === 0 ? 'success' : 'failed';
@@ -370,11 +381,20 @@ export class CronSchedulerService {
 	}
 
 	/**
-	 * Resume a paused cron job
+	 * Resume a paused or error cron job
 	 * @param {string} jobId - Job ID
 	 */
 	async resumeJob(jobId) {
-		return await this.updateJob(jobId, { status: 'active' });
+		const job = await CronRepo.getCronJob(this.db, jobId);
+		if (!job) {
+			throw new Error(`Job not found: ${jobId}`);
+		}
+
+		return await this.updateJob(jobId, {
+			status: 'active',
+			last_error: null, // Clear error when resuming
+			next_run: calculateNextRun(job.cron_expression) // Recalculate next run
+		});
 	}
 
 	/**

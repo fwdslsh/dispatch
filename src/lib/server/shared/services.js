@@ -144,7 +144,7 @@ export async function createServices(config = {}) {
 	const ptyAdapter = new PtyAdapter();
 	const claudeAdapter = new ClaudeAdapter();
 	const opencodeAdapter = new OpenCodeAdapter();
-	const opencodeTuiAdapter = new OpenCodeTuiAdapter();
+	const opencodeTuiAdapter = new OpenCodeTuiAdapter({ serverManager: opencodeServerManager });
 	const fileEditorAdapter = new FileEditorAdapter();
 
 	adapterRegistry.register(SESSION_TYPE.PTY, ptyAdapter);

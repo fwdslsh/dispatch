@@ -63,7 +63,12 @@ export class PtyConfig {
 		this.shell = options.shell || this.getDefaultShell();
 		// Default to interactive mode (-i) for bash to show prompt
 		// Check for empty arrays since [] is truthy but should use default
-		this.args = options.args && options.args.length > 0 ? options.args : ['-i'];
+		// If args is explicitly null, use no arguments (for commands like 'opencode')
+		if (options.args === null) {
+			this.args = [];
+		} else {
+			this.args = options.args && options.args.length > 0 ? options.args : ['-i'];
+		}
 
 		// Store any additional options
 		this.additionalOptions = { ...options };

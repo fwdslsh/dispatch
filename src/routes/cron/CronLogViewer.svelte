@@ -1,33 +1,26 @@
 <script>
+	import Modal from '$lib/client/shared/components/Modal.svelte';
 	import { formatRelativeTime, formatDuration } from '$lib/shared/cron-utils.js';
 
-	let { job, logs, onClose } = $props();
+	let { job, logs, onClose, open = $bindable(true) } = $props();
 
-	function handleKeyDown(event) {
-		if (event.key === 'Escape') {
-			onClose();
-		}
-	}
-
-	function handleOverlayClick(event) {
-		if (event.target === event.currentTarget) {
-			onClose();
-		}
+	function handleClose() {
+		open = false;
+		onClose();
 	}
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-overlay" onclick={handleOverlayClick} onkeydown={handleKeyDown}>
-	<div class="modal-content">
-		<div class="modal-header">
-			<div>
-				<h2>Execution History</h2>
-				<p class="job-name">{job.name}</p>
-			</div>
-			<button class="close-btn" onclick={onClose}>×</button>
-		</div>
+<Modal
+	bind:open
+	title="Execution History"
+	size="large"
+	onclose={handleClose}
+>
+	<div class="modal-subtitle">
+		<span class="job-name">{job.name}</span>
+	</div>
 
-		<div class="logs-container">
+	<div class="logs-container">
 			{#if logs.length === 0}
 				<div class="empty-state">
 					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -85,77 +78,24 @@
 				{/each}
 			{/if}
 		</div>
-	</div>
-</div>
+</Modal>
 
 <style>
-	.modal-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		padding: 1rem;
-	}
-
-	.modal-content {
-		background: var(--card-bg, white);
-		border-radius: 12px;
-		max-width: 800px;
-		width: 100%;
-		max-height: 90vh;
-		display: flex;
-		flex-direction: column;
-		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-	}
-
-	.modal-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		padding: 1.5rem;
-		border-bottom: 1px solid var(--border-color, #e5e7eb);
-	}
-
-	.modal-header h2 {
-		font-size: 1.5rem;
-		font-weight: 600;
-		margin: 0 0 0.25rem 0;
-		color: var(--text-primary, #1f2937);
+	.modal-subtitle {
+		margin-bottom: var(--space-4);
+		padding-bottom: var(--space-3);
+		border-bottom: 1px solid var(--border-primary);
 	}
 
 	.job-name {
-		font-size: 0.9375rem;
-		color: var(--text-secondary, #6b7280);
-		margin: 0;
-	}
-
-	.close-btn {
-		width: 32px;
-		height: 32px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: none;
-		border: none;
-		font-size: 2rem;
-		color: var(--text-secondary, #6b7280);
-		cursor: pointer;
-		border-radius: 6px;
-		transition: all 0.2s;
-	}
-
-	.close-btn:hover {
-		background: var(--hover-bg, #f9fafb);
-		color: var(--text-primary, #1f2937);
+		font-size: var(--font-size-base);
+		color: var(--text-secondary);
+		font-family: var(--font-mono);
 	}
 
 	.logs-container {
-		flex: 1;
+		max-height: 60vh;
 		overflow-y: auto;
-		padding: 1.5rem;
 	}
 
 	.empty-state {
@@ -163,127 +103,153 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 3rem 2rem;
+		padding: var(--space-16) var(--space-8);
 		text-align: center;
-		color: var(--text-secondary, #6b7280);
+		color: var(--text-secondary);
 	}
 
 	.empty-state svg {
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-4);
 		opacity: 0.5;
+		color: var(--text-tertiary);
+	}
+
+	.empty-state p {
+		margin: 0;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-base);
 	}
 
 	.log-entry {
-		background: var(--hover-bg, #f9fafb);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 8px;
-		padding: 1rem;
-		margin-bottom: 1rem;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-md);
+		padding: var(--space-4);
+		margin-bottom: var(--space-3);
 		border-left: 4px solid;
+		transition: all 0.2s ease;
+	}
+
+	.log-entry:hover {
+		border-color: var(--border-hover);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.log-entry.success {
-		border-left-color: #10b981;
+		border-left-color: var(--color-success);
 	}
 
 	.log-entry.failed {
-		border-left-color: #ef4444;
+		border-left-color: var(--color-error);
 	}
 
 	.log-entry.running {
-		border-left-color: #3b82f6;
+		border-left-color: var(--color-info);
 	}
 
 	.log-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.75rem;
+		margin-bottom: var(--space-3);
 		flex-wrap: wrap;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 
 	.log-status {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		font-weight: 600;
 		text-transform: capitalize;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
 	}
 
 	.log-entry.success .log-status {
-		color: #065f46;
+		color: var(--color-success);
 	}
 
 	.log-entry.failed .log-status {
-		color: #991b1b;
+		color: var(--color-error);
 	}
 
 	.log-entry.running .log-status {
-		color: #1e40af;
+		color: var(--color-info);
 	}
 
 	.log-meta {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
-		font-size: 0.875rem;
-		color: var(--text-secondary, #6b7280);
+		gap: var(--space-3);
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		font-family: var(--font-mono);
 	}
 
+	.log-time,
+	.log-duration,
 	.exit-code {
-		font-family: 'Monaco', 'Menlo', monospace;
+		font-family: var(--font-mono);
 	}
 
 	.log-output {
-		margin-top: 0.75rem;
+		margin-top: var(--space-3);
 	}
 
 	.log-output summary {
 		cursor: pointer;
 		font-weight: 600;
-		color: var(--text-primary, #1f2937);
+		color: var(--text-primary);
 		user-select: none;
-		padding: 0.5rem;
-		background: var(--card-bg, white);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 6px;
-		transition: all 0.2s;
+		padding: var(--space-2) var(--space-3);
+		background: var(--bg-primary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-sm);
+		transition: all 0.2s ease;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
 	}
 
 	.log-output summary:hover {
-		background: var(--hover-bg, #f9fafb);
+		background: var(--bg-hover);
+		border-color: var(--border-hover);
 	}
 
 	.log-output pre,
 	.log-error pre {
-		margin: 0.75rem 0 0 0;
-		padding: 0.75rem;
-		background: #1f2937;
-		color: #d1d5db;
-		border-radius: 6px;
+		margin: var(--space-3) 0 0 0;
+		padding: var(--space-3);
+		background: var(--bg-dark);
+		color: var(--text-primary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-sm);
 		overflow-x: auto;
-		font-family: 'Monaco', 'Menlo', monospace;
-		font-size: 0.875rem;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
 		line-height: 1.5;
 	}
 
 	.log-error {
-		margin-top: 0.75rem;
-		padding: 0.75rem;
-		background: #fef3c7;
-		border: 1px solid #f59e0b;
-		border-radius: 6px;
-		color: #78350f;
+		margin-top: var(--space-3);
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--color-warning) 10%, transparent);
+		border: 1px solid var(--color-warning);
+		border-radius: var(--radius-sm);
+		color: var(--text-primary);
 	}
 
 	.log-error strong {
 		display: block;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
+		color: var(--color-error);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
 	}
 
 	.log-error pre {
-		background: #451a03;
-		color: #fef3c7;
+		background: var(--bg-dark);
+		color: var(--color-error);
+		border-color: var(--color-error);
 	}
 </style>

@@ -62,7 +62,7 @@
 						/>
 					</svg>
 				</button>
-			{:else if job.status === 'paused'}
+			{:else if job.status === 'paused' || job.status === 'error'}
 				<button class="action-btn" title="Resume" onclick={onResume}>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
 						<polygon
