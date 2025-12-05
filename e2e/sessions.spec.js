@@ -30,26 +30,38 @@ test.describe('Session Management - Create Sessions', () => {
 
 	test('should create a terminal session', async ({ page }) => {
 		// Open create session modal
-		const createButton = page.locator('button:has-text("New Session"), button:has-text("Create"), button[aria-label*="Create"]').first();
+		const createButton = page
+			.locator(
+				'button:has-text("New Session"), button:has-text("Create"), button[aria-label*="Create"]'
+			)
+			.first();
 		await createButton.click({ timeout: 10000 });
 
 		// Wait for modal to appear
-		await page.waitForSelector('[role="dialog"], .modal, [data-testid="create-session-modal"]', { timeout: 5000 });
+		await page.waitForSelector('[role="dialog"], .modal, [data-testid="create-session-modal"]', {
+			timeout: 5000
+		});
 
 		// Select terminal session type
-		const terminalOption = page.locator('button:has-text("Terminal"), label:has-text("Terminal"), input[value="pty"]').first();
+		const terminalOption = page
+			.locator('button:has-text("Terminal"), label:has-text("Terminal"), input[value="pty"]')
+			.first();
 		if (await terminalOption.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await terminalOption.click();
 		}
 
 		// Fill in session details if prompted
-		const nameInput = page.locator('input[placeholder*="name"], input[placeholder*="Session"]').first();
+		const nameInput = page
+			.locator('input[placeholder*="name"], input[placeholder*="Session"]')
+			.first();
 		if (await nameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await nameInput.fill('Test Terminal');
 		}
 
 		// Submit to create session
-		const submitButton = page.locator('button[type="submit"], button:has-text("Create"), button:has-text("Start")').first();
+		const submitButton = page
+			.locator('button[type="submit"], button:has-text("Create"), button:has-text("Start")')
+			.first();
 		await submitButton.click();
 
 		// Verify session was created - look for terminal in the UI
@@ -59,14 +71,18 @@ test.describe('Session Management - Create Sessions', () => {
 
 	test('should create a Claude session', async ({ page }) => {
 		// Open create session modal
-		const createButton = page.locator('button:has-text("New Session"), button:has-text("Create")').first();
+		const createButton = page
+			.locator('button:has-text("New Session"), button:has-text("Create")')
+			.first();
 		await createButton.click({ timeout: 10000 });
 
 		// Wait for modal
 		await page.waitForSelector('[role="dialog"], .modal', { timeout: 5000 });
 
 		// Select Claude session type
-		const claudeOption = page.locator('button:has-text("Claude"), label:has-text("Claude"), input[value="claude"]').first();
+		const claudeOption = page
+			.locator('button:has-text("Claude"), label:has-text("Claude"), input[value="claude"]')
+			.first();
 		if (await claudeOption.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await claudeOption.click();
 		}
@@ -82,7 +98,9 @@ test.describe('Session Management - Create Sessions', () => {
 		await submitButton.click();
 
 		// Verify Claude session interface appears
-		const claudeContainer = page.locator('[data-testid="claude-session"], .claude-container, .message-list').first();
+		const claudeContainer = page
+			.locator('[data-testid="claude-session"], .claude-container, .message-list')
+			.first();
 		await expect(claudeContainer).toBeVisible({ timeout: 10000 });
 	});
 
@@ -90,7 +108,7 @@ test.describe('Session Management - Create Sessions', () => {
 		// Create a session via API for faster test
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -124,7 +142,7 @@ test.describe('Session Management - Attach to Existing Session', () => {
 		// Create a session via API
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -201,7 +219,7 @@ test.describe('Session Management - Multi-Client Sync', () => {
 		// Create a session
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -308,7 +326,7 @@ test.describe('Session Management - Session Lifecycle', () => {
 		// Create session via API
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -329,7 +347,11 @@ test.describe('Session Management - Session Lifecycle', () => {
 		await page.locator('text="Closeable Session"').first().click();
 
 		// Find and click close button (might be X, close icon, or menu option)
-		const closeButton = page.locator('button[aria-label*="Close"], button:has-text("Close"), button[aria-label*="close" i]').first();
+		const closeButton = page
+			.locator(
+				'button[aria-label*="Close"], button:has-text("Close"), button[aria-label*="close" i]'
+			)
+			.first();
 		if (await closeButton.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await closeButton.click();
 		}
@@ -342,7 +364,7 @@ test.describe('Session Management - Session Lifecycle', () => {
 		// Create multiple sessions
 		await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: { type: 'pty', name: 'Session 1', workspacePath: '/workspace' }
@@ -350,7 +372,7 @@ test.describe('Session Management - Session Lifecycle', () => {
 
 		await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: { type: 'pty', name: 'Session 2', workspacePath: '/workspace' }
@@ -368,7 +390,7 @@ test.describe('Session Management - Session Lifecycle', () => {
 		// Create session
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -409,7 +431,7 @@ test.describe('Session Management - Real-Time Events', () => {
 		// Create session
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -441,7 +463,7 @@ test.describe('Session Management - Real-Time Events', () => {
 		// Create session
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -463,7 +485,7 @@ test.describe('Session Management - Real-Time Events', () => {
 		// Close session via API
 		await request.post(`${BASE_URL}/api/sessions/${sessionId}/close`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -486,7 +508,7 @@ test.describe('Session Management - API Operations', () => {
 	test('should create session via API', async ({ request }) => {
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -508,7 +530,7 @@ test.describe('Session Management - API Operations', () => {
 		// Create a session first
 		await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -521,7 +543,7 @@ test.describe('Session Management - API Operations', () => {
 		// List sessions
 		const response = await request.get(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -531,7 +553,7 @@ test.describe('Session Management - API Operations', () => {
 		expect(Array.isArray(sessions)).toBe(true);
 		expect(sessions.length).toBeGreaterThan(0);
 
-		const session = sessions.find(s => s.name === 'List Test Session');
+		const session = sessions.find((s) => s.name === 'List Test Session');
 		expect(session).toBeTruthy();
 	});
 
@@ -539,7 +561,7 @@ test.describe('Session Management - API Operations', () => {
 		// Create session
 		const createResponse = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -555,7 +577,7 @@ test.describe('Session Management - API Operations', () => {
 		// Close session
 		const closeResponse = await request.post(`${BASE_URL}/api/sessions/${sessionId}/close`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -564,16 +586,224 @@ test.describe('Session Management - API Operations', () => {
 		// Verify session is closed
 		const listResponse = await request.get(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
 		const sessions = await listResponse.json();
-		const closedSession = sessions.find(s => s.runId === sessionId);
+		const closedSession = sessions.find((s) => s.runId === sessionId);
 
 		// Session might still be in list but with closed/stopped status
 		if (closedSession) {
 			expect(closedSession.status).toBe('closed');
 		}
+	});
+});
+
+test.describe('Session Management - Web View Sessions', () => {
+	let apiKey;
+
+	test.beforeEach(async ({ page }) => {
+		const result = await resetToOnboarded();
+		apiKey = result.apiKey.key;
+
+		// Login
+		await page.goto(`${BASE_URL}/login`);
+		await page.fill('input[name="key"]', apiKey);
+		await page.click('button[type="submit"]');
+		await page.waitForURL(`${BASE_URL}/workspace`);
+	});
+
+	test('should create a Web View session', async ({ page }) => {
+		// Open create session modal
+		const createButton = page
+			.locator(
+				'button:has-text("New Session"), button:has-text("Create"), button[aria-label*="Create"]'
+			)
+			.first();
+		await createButton.click({ timeout: 10000 });
+
+		// Wait for modal to appear
+		await page.waitForSelector('[role="dialog"], .modal, [data-testid="create-session-modal"]', {
+			timeout: 5000
+		});
+
+		// Select Web View session type
+		const webViewOption = page
+			.locator('button:has-text("Web View"), label:has-text("Web View"), input[value="web-view"]')
+			.first();
+		await expect(webViewOption).toBeVisible({ timeout: 5000 });
+		await webViewOption.click();
+
+		// Wait for selection to register
+		await page.waitForTimeout(500);
+
+		// Submit to create session
+		const submitButton = page.locator('button[type="submit"], button:has-text("Create")').last();
+		await submitButton.click();
+
+		// Verify Web View session was created - look for address bar and iframe container
+		const addressBar = page.locator('.address-bar, input[placeholder*="URL"], .url-input').first();
+		await expect(addressBar).toBeVisible({ timeout: 10000 });
+
+		const iframeContainer = page.locator('.iframe-container, .web-view-container').first();
+		await expect(iframeContainer).toBeVisible({ timeout: 5000 });
+	});
+
+	test('should navigate to a URL in Web View', async ({ page }) => {
+		// Create Web View session
+		const createButton = page
+			.locator('button:has-text("New Session"), button:has-text("Create")')
+			.first();
+		await createButton.click({ timeout: 10000 });
+		await page.waitForSelector('[role="dialog"], .modal', { timeout: 5000 });
+
+		const webViewOption = page.locator('button:has-text("Web View")').first();
+		await webViewOption.click();
+		await page.waitForTimeout(500);
+
+		const submitButton = page.locator('button:has-text("Create")').last();
+		await submitButton.click();
+
+		// Wait for Web View to be created
+		const urlInput = page.locator('input[placeholder*="URL"], .url-input').first();
+		await expect(urlInput).toBeVisible({ timeout: 10000 });
+
+		// Enter a URL
+		await urlInput.fill('http://example.com');
+
+		// Click Go button or press Enter
+		const goButton = page.locator('button:has-text("Go"), .go-button').first();
+		if (await goButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+			await goButton.click();
+		} else {
+			await urlInput.press('Enter');
+		}
+
+		// Wait for navigation
+		await page.waitForTimeout(2000);
+
+		// Verify iframe was updated (check for iframe with the URL)
+		const iframe = page.locator('iframe.web-iframe, .iframe-container iframe').first();
+		await expect(iframe).toBeVisible({ timeout: 5000 });
+	});
+
+	test('should show error for invalid URL', async ({ page }) => {
+		// Create Web View session
+		const createButton = page.locator('button:has-text("Create")').first();
+		await createButton.click({ timeout: 10000 });
+		await page.waitForSelector('[role="dialog"], .modal', { timeout: 5000 });
+
+		const webViewOption = page.locator('button:has-text("Web View")').first();
+		await webViewOption.click();
+		await page.waitForTimeout(500);
+
+		const submitButton = page.locator('button:has-text("Create")').last();
+		await submitButton.click();
+
+		// Wait for Web View
+		const urlInput = page.locator('input[placeholder*="URL"]').first();
+		await expect(urlInput).toBeVisible({ timeout: 10000 });
+
+		// Try to navigate to an invalid protocol
+		await urlInput.fill('javascript:alert("xss")');
+		await urlInput.press('Enter');
+
+		// Wait for error message
+		await page.waitForTimeout(1000);
+
+		// Verify error message appears
+		const errorMessage = page.locator('.error-banner, .error-text, [class*="error"]').first();
+		await expect(errorMessage).toBeVisible({ timeout: 5000 });
+	});
+
+	test('should navigate to localhost URL', async ({ page }) => {
+		// Create Web View session
+		const createButton = page.locator('button:has-text("Create")').first();
+		await createButton.click({ timeout: 10000 });
+		await page.waitForSelector('[role="dialog"], .modal', { timeout: 5000 });
+
+		const webViewOption = page.locator('button:has-text("Web View")').first();
+		await webViewOption.click();
+		await page.waitForTimeout(500);
+
+		const submitButton = page.locator('button:has-text("Create")').last();
+		await submitButton.click();
+
+		// Wait for Web View
+		const urlInput = page.locator('input[placeholder*="URL"]').first();
+		await expect(urlInput).toBeVisible({ timeout: 10000 });
+
+		// Navigate to localhost (the test server itself)
+		await urlInput.fill('http://localhost:7173');
+		await urlInput.press('Enter');
+
+		// Wait for navigation
+		await page.waitForTimeout(2000);
+
+		// Verify iframe is present
+		const iframe = page.locator('iframe.web-iframe').first();
+		await expect(iframe).toBeVisible({ timeout: 5000 });
+
+		// Verify the iframe has the correct src
+		const iframeSrc = await iframe.getAttribute('src');
+		expect(iframeSrc).toContain('localhost:7173');
+	});
+
+	test('should create Web View session via API', async ({ request }) => {
+		const response = await request.post(`${BASE_URL}/api/sessions`, {
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			data: {
+				kind: 'web-view',
+				cwd: '/workspace',
+				options: {
+					initialUrl: 'http://example.com'
+				}
+			}
+		});
+
+		expect(response.status()).toBe(201);
+
+		const data = await response.json();
+		expect(data.runId).toBeTruthy();
+	});
+
+	test('should show navigation controls in Web View', async ({ page }) => {
+		// Create Web View session
+		const createButton = page.locator('button:has-text("Create")').first();
+		await createButton.click({ timeout: 10000 });
+		await page.waitForSelector('[role="dialog"], .modal', { timeout: 5000 });
+
+		const webViewOption = page.locator('button:has-text("Web View")').first();
+		await webViewOption.click();
+		await page.waitForTimeout(500);
+
+		const submitButton = page.locator('button:has-text("Create")').last();
+		await submitButton.click();
+
+		// Wait for Web View
+		await page.waitForTimeout(2000);
+
+		// Verify navigation controls are present
+		const backButton = page
+			.locator('button[title*="back" i], button[aria-label*="back" i], .nav-button')
+			.first();
+		const forwardButton = page
+			.locator('button[title*="forward" i], button[aria-label*="forward" i]')
+			.first();
+		const refreshButton = page
+			.locator('button[title*="refresh" i], button[title*="reload" i]')
+			.first();
+
+		// At least one navigation control should be visible
+		const hasNavControls =
+			(await backButton.isVisible({ timeout: 2000 }).catch(() => false)) ||
+			(await forwardButton.isVisible({ timeout: 2000 }).catch(() => false)) ||
+			(await refreshButton.isVisible({ timeout: 2000 }).catch(() => false));
+
+		expect(hasNavControls).toBe(true);
 	});
 });
