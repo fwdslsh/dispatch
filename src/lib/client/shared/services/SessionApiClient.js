@@ -186,8 +186,9 @@ export class SessionApiClient {
 			// Validate session type
 			if (
 				!type ||
-				![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(type)
+				![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(type)
 			) {
+				console.error('[SessionApiClient] Invalid session type:', type);
 				throw new Error(`Invalid session type: ${type}`);
 			}
 
@@ -202,12 +203,17 @@ export class SessionApiClient {
 				body.sessionId = sessionId;
 			}
 
+
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
 				method: 'POST',
 				headers: this.getHeaders(),
 				credentials: 'include', // Send session cookie
 				body: JSON.stringify(body)
+			}).catch((fetchError) => {
+				console.error('[SessionApiClient] Network error:', fetchError);
+				throw new Error(`Network error: ${fetchError.message}`);
 			});
+
 
 			const raw = await this.handleResponse(response);
 			const id =
@@ -232,6 +238,10 @@ export class SessionApiClient {
 						return 'Terminal session';
 					case SESSION_TYPE.FILE_EDITOR:
 						return 'File Editor';
+					case SESSION_TYPE.OPENCODE:
+						return 'OpenCode session';
+					case SESSION_TYPE.OPENCODE_TUI:
+						return 'OpenCode TUI session';
 					default:
 						return `${sessionType} session`;
 				}
@@ -535,7 +545,7 @@ export class SessionApiClient {
 			return false;
 		}
 
-		if (![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(options.type)) {
+		if (![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(options.type)) {
 			return false;
 		}
 

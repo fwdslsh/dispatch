@@ -9,11 +9,11 @@
 	import MobileNavigation from './MobileNavigation.svelte';
 	import CreateSessionButton from './CreateSessionButton.svelte';
 	import IconButton from '../IconButton.svelte';
-	import IconAdjustmentsAlt from '../Icons/IconAdjustmentsAlt.svelte';
 	import IconCodeDots from '../Icons/IconCodeDots.svelte';
 	import IconCodeMinus from '../Icons/IconCodeMinus.svelte';
 	import IconPlayerTrackNext from '../Icons/IconPlayerTrackNext.svelte';
 	import IconPlayerTrackPrev from '../Icons/IconPlayerTrackPrev.svelte';
+	import LayoutControls from './LayoutControls.svelte';
 
 	// Props
 	let {
@@ -21,6 +21,7 @@
 		onCreateSession = () => {},
 		onToggleSessionMenu = () => {},
 		onNavigateSession = () => {},
+		onViewModeChange = () => {},
 		sessionMenuOpen = false,
 		isMobile = false,
 		hasActiveSessions = false,
@@ -39,24 +40,9 @@
 
 <footer class="status-bar-container">
 	<div class="status-bar">
-		<!-- Left group: System actions -->
+		<!-- Left group: Layout controls -->
 		<div class="status-bar-group status-bar-left">
-			<!-- <IconButton onclick={onLogout} aria-label="Logout" title="Logout">
-				<IconLogout2 size={18} />
-			</IconButton>
-
-			<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
-				<IconAppWindow size={18} />
-			</IconButton> -->
-			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
-				<IconAdjustmentsAlt size={18} />
-			</IconButton>
-
-			<!-- {#if totalSessions > 0}
-				<span class="session-counter">
-					{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
-				</span>
-			{/if} -->
+			<LayoutControls {viewMode} onSelectView={onViewModeChange} />
 		</div>
 
 		<!-- Center group: Main create session button -->

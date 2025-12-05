@@ -1,5 +1,7 @@
 import { terminalSessionModule } from '../../terminal/terminal.js';
 import { claudeSessionModule } from '../../claude/claude.js';
+import { opencodeSessionModule } from '../../opencode/opencode.js';
+import { opencodeTuiSessionModule } from '../../opencode/opencode-tui.js';
 import { fileEditorSessionModule } from '../../file-editor/file-editor.js';
 import { registerSettingsSection } from '../../settings/registry/settings-registry.js';
 
@@ -42,4 +44,10 @@ export function getComponentForSessionType(type) {
 	return module?.component || null;
 }
 
-registerClientSessionModules(terminalSessionModule, claudeSessionModule, fileEditorSessionModule);
+registerClientSessionModules(
+	terminalSessionModule,
+	claudeSessionModule,
+	opencodeSessionModule,
+	opencodeTuiSessionModule,
+	fileEditorSessionModule
+);

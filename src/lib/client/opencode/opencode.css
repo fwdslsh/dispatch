@@ -1,0 +1,25 @@
+/**
+ * OpenCode Session Styles
+ * Shared styles for OpenCode components
+ */
+
+/* OpenCode-specific color overrides */
+.opencode-pane {
+	--opencode-primary: var(--primary);
+	--opencode-glow: var(--primary-glow);
+}
+
+/* Animations */
+@keyframes opencode-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.opencode-loading {
+	animation: opencode-pulse 1.5s ease-in-out infinite;
+}

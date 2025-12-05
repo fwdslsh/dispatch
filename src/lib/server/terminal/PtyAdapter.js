@@ -30,7 +30,10 @@ export class PtyAdapter {
 		const ptyOptions = config.toNodePtyOptions();
 		const { shell, args } = config.getShellConfig();
 
-		logger.info('PTY_ADAPTER', `Spawning ${shell} with args:`, args, 'options:', config.getLoggingConfig());
+		logger.info('PTY_ADAPTER', `=== Spawning PTY ===`);
+		logger.info('PTY_ADAPTER', `Shell: ${shell}`);
+		logger.info('PTY_ADAPTER', `Args:`, args);
+		logger.info('PTY_ADAPTER', `Options:`, config.getLoggingConfig());
 
 		let term;
 		try {

@@ -180,14 +180,7 @@
 	{#snippet header()}
 		<WorkspaceHeader
 			onLogout={() => workspaceViewModel?.handleLogout()}
-			viewMode={viewMode}
 			onInstallPWA={() => workspaceViewModel?.handleInstallPWA(PWA_INSTALL_GUIDES)}
-			onViewModeChange={(mode) => {
-			console.log('[WorkspacePage] onViewModeChange called, setting viewMode to:', mode);
-			workspaceViewModel?.setWorkspaceViewMode(mode);
-			viewMode = mode;
-			console.log('[WorkspacePage] viewMode after update:', viewMode);
-		}}
 		/>
 	{/snippet}
 
@@ -275,6 +268,12 @@
 			onCreateSession={(type) => workspaceViewModel?.openCreateSessionModal(type)}
 			onToggleSessionMenu={() => workspaceViewModel?.toggleSessionMenu()}
 			onNavigateSession={(direction) => workspaceViewModel?.handleNavigateSession(direction)}
+			onViewModeChange={(mode) => {
+				console.log('[WorkspacePage] onViewModeChange called, setting viewMode to:', mode);
+				workspaceViewModel?.setWorkspaceViewMode(mode);
+				viewMode = mode;
+				console.log('[WorkspacePage] viewMode after update:', viewMode);
+			}}
 			sessionMenuOpen={workspaceViewModel?.sessionMenuOpen}
 			{isMobile}
 			hasActiveSessions={workspaceViewModel?.hasActiveSessions}

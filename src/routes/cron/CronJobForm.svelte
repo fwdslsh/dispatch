@@ -1,7 +1,10 @@
 <script>
+	import Modal from '$lib/client/shared/components/Modal.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import { CRON_PRESETS } from '$lib/shared/cron-utils.js';
 
-	let { job = null, onSave, onCancel, cronService } = $props();
+	let { job = null, onSave, onCancel, cronService, open = $bindable(true) } = $props();
 
 	let formData = $state({
 		name: job?.name || '',
@@ -14,7 +17,8 @@
 	let usePreset = $state(true);
 	let validationError = $state(null);
 
-	function handleSubmit() {
+	function handleSubmit(event) {
+		event.preventDefault();
 		validationError = null;
 
 		const validation = cronService.validateExpression(formData.cronExpression);
@@ -24,6 +28,7 @@
 		}
 
 		onSave(formData);
+		open = false;
 	}
 
 	function selectPreset(preset) {
@@ -31,29 +36,21 @@
 		usePreset = true;
 	}
 
-	function handleKeyDown(event) {
-		if (event.key === 'Escape') {
-			onCancel();
-		}
-	}
-
-	function handleOverlayClick(event) {
-		if (event.target === event.currentTarget) {
-			onCancel();
-		}
+	function handleCancel() {
+		onCancel();
+		open = false;
 	}
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-overlay" onclick={handleOverlayClick} onkeydown={handleKeyDown}>
-	<div class="modal-content">
-		<div class="modal-header">
-			<h2>{job ? 'Edit Task' : 'Create New Task'}</h2>
-			<button class="close-btn" onclick={onCancel}>×</button>
-		</div>
-
-		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-			<div class="form-group">
+<Modal
+	bind:open
+	title={job ? 'Edit Task' : 'Create New Task'}
+	size="medium"
+	onclose={handleCancel}
+>
+	<form onsubmit={handleSubmit} class="cron-form">
+		<FormSection title="Task Details">
+			<div class="form-field">
 				<label for="name">Task Name *</label>
 				<input
 					id="name"
@@ -64,7 +61,7 @@
 				/>
 			</div>
 
-			<div class="form-group">
+			<div class="form-field">
 				<label for="description">Description</label>
 				<textarea
 					id="description"
@@ -73,8 +70,10 @@
 					rows="2"
 				></textarea>
 			</div>
+		</FormSection>
 
-			<div class="form-group">
+		<FormSection title="Schedule Configuration">
+			<div class="form-field">
 				<label>Schedule</label>
 				<div class="preset-grid">
 					{#each CRON_PRESETS as preset}
@@ -90,7 +89,7 @@
 				</div>
 			</div>
 
-			<div class="form-group">
+			<div class="form-field">
 				<label for="cronExpression">Cron Expression *</label>
 				<input
 					id="cronExpression"
@@ -107,8 +106,10 @@
 					<div class="error">{validationError}</div>
 				{/if}
 			</div>
+		</FormSection>
 
-			<div class="form-group">
+		<FormSection title="Execution Settings">
+			<div class="form-field">
 				<label for="command">Command *</label>
 				<textarea
 					id="command"
@@ -119,7 +120,7 @@
 				></textarea>
 			</div>
 
-			<div class="form-group">
+			<div class="form-field">
 				<label for="workspacePath">Workspace Path</label>
 				<input
 					id="workspacePath"
@@ -128,188 +129,122 @@
 					placeholder="/workspace/my-project"
 				/>
 			</div>
+		</FormSection>
+	</form>
 
-			<div class="modal-footer">
-				<button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
-				<button type="submit" class="btn-primary">{job ? 'Update' : 'Create'} Task</button>
-			</div>
-		</form>
-	</div>
-</div>
+	{#snippet footer()}
+		<div class="modal-actions">
+			<Button variant="secondary" onclick={handleCancel}>Cancel</Button>
+			<Button variant="primary" onclick={handleSubmit}>
+				{job ? 'Update' : 'Create'} Task
+			</Button>
+		</div>
+	{/snippet}
+</Modal>
 
 <style>
-	.modal-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+	.cron-form {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		padding: 1rem;
+		flex-direction: column;
+		gap: var(--space-4);
 	}
 
-	.modal-content {
-		background: var(--card-bg, white);
-		border-radius: 12px;
-		max-width: 600px;
-		width: 100%;
-		max-height: 90vh;
-		overflow-y: auto;
-		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+	.form-field {
+		margin-bottom: var(--space-4);
 	}
 
-	.modal-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 1.5rem;
-		border-bottom: 1px solid var(--border-color, #e5e7eb);
-	}
-
-	.modal-header h2 {
-		font-size: 1.5rem;
-		font-weight: 600;
-		margin: 0;
-		color: var(--text-primary, #1f2937);
-	}
-
-	.close-btn {
-		width: 32px;
-		height: 32px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: none;
-		border: none;
-		font-size: 2rem;
-		color: var(--text-secondary, #6b7280);
-		cursor: pointer;
-		border-radius: 6px;
-		transition: all 0.2s;
-	}
-
-	.close-btn:hover {
-		background: var(--hover-bg, #f9fafb);
-		color: var(--text-primary, #1f2937);
-	}
-
-	form {
-		padding: 1.5rem;
-	}
-
-	.form-group {
-		margin-bottom: 1.5rem;
+	.form-field:last-child {
+		margin-bottom: 0;
 	}
 
 	label {
 		display: block;
-		font-size: 0.875rem;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-sm);
 		font-weight: 600;
-		color: var(--text-primary, #1f2937);
-		margin-bottom: 0.5rem;
+		color: var(--text-primary);
+		margin-bottom: var(--space-2);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
 	}
 
 	input,
 	textarea {
 		width: 100%;
-		padding: 0.625rem 0.875rem;
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 8px;
-		font-size: 0.9375rem;
-		color: var(--text-primary, #1f2937);
-		background: var(--card-bg, white);
-		transition: all 0.2s;
+		padding: var(--space-3);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-sm);
+		font-size: var(--font-size-base);
+		font-family: var(--font-mono);
+		color: var(--text-primary);
+		background: var(--bg-primary);
+		transition: all 0.2s ease;
 	}
 
 	input:focus,
 	textarea:focus {
 		outline: none;
-		border-color: var(--primary-color, #3b82f6);
-		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+		border-color: var(--primary);
+		box-shadow: 0 0 0 3px var(--primary-glow-20);
 	}
 
 	textarea {
 		resize: vertical;
-		font-family: 'Monaco', 'Menlo', monospace;
+		font-family: var(--font-mono);
+		line-height: 1.5;
 	}
 
 	.preset-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	.preset-btn {
-		padding: 0.625rem;
-		background: var(--hover-bg, #f9fafb);
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 6px;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-primary, #1f2937);
+		padding: var(--space-3);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-primary);
+		border-radius: var(--radius-sm);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		font-family: var(--font-mono);
+		color: var(--text-primary);
 		cursor: pointer;
-		transition: all 0.2s;
+		transition: all 0.2s ease;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
 	}
 
 	.preset-btn:hover {
-		background: var(--border-color, #e5e7eb);
+		background: var(--bg-hover);
+		border-color: var(--primary-dim);
 	}
 
 	.preset-btn.active {
-		background: var(--primary-color, #3b82f6);
-		color: white;
-		border-color: var(--primary-color, #3b82f6);
+		background: var(--primary);
+		color: var(--text-on-accent);
+		border-color: var(--primary);
+		box-shadow: 0 0 10px var(--primary-glow);
 	}
 
 	.hint {
-		margin-top: 0.5rem;
-		font-size: 0.875rem;
-		color: var(--text-secondary, #6b7280);
+		margin-top: var(--space-2);
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		font-family: var(--font-mono);
 		font-style: italic;
 	}
 
 	.error {
-		margin-top: 0.5rem;
-		font-size: 0.875rem;
-		color: #dc2626;
+		margin-top: var(--space-2);
+		font-size: var(--font-size-sm);
+		color: var(--color-error);
+		font-family: var(--font-mono);
 	}
 
-	.modal-footer {
+	.modal-actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 0.75rem;
-		padding: 1.5rem;
-		border-top: 1px solid var(--border-color, #e5e7eb);
-	}
-
-	.btn-primary,
-	.btn-secondary {
-		padding: 0.625rem 1.25rem;
-		border-radius: 8px;
-		font-size: 0.9375rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s;
-		border: none;
-	}
-
-	.btn-primary {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-	}
-
-	.btn-primary:hover {
-		box-shadow: var(--shadow-md);
-	}
-
-	.btn-secondary {
-		background: var(--hover-bg, #f9fafb);
-		color: var(--text-primary, #1f2937);
-		border: 1px solid var(--border-color, #e5e7eb);
-	}
-
-	.btn-secondary:hover {
-		background: var(--border-color, #e5e7eb);
+		gap: var(--space-3);
 	}
 </style>

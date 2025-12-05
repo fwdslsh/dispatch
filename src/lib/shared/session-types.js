@@ -6,6 +6,8 @@
 export const SESSION_TYPE = {
 	PTY: 'pty',
 	CLAUDE: 'claude',
+	OPENCODE: 'opencode',
+	OPENCODE_TUI: 'opencode-tui',
 	FILE_EDITOR: 'file-editor'
 };
 

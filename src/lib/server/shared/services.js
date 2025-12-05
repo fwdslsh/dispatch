@@ -16,6 +16,7 @@ import { AuthService } from './auth.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
 import { TunnelManager } from '../tunnels/TunnelManager.js';
 import { VSCodeTunnelManager } from '../tunnels/VSCodeTunnelManager.js';
+import { OpenCodeServerManager } from '../opencode/OpenCodeServerManager.js';
 import { ApiKeyManager } from '../auth/ApiKeyManager.server.js';
 import { SessionManager } from '../auth/SessionManager.server.js';
 import { OAuthManager } from '../auth/OAuth.server.js';
@@ -29,6 +30,8 @@ import { validateEnvironment } from './utils/env-validation.js';
 // Adapters
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
+import { OpenCodeAdapter } from '../opencode/OpenCodeAdapter.js';
+import { OpenCodeTuiAdapter } from '../opencode/OpenCodeTuiAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 
 // Cron scheduler
@@ -58,8 +61,11 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
  * @property {ClaudeAuthManager} claudeAuthManager
  * @property {TunnelManager} tunnelManager
  * @property {VSCodeTunnelManager} vscodeManager
+ * @property {OpenCodeServerManager} opencodeServerManager
  * @property {PtyAdapter} ptyAdapter
  * @property {ClaudeAdapter} claudeAdapter
+ * @property {OpenCodeAdapter} opencodeAdapter
+ * @property {OpenCodeTuiAdapter} opencodeTuiAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
  * @property {CronSchedulerService} cronScheduler
  * @property {() => DatabaseManager} getDatabase
@@ -125,21 +131,26 @@ export async function createServices(config = {}) {
 	const authService = new AuthService(apiKeyManager);
 	const claudeAuthManager = new ClaudeAuthManager();
 
-	// Layer 6: Tunnel services
+	// Layer 6: Tunnel services and OpenCode server
 	const tunnelManager = new TunnelManager({
 		port: resolvedConfig.port,
 		subdomain: resolvedConfig.tunnelSubdomain,
 		settingsRepository
 	});
 	const vscodeManager = new VSCodeTunnelManager({ settingsRepository });
+	const opencodeServerManager = new OpenCodeServerManager({ settingsRepository });
 
 	// Layer 7: Register adapters
 	const ptyAdapter = new PtyAdapter();
 	const claudeAdapter = new ClaudeAdapter();
+	const opencodeAdapter = new OpenCodeAdapter();
+	const opencodeTuiAdapter = new OpenCodeTuiAdapter({ serverManager: opencodeServerManager });
 	const fileEditorAdapter = new FileEditorAdapter();
 
 	adapterRegistry.register(SESSION_TYPE.PTY, ptyAdapter);
 	adapterRegistry.register(SESSION_TYPE.CLAUDE, claudeAdapter);
+	adapterRegistry.register(SESSION_TYPE.OPENCODE, opencodeAdapter);
+	adapterRegistry.register(SESSION_TYPE.OPENCODE_TUI, opencodeTuiAdapter);
 	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
 	// Layer 8: Cron scheduler (needs db, will get io instance later)
@@ -176,9 +187,14 @@ export async function createServices(config = {}) {
 		tunnelManager,
 		vscodeManager,
 
+		// OpenCode server
+		opencodeServerManager,
+
 		// Adapters (direct access)
 		ptyAdapter,
 		claudeAdapter,
+		opencodeAdapter,
+		opencodeTuiAdapter,
 		fileEditorAdapter,
 
 		// Cron scheduler
@@ -235,6 +251,10 @@ export async function initializeServices(config = {}) {
 		// Initialize tunnel managers
 		await services.tunnelManager.init();
 		await services.vscodeManager.init();
+
+		// Initialize OpenCode server manager
+		await services.opencodeServerManager.init();
+		logger.info('SERVICES', 'OpenCode server manager initialized');
 
 		// Initialize cron scheduler
 		await services.cronScheduler.init();

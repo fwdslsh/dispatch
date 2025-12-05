@@ -2,7 +2,7 @@
 	import { onMount, onDestroy, setContext } from 'svelte';
 	import Shell from '$lib/client/shared/components/Shell.svelte';
 	import StatusBar from '$lib/client/shared/components/StatusBar.svelte';
-	import Header from '$lib/client/shared/components/Header.svelte';
+	import WorkspaceHeader from '$lib/client/shared/components/workspace/WorkspaceHeader.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import {
 		useServiceContainer,
@@ -175,7 +175,29 @@
 
 <Shell>
 	{#snippet header()}
-		<Header />
+		<WorkspaceHeader
+			onLogout={() => (window.location.href = '/login')}
+			viewMode="window-manager"
+			onViewModeChange={() => {}}
+		>
+			{#snippet actions()}
+				<button
+					class="icon-button"
+					onclick={() => (window.location.href = '/login')}
+					title="Logout"
+					aria-label="Logout"
+				>
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+						<path
+							d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				</button>
+			{/snippet}
+		</WorkspaceHeader>
 	{/snippet}
 
 	<div class="settings-page main-content">
@@ -256,3 +278,29 @@
 		<StatusBar />
 	{/snippet}
 </Shell>
+
+<style>
+	.icon-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border: none;
+		background: transparent;
+		color: var(--text-primary);
+		cursor: pointer;
+		border-radius: var(--radius-md);
+		transition: all 0.2s ease;
+	}
+
+	.icon-button:hover {
+		background: var(--bg-hover);
+		color: var(--primary);
+	}
+
+	.icon-button:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
+</style>

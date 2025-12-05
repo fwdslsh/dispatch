@@ -24,7 +24,7 @@ export async function createSession(
 		// Validate session type
 		if (
 			!type ||
-			![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(type)
+			![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(type)
 		) {
 			throw new Error(`Invalid session type: ${type}`);
 		}
@@ -68,6 +68,10 @@ export async function createSession(
 					return 'Terminal session';
 				case SESSION_TYPE.FILE_EDITOR:
 					return 'File Editor';
+				case SESSION_TYPE.OPENCODE:
+					return 'OpenCode session';
+				case SESSION_TYPE.OPENCODE_TUI:
+					return 'OpenCode TUI session';
 				default:
 					return `${sessionType} session`;
 			}
