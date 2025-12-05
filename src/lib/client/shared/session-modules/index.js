@@ -3,6 +3,7 @@ import { claudeSessionModule } from '../../claude/claude.js';
 import { opencodeSessionModule } from '../../opencode/opencode.js';
 import { opencodeTuiSessionModule } from '../../opencode/opencode-tui.js';
 import { fileEditorSessionModule } from '../../file-editor/file-editor.js';
+import { webViewSessionModule } from '../../web-view/web-view.js';
 import { registerSettingsSection } from '../../settings/registry/settings-registry.js';
 
 const moduleMap = new Map();
@@ -49,5 +50,6 @@ registerClientSessionModules(
 	claudeSessionModule,
 	opencodeSessionModule,
 	opencodeTuiSessionModule,
-	fileEditorSessionModule
+	fileEditorSessionModule,
+	webViewSessionModule
 );

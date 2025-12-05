@@ -33,6 +33,7 @@ import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { OpenCodeAdapter } from '../opencode/OpenCodeAdapter.js';
 import { OpenCodeTuiAdapter } from '../opencode/OpenCodeTuiAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
+import { WebViewAdapter } from '../web-view/WebViewAdapter.js';
 
 // Cron scheduler
 import { CronSchedulerService } from '../cron/CronSchedulerService.js';
@@ -67,6 +68,7 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
  * @property {OpenCodeAdapter} opencodeAdapter
  * @property {OpenCodeTuiAdapter} opencodeTuiAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
+ * @property {WebViewAdapter} webViewAdapter
  * @property {CronSchedulerService} cronScheduler
  * @property {() => DatabaseManager} getDatabase
  */
@@ -146,12 +148,14 @@ export async function createServices(config = {}) {
 	const opencodeAdapter = new OpenCodeAdapter();
 	const opencodeTuiAdapter = new OpenCodeTuiAdapter({ serverManager: opencodeServerManager });
 	const fileEditorAdapter = new FileEditorAdapter();
+	const webViewAdapter = new WebViewAdapter();
 
 	adapterRegistry.register(SESSION_TYPE.PTY, ptyAdapter);
 	adapterRegistry.register(SESSION_TYPE.CLAUDE, claudeAdapter);
 	adapterRegistry.register(SESSION_TYPE.OPENCODE, opencodeAdapter);
 	adapterRegistry.register(SESSION_TYPE.OPENCODE_TUI, opencodeTuiAdapter);
 	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
+	adapterRegistry.register(SESSION_TYPE.WEB_VIEW, webViewAdapter);
 
 	// Layer 8: Cron scheduler (needs db, will get io instance later)
 	const cronScheduler = new CronSchedulerService(db, null);
@@ -196,6 +200,7 @@ export async function createServices(config = {}) {
 		opencodeAdapter,
 		opencodeTuiAdapter,
 		fileEditorAdapter,
+		webViewAdapter,
 
 		// Cron scheduler
 		cronScheduler,
