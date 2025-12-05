@@ -2,7 +2,7 @@
 
 ## Overview
 
-Dispatch uses an **adapter pattern** to support multiple session types (PTY terminals, Claude Code, File Editor) through a unified interface. This guide shows how to add new session types by creating adapters and registering them with the session management system.
+Dispatch uses an **adapter pattern** to support multiple session types (PTY terminals, Claude Code, File Editor, Web View) through a unified interface. This guide shows how to add new session types by creating adapters and registering them with the session management system.
 
 **Core Concept**: Each session type implements a standard adapter interface that wraps its specific functionality (node-pty, Claude SDK, etc.) while exposing a consistent API for session management.
 
@@ -17,7 +17,7 @@ API Route (/api/sessions)
     ↓
 SessionOrchestrator (simplified architecture)
     ↓
-Session Adapter (PtyAdapter, ClaudeAdapter, FileEditorAdapter)
+Session Adapter (PtyAdapter, ClaudeAdapter, FileEditorAdapter, WebViewAdapter)
     ↓
 Underlying Implementation (node-pty, @anthropic-ai/claude-code, custom)
     ↓
