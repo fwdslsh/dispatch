@@ -102,11 +102,28 @@ class WebViewProcess extends EventEmitter {
 			// Try parsing as JSON command first
 			try {
 				const command = JSON.parse(text);
-				if (command.type === 'navigate' && command.url) {
+				if (command && typeof command === 'object' && command.type === 'navigate') {
+					if (typeof command.url !== 'string' || !command.url) {
+						throw new Error('Invalid URL in navigate command');
+					}
 					url = command.url;
+
+					// Validate URL format and protocol
+					const parsed = new URL(url);
+					if (!['http:', 'https:'].includes(parsed.protocol)) {
+						throw new Error('Only HTTP and HTTPS protocols are allowed');
+					}
 				}
-			} catch {
-				// Not JSON, treat as plain URL
+			} catch (parseError) {
+				// Not JSON or invalid JSON, treat as plain URL - but still validate it
+				if (url && parseError.message !== 'Invalid URL in navigate command') {
+					const testUrl = url.startsWith('http') ? url : `http://${url}`;
+					const parsed = new URL(testUrl);
+					if (!['http:', 'https:'].includes(parsed.protocol)) {
+						throw new Error('Only HTTP and HTTPS protocols are allowed');
+					}
+					url = parsed.href;
+				}
 			}
 
 			if (url) {

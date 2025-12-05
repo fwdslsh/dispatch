@@ -64,9 +64,14 @@
 			url = 'http://' + url;
 		}
 
-		// Validate URL format
+		// Validate URL format and protocol
 		try {
-			new URL(url);
+			const parsed = new URL(url);
+			// Only allow http and https protocols for security
+			if (!['http:', 'https:'].includes(parsed.protocol)) {
+				error = 'Only HTTP and HTTPS URLs are allowed';
+				return;
+			}
 		} catch (err) {
 			error = 'Invalid URL format';
 			return;
@@ -101,13 +106,23 @@
 
 	function goBack() {
 		if (iframeElement?.contentWindow) {
-			iframeElement.contentWindow.history.back();
+			try {
+				iframeElement.contentWindow.history.back();
+			} catch (err) {
+				// CORS may prevent access to iframe history
+				error = 'Navigation blocked by the embedded site';
+			}
 		}
 	}
 
 	function goForward() {
 		if (iframeElement?.contentWindow) {
-			iframeElement.contentWindow.history.forward();
+			try {
+				iframeElement.contentWindow.history.forward();
+			} catch (err) {
+				// CORS may prevent access to iframe history
+				error = 'Navigation blocked by the embedded site';
+			}
 		}
 	}
 
@@ -170,7 +185,7 @@
 				class="web-iframe"
 				onload={handleIframeLoad}
 				onerror={handleIframeError}
-				sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+				sandbox="allow-scripts allow-forms allow-popups"
 			></iframe>
 		{:else}
 			<div class="empty-state">
