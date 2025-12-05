@@ -44,7 +44,13 @@ export class OpenCodeServerManager {
 			// Auto-start if enabled
 			if (this.isEnabled) {
 				logger.info('OPENCODE_SERVER', 'Auto-starting OpenCode server...');
-				await this.start();
+				try {
+					await this.start();
+				} catch (startError) {
+					logger.error('OPENCODE_SERVER', `Auto-start failed: ${startError.message}`);
+					// Auto-start failure should not crash the app
+					// The error state is already set in start() method
+				}
 			}
 		} catch (error) {
 			logger.error('OPENCODE_SERVER', `Failed to initialize: ${error.message}`);
@@ -143,6 +149,7 @@ export class OpenCodeServerManager {
 			this.status = 'starting';
 			this.errorMessage = null;
 
+			// Mark as enabled AFTER we successfully start, not before
 			this.process = spawn('opencode', args, {
 				stdio: 'pipe',
 				env: { ...process.env }
@@ -162,19 +169,35 @@ export class OpenCodeServerManager {
 					const line = buf.toString().trim();
 					logger.debug('OPENCODE_SERVER', line);
 
-					// Check for server ready indicators
-					if (
-						line.includes('Server listening') ||
-						line.includes('started') ||
-						line.includes(`${this.port}`)
-					) {
+					// Check for error indicators first
+					if (line.includes('EADDRINUSE') || line.includes('Failed to start server')) {
 						if (!serverReady) {
 							serverReady = true;
 							clearTimeout(timeout);
-							this.status = 'running';
-							logger.info('OPENCODE_SERVER', `Server ready at http://${this.hostname}:${this.port}`);
-							resolve(true);
+							this.status = 'error';
+							this.errorMessage = `Failed to start server - port ${this.port} is already in use`;
+							reject(new Error(this.errorMessage));
 						}
+						return;
+					}
+
+					// Check for server ready indicators (must be specific to avoid false positives)
+					const isReady =
+						line.includes('Server listening') ||
+						(line.includes('listening') && line.includes(`${this.port}`)) ||
+						(line.includes('started') && line.includes('server'));
+
+					if (isReady && !serverReady) {
+						// Wait a bit to ensure process doesn't exit immediately
+						setTimeout(() => {
+							if (this.process && this.process.exitCode === null && !serverReady) {
+								serverReady = true;
+								clearTimeout(timeout);
+								this.status = 'running';
+								logger.info('OPENCODE_SERVER', `Server ready at http://${this.hostname}:${this.port}`);
+								resolve(true);
+							}
+						}, 500);
 					}
 				};
 
@@ -197,9 +220,16 @@ export class OpenCodeServerManager {
 						serverReady = true;
 						clearTimeout(timeout);
 						this.status = 'error';
-						this.errorMessage = `Server exited with code=${code}`;
+
+						// Check if it's a port conflict error
+						if (code === 1) {
+							this.errorMessage = `Failed to start server - port ${this.port} may already be in use`;
+						} else {
+							this.errorMessage = `Server exited with code=${code}`;
+						}
+
 						if (code !== 0) {
-							reject(new Error(`Server process exited with code=${code} signal=${signal}`));
+							reject(new Error(this.errorMessage));
 						} else {
 							reject(new Error('Server process exited without starting'));
 						}
@@ -218,11 +248,12 @@ export class OpenCodeServerManager {
 				this.process.on('exit', handleExit);
 			});
 
+			// Wait for server to be ready before marking as enabled
+			await readyPromise;
+
+			// Only mark as enabled after successful start
 			this.isEnabled = true;
 			await this._saveSettings();
-
-			// Wait for server to be ready before returning
-			await readyPromise;
 
 			return true;
 		} catch (error) {
@@ -329,17 +360,27 @@ export class OpenCodeServerManager {
 	 * @param {Object} config
 	 * @param {string} [config.hostname]
 	 * @param {number} [config.port]
+	 * @param {boolean} [config.enabled]
 	 * @returns {Promise<void>}
 	 */
 	async updateConfig(config) {
-		const needsRestart = this._isProcessRunning();
+		const wasRunning = this._isProcessRunning();
 
+		// Update configuration
 		if (config.hostname !== undefined) this.hostname = config.hostname;
 		if (config.port !== undefined) this.port = config.port;
+		if (config.enabled !== undefined) this.isEnabled = config.enabled;
+
+		// Clear error state when updating config
+		if (this.status === 'error') {
+			this.status = 'stopped';
+			this.errorMessage = null;
+		}
 
 		await this._saveSettings();
 
-		if (needsRestart) {
+		// Only restart if server was actually running (not in error state)
+		if (wasRunning && this.status === 'running') {
 			logger.info('OPENCODE_SERVER', 'Configuration changed, restarting server...');
 			await this.restart();
 		}

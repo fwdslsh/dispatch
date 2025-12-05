@@ -94,7 +94,7 @@ export async function DELETE({ locals }) {
 }
 
 /**
- * PUT /api/opencode/server/config
+ * PUT /api/opencode/server
  * Update OpenCode server configuration
  */
 export async function PUT({ request, locals }) {
@@ -107,9 +107,9 @@ export async function PUT({ request, locals }) {
 
 		const body = await request.json();
 
-		if (!body.hostname && !body.port) {
+		if (!body.hostname && !body.port && body.enabled === undefined) {
 			throw new BadRequestError(
-				'At least one of hostname or port must be provided',
+				'At least one of hostname, port, or enabled must be provided',
 				'INVALID_CONFIG'
 			);
 		}
