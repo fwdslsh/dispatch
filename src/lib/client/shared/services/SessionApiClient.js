@@ -186,7 +186,7 @@ export class SessionApiClient {
 			// Validate session type
 			if (
 				!type ||
-				![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(type)
+				![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI, SESSION_TYPE.WEB_VIEW].includes(type)
 			) {
 				console.error('[SessionApiClient] Invalid session type:', type);
 				throw new Error(`Invalid session type: ${type}`);

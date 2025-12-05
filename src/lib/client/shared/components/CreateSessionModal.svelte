@@ -10,6 +10,7 @@
 	import IconFolder from './Icons/IconFolder.svelte';
 	import IconPlus from './Icons/IconPlus.svelte';
 	import IconEdit from './Icons/IconEdit.svelte';
+	import IconWorld from './Icons/IconWorld.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
@@ -175,6 +176,18 @@
 					tabindex="0"
 				>
 					{#snippet icon()}<IconEdit size={32} />{/snippet}
+				</TypeCard>
+				<TypeCard
+					title="Web View"
+					description="Embed and browse web pages"
+					active={viewModel?.sessionType === SESSION_TYPE.WEB_VIEW}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.WEB_VIEW)}
+					aria-label="Select Web View session type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconWorld size={32} />{/snippet}
 				</TypeCard>
 			</div>
 		</FormSection>

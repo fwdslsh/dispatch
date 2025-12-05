@@ -1,6 +1,6 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import { getContainer } from '../shared/services/ServiceContainer.svelte.js';
+	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 
 	// Props
 	let { sessionId, workspacePath = '' } = $props();
@@ -11,14 +11,10 @@
 	let iframeElement = $state(null);
 	let loading = $state(false);
 	let error = $state(null);
-	let runSessionClient = $state(null);
 
-	// Initialize service container and clients
+	// Initialize session
 	onMount(async () => {
 		try {
-			const container = getContainer();
-			runSessionClient = container.get('runSessionClient');
-
 			// Attach to the session
 			await runSessionClient.attach(sessionId);
 
@@ -33,11 +29,9 @@
 	});
 
 	onDestroy(() => {
-		if (runSessionClient) {
-			runSessionClient.off('web-view:navigation', handleNavigationEvent);
-			runSessionClient.off('web-view:system', handleSystemEvent);
-			runSessionClient.off('web-view:error', handleErrorEvent);
-		}
+		runSessionClient.off('web-view:navigation', handleNavigationEvent);
+		runSessionClient.off('web-view:system', handleSystemEvent);
+		runSessionClient.off('web-view:error', handleErrorEvent);
 	});
 
 	function handleNavigationEvent(event) {
@@ -82,10 +76,8 @@
 		error = null;
 
 		// Send navigation command to server
-		if (runSessionClient) {
-			const command = JSON.stringify({ type: 'navigate', url });
-			runSessionClient.sendInput(sessionId, command);
-		}
+		const command = JSON.stringify({ type: 'navigate', url });
+		runSessionClient.sendInput(sessionId, command);
 
 		// Update current URL
 		currentUrl = url;
