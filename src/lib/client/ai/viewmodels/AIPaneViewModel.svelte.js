@@ -8,12 +8,35 @@
  * - Simplified from ClaudePaneViewModel
  * - Works with unified AI adapter (OpenCode-powered)
  * - No OAuth handling (OpenCode manages authentication)
+ * - Tracks tool activities for mobile-friendly display
  *
  * @file src/lib/client/ai/viewmodels/AIPaneViewModel.svelte.js
  */
 
-import { SvelteSet, SvelteDate } from 'svelte/reactivity';
+import { SvelteSet, SvelteMap, SvelteDate } from 'svelte/reactivity';
 import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+
+/**
+ * @typedef {Object} Message
+ * @property {string} id - Unique message ID
+ * @property {'user'|'assistant'|'system'|'error'|'tool'} role - Message role
+ * @property {string} text - Message text content
+ * @property {string} [eventType] - Original event type
+ * @property {Date} timestamp - Message timestamp
+ * @property {Object} [toolData] - Tool-specific data for tool messages
+ */
+
+/**
+ * @typedef {Object} ToolActivity
+ * @property {string} id - Unique activity ID
+ * @property {string} tool - Tool name (Bash, Read, Write, etc.)
+ * @property {'running'|'completed'|'error'} status - Activity status
+ * @property {string} [summary] - Brief description
+ * @property {string} [filePath] - File path for file operations
+ * @property {string} [command] - Command for bash operations
+ * @property {number} startTime - Start timestamp
+ * @property {number} [endTime] - End timestamp
+ */
 
 export class AIPaneViewModel {
 	// Dependency injection
@@ -28,6 +51,11 @@ export class AIPaneViewModel {
 	messages = $state([]);
 	input = $state('');
 	messageSequence = 0;
+
+	// Tool activity tracking
+	/** @type {Map<string, ToolActivity>} */
+	toolActivities = $state(new SvelteMap());
+	toolSequence = 0;
 
 	// Loading and status state
 	loading = $state(false);
@@ -46,11 +74,24 @@ export class AIPaneViewModel {
 	isMobile = $state(false);
 	shouldScrollToBottom = $state(false);
 
+	// Derived: Current running activities for ActivityStrip
+	runningActivities = $derived.by(() => {
+		return Array.from(this.toolActivities.values())
+			.filter((a) => a.status === 'running')
+			.sort((a, b) => a.startTime - b.startTime);
+	});
+
+	// Derived: All activities for display
+	allActivities = $derived.by(() => {
+		return Array.from(this.toolActivities.values()).sort((a, b) => a.startTime - b.startTime);
+	});
+
 	// Derived status
 	status = $derived.by(() => {
 		if (this.connectionError) return 'connection-error';
 		if (this.loading) return 'loading';
 		if (this.isCatchingUp) return 'catching-up';
+		if (this.runningActivities.length > 0) return 'working';
 		if (this.isWaitingForReply) return 'thinking';
 		return 'idle';
 	});
@@ -80,7 +121,16 @@ export class AIPaneViewModel {
 	 */
 	nextMessageId() {
 		this.messageSequence = (this.messageSequence + 1) % Number.MAX_SAFE_INTEGER;
-		return `${Date.now()}-${this.messageSequence}`;
+		return `msg-${Date.now()}-${this.messageSequence}`;
+	}
+
+	/**
+	 * Generate unique tool activity ID
+	 * @returns {string}
+	 */
+	nextToolId() {
+		this.toolSequence = (this.toolSequence + 1) % Number.MAX_SAFE_INTEGER;
+		return `tool-${Date.now()}-${this.toolSequence}`;
 	}
 
 	/**
@@ -121,6 +171,9 @@ export class AIPaneViewModel {
 		this.input = '';
 		this.isWaitingForReply = true;
 		this.shouldScrollToBottom = true;
+
+		// Clear previous tool activities for new turn
+		this.toolActivities = new SvelteMap();
 
 		try {
 			// Send input through run session client
@@ -164,7 +217,7 @@ export class AIPaneViewModel {
 		}
 		// Handle system input (for history replay)
 		else if (channel === 'system:input') {
-			// Already displayed user message, skip
+			// User message - already displayed when sent
 		}
 
 		// Track processed events
@@ -181,39 +234,211 @@ export class AIPaneViewModel {
 		const events = payload?.events || [];
 
 		for (const aiEvent of events) {
-			// Extract text content from various event types
-			let text = null;
-			let eventType = aiEvent.type || 'unknown';
+			this.processAIEvent(aiEvent);
+		}
+	}
 
-			// Handle different OpenCode event types
-			if (aiEvent.type === 'message.delta' || aiEvent.type === 'text') {
-				text = aiEvent.properties?.text || aiEvent.data?.text || aiEvent.text;
-			} else if (aiEvent.type === 'assistant' || aiEvent.type === 'message') {
-				text = aiEvent.properties?.content || aiEvent.data?.content || aiEvent.content;
-			} else if (aiEvent.data) {
-				// Fallback: try to extract any text from data
-				text = typeof aiEvent.data === 'string'
-					? aiEvent.data
-					: JSON.stringify(aiEvent.data, null, 2);
+	/**
+	 * Process a single AI event
+	 * @param {Object} aiEvent
+	 */
+	processAIEvent(aiEvent) {
+		const eventType = aiEvent.type || 'unknown';
+		const properties = aiEvent.properties || {};
+
+		// Handle tool use start
+		if (eventType === 'tool_use' || eventType === 'content_block_start') {
+			const toolName = properties.name || aiEvent.name || 'unknown';
+			const toolUseId = properties.id || aiEvent.id || this.nextToolId();
+
+			// Extract tool-specific info
+			let filePath = null;
+			let command = null;
+			let summary = toolName;
+
+			const input = properties.input || aiEvent.input || {};
+
+			if (toolName === 'Bash' || toolName === 'bash') {
+				command = input.command || input.cmd;
+				summary = command ? `$ ${command.slice(0, 40)}...` : 'Running command';
+			} else if (
+				toolName === 'Read' ||
+				toolName === 'read' ||
+				toolName === 'Write' ||
+				toolName === 'write'
+			) {
+				filePath = input.file_path || input.path || input.filePath;
+				summary = filePath ? filePath.split('/').pop() : toolName;
+			} else if (toolName === 'Edit' || toolName === 'edit') {
+				filePath = input.file_path || input.path || input.filePath;
+				summary = filePath ? `Editing ${filePath.split('/').pop()}` : 'Editing file';
+			} else if (toolName === 'Glob' || toolName === 'glob') {
+				summary = input.pattern || 'Finding files';
+			} else if (toolName === 'Grep' || toolName === 'grep') {
+				summary = input.pattern || 'Searching';
 			}
+
+			// Create activity
+			const activity = {
+				id: toolUseId,
+				tool: toolName,
+				status: 'running',
+				summary,
+				filePath,
+				command,
+				startTime: Date.now()
+			};
+
+			// Add to activities map
+			const newMap = new SvelteMap(this.toolActivities);
+			newMap.set(toolUseId, activity);
+			this.toolActivities = newMap;
+
+			// Add tool message to chat
+			const toolMessage = {
+				role: 'tool',
+				text: summary,
+				toolData: { ...activity },
+				timestamp: new SvelteDate(),
+				id: this.nextMessageId()
+			};
+			this.messages = [...this.messages, toolMessage];
+			this.shouldScrollToBottom = true;
+		}
+
+		// Handle tool result (completion)
+		if (eventType === 'tool_result' || eventType === 'content_block_stop') {
+			const toolUseId = properties.tool_use_id || properties.id || aiEvent.id;
+			const isError = properties.is_error || properties.error;
+
+			if (toolUseId && this.toolActivities.has(toolUseId)) {
+				const newMap = new SvelteMap(this.toolActivities);
+				const activity = { ...newMap.get(toolUseId) };
+				activity.status = isError ? 'error' : 'completed';
+				activity.endTime = Date.now();
+				newMap.set(toolUseId, activity);
+				this.toolActivities = newMap;
+
+				// Update the tool message status
+				const msgIndex = this.messages.findIndex(
+					(m) => m.role === 'tool' && m.toolData?.id === toolUseId
+				);
+				if (msgIndex !== -1) {
+					const updatedMessages = [...this.messages];
+					updatedMessages[msgIndex] = {
+						...updatedMessages[msgIndex],
+						toolData: { ...activity }
+					};
+					this.messages = updatedMessages;
+				}
+			}
+		}
+
+		// Handle text content (assistant response)
+		if (
+			eventType === 'message.delta' ||
+			eventType === 'text' ||
+			eventType === 'text_delta' ||
+			eventType === 'content_block_delta'
+		) {
+			const text =
+				properties.text || aiEvent.text || aiEvent.delta?.text || aiEvent.data?.text;
 
 			if (text) {
-				const message = {
-					role: 'assistant',
-					text,
-					eventType,
-					timestamp: new SvelteDate(),
-					id: this.nextMessageId()
-				};
-				this.messages = [...this.messages, message];
+				// Check if we should append to last assistant message
+				const lastMessage = this.messages[this.messages.length - 1];
+				if (lastMessage?.role === 'assistant' && lastMessage.streaming) {
+					// Append to streaming message
+					const updatedMessages = [...this.messages];
+					updatedMessages[updatedMessages.length - 1] = {
+						...lastMessage,
+						text: lastMessage.text + text
+					};
+					this.messages = updatedMessages;
+				} else {
+					// Create new streaming message
+					const message = {
+						role: 'assistant',
+						text,
+						streaming: true,
+						eventType,
+						timestamp: new SvelteDate(),
+						id: this.nextMessageId()
+					};
+					this.messages = [...this.messages, message];
+				}
 				this.shouldScrollToBottom = true;
 			}
+		}
 
-			// Check for session completion
-			if (aiEvent.type === 'session.idle' || aiEvent.type === 'session.completed') {
-				this.isWaitingForReply = false;
-				this.isCatchingUp = false;
+		// Handle complete assistant message
+		if (eventType === 'assistant' || eventType === 'message') {
+			const content = properties.content || aiEvent.content || aiEvent.data?.content;
+
+			if (content) {
+				// Mark last streaming message as complete if exists
+				const lastMessage = this.messages[this.messages.length - 1];
+				if (lastMessage?.streaming) {
+					const updatedMessages = [...this.messages];
+					updatedMessages[updatedMessages.length - 1] = {
+						...lastMessage,
+						streaming: false
+					};
+					this.messages = updatedMessages;
+				} else {
+					const message = {
+						role: 'assistant',
+						text: content,
+						eventType,
+						timestamp: new SvelteDate(),
+						id: this.nextMessageId()
+					};
+					this.messages = [...this.messages, message];
+				}
+				this.shouldScrollToBottom = true;
 			}
+		}
+
+		// Handle message stop/complete
+		if (eventType === 'message_stop' || eventType === 'message.stop') {
+			// Mark all running tools as completed
+			const newMap = new SvelteMap();
+			for (const [id, activity] of this.toolActivities) {
+				if (activity.status === 'running') {
+					newMap.set(id, { ...activity, status: 'completed', endTime: Date.now() });
+				} else {
+					newMap.set(id, activity);
+				}
+			}
+			this.toolActivities = newMap;
+
+			// Mark last streaming message as complete
+			const lastMessage = this.messages[this.messages.length - 1];
+			if (lastMessage?.streaming) {
+				const updatedMessages = [...this.messages];
+				updatedMessages[updatedMessages.length - 1] = {
+					...lastMessage,
+					streaming: false
+				};
+				this.messages = updatedMessages;
+			}
+		}
+
+		// Check for session completion
+		if (eventType === 'session.idle' || eventType === 'session.completed') {
+			this.isWaitingForReply = false;
+			this.isCatchingUp = false;
+
+			// Mark all tools complete
+			const newMap = new SvelteMap();
+			for (const [id, activity] of this.toolActivities) {
+				if (activity.status === 'running') {
+					newMap.set(id, { ...activity, status: 'completed', endTime: Date.now() });
+				} else {
+					newMap.set(id, activity);
+				}
+			}
+			this.toolActivities = newMap;
 		}
 	}
 
@@ -226,6 +451,17 @@ export class AIPaneViewModel {
 
 		this.lastError = errorMessage;
 		this.isWaitingForReply = false;
+
+		// Mark all running tools as errored
+		const newMap = new SvelteMap();
+		for (const [id, activity] of this.toolActivities) {
+			if (activity.status === 'running') {
+				newMap.set(id, { ...activity, status: 'error', endTime: Date.now() });
+			} else {
+				newMap.set(id, activity);
+			}
+		}
+		this.toolActivities = newMap;
 
 		// Add error message to chat
 		const message = {
@@ -285,7 +521,8 @@ export class AIPaneViewModel {
 
 			// Load user input messages
 			if (channel === 'system:input') {
-				const userText = typeof payload === 'string' ? payload : payload?.input || payload?.text;
+				const userText =
+					typeof payload === 'string' ? payload : payload?.input || payload?.text;
 				if (userText) {
 					loadedMessages.push({
 						role: 'user',
@@ -300,7 +537,8 @@ export class AIPaneViewModel {
 			if (channel === 'ai:message') {
 				const events = payload?.events || [];
 				for (const aiEvent of events) {
-					const text = aiEvent.properties?.text || aiEvent.data?.text || aiEvent.text;
+					const text =
+						aiEvent.properties?.text || aiEvent.data?.text || aiEvent.text;
 					if (text) {
 						loadedMessages.push({
 							role: 'assistant',
@@ -325,5 +563,6 @@ export class AIPaneViewModel {
 	 */
 	clearMessages() {
 		this.messages = [];
+		this.toolActivities = new SvelteMap();
 	}
 }
