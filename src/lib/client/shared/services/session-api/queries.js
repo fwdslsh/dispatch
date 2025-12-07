@@ -124,32 +124,3 @@ export async function getWorkspaceLayout(config) {
 	}
 }
 
-/**
- * Get Claude sessions for a project
- * @param {Object} config - API configuration
- * @param {string} project - Project path
- * @returns {Promise<Object>}
- */
-export async function getClaudeSessions(config, project) {
-	try {
-		const response = await fetch(
-			`${config.apiBaseUrl || ''}/api/claude/sessions?project=${encodeURIComponent(project)}`,
-			{
-				headers: getHeaders(config)
-			}
-		);
-
-		return await handleResponse(response);
-	} catch (error) {
-		if (config.debug) {
-			console.error('[SessionApiClient] Failed to get Claude sessions:', error);
-		}
-		throw error;
-	}
-}
-
-/**
- * Check Claude authentication status
- * @param {Object} config - API configuration
- * @returns {Promise<Object>}
- */

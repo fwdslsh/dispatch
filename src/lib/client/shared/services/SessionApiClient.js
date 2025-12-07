@@ -484,58 +484,6 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Get Claude sessions for a project
-	 * @param {string} project - Project name
-	 * @returns {Promise<Array>}
-	 */
-	async getClaudeSessions(project) {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/claude/sessions/${project}`, {
-				headers: this.getHeaders(),
-				credentials: 'include' // Send session cookie
-			});
-
-			if (response.status === 404) {
-				return [];
-			}
-
-			const data = await this.handleResponse(response);
-			return data.sessions || [];
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to get Claude sessions:', error);
-			}
-			return [];
-		}
-	}
-
-	/**
-	 * Check Claude authentication status
-	 * @returns {Promise<{authenticated: boolean}>}
-	 */
-	async checkClaudeAuth() {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/claude/auth`, {
-				method: 'POST',
-				headers: this.getHeaders(),
-				credentials: 'include' // Send session cookie
-			});
-
-			if (response.status === 401) {
-				return { authenticated: false };
-			}
-
-			const data = await this.handleResponse(response);
-			return { authenticated: data.authenticated || false };
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to check Claude auth:', error);
-			}
-			return { authenticated: false };
-		}
-	}
-
-	/**
 	 * Validate session options
 	 * @param {CreateSessionOptions} options
 	 * @returns {boolean}
@@ -545,7 +493,7 @@ export class SessionApiClient {
 			return false;
 		}
 
-		if (![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(options.type)) {
+		if (![SESSION_TYPE.TERMINAL, SESSION_TYPE.AI, SESSION_TYPE.FILE_EDITOR].includes(options.type)) {
 			return false;
 		}
 

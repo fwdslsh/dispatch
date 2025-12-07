@@ -31,13 +31,13 @@
 	 * </TypeCard>
 	 *
 	 * <TypeCard
-	 *   title="Claude Code"
+	 *   title="AI Assistant"
 	 *   description="AI-powered coding assistant"
-	 *   active={selectedType === 'claude'}
-	 *   onclick={() => selectType('claude')}
+	 *   active={selectedType === 'ai'}
+	 *   onclick={() => selectType('ai')}
 	 * >
 	 *   {#snippet icon()}
-	 *     <IconClaude size={32} />
+	 *     <IconRobot size={32} />
 	 *   {/snippet}
 	 * </TypeCard>
 	 * ```

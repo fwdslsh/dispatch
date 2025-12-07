@@ -1,8 +1,10 @@
 <script>
 	/**
-	 * OpenCode Settings Component
-	 * Provides OpenCode-specific configuration options for both global defaults and session creation
-	 * Integrates with settings service for defaults
+	 * AI Settings Component
+	 * Configuration for AI session defaults (provider, model, server settings)
+	 *
+	 * v2.0 Hard Fork: OpenCode-first architecture
+	 * @file src/lib/client/ai/AISettings.svelte
 	 */
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
@@ -12,27 +14,27 @@
 	let {
 		settings = $bindable({}),
 		disabled = false,
-		mode = 'session' // 'session' for session creation, 'global' for global defaults
+		mode = 'session' // 'session' for session creation, 'global' for defaults
 	} = $props();
 
-	// Default OpenCode settings based on settings service with fallbacks
+	// State initialized from settings service
 	let baseUrl = $state(
 		settings.baseUrl ??
 			(mode === 'global'
-				? settingsService.get('opencode.baseUrl', 'http://localhost:4096')
+				? settingsService.get('ai.baseUrl', 'http://localhost:4096')
 				: '')
 	);
 	let model = $state(
 		settings.model ??
 			(mode === 'global'
-				? settingsService.get('opencode.model', 'claude-3-7-sonnet-20250219')
+				? settingsService.get('ai.model', 'claude-sonnet-4-20250514')
 				: '')
 	);
 	let provider = $state(
-		settings.provider ?? settingsService.get('opencode.provider', 'anthropic')
+		settings.provider ?? settingsService.get('ai.provider', 'anthropic')
 	);
-	let timeout = $state(settings.timeout ?? settingsService.get('opencode.timeout', 60000));
-	let maxRetries = $state(settings.maxRetries ?? settingsService.get('opencode.maxRetries', 2));
+	let timeout = $state(settings.timeout ?? settingsService.get('ai.timeout', 60000));
+	let maxRetries = $state(settings.maxRetries ?? settingsService.get('ai.maxRetries', 2));
 
 	// Available providers
 	const providers = [
@@ -42,28 +44,15 @@
 		{ value: 'deepseek', label: 'DeepSeek' }
 	];
 
-	// Update settings binding when values change
-	// Use untrack to prevent infinite loops from bindable props
+	// Sync settings binding when values change
 	$effect(() => {
 		const newSettings = mode === 'global'
-			? {
-					baseUrl,
-					model,
-					provider,
-					timeout,
-					maxRetries
-				}
+			? { baseUrl, model, provider, timeout, maxRetries }
 			: Object.fromEntries(
-					Object.entries({
-						baseUrl,
-						model,
-						provider,
-						timeout,
-						maxRetries
-					}).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+					Object.entries({ baseUrl, model, provider, timeout, maxRetries })
+						.filter(([_, value]) => value !== '' && value !== null && value !== undefined)
 				);
 
-		// Only update if settings have actually changed to prevent loops
 		const currentStr = JSON.stringify(settings);
 		const newStr = JSON.stringify(newSettings);
 		if (currentStr !== newStr) {
@@ -72,18 +61,18 @@
 	});
 </script>
 
-<div class="opencode-settings-form">
-	<!-- Server Configuration -->
+<div class="ai-settings-form">
 	<FormSection
-		title="Server"
+		title="AI Server"
 		description="OpenCode server connection settings"
 		{disabled}
 	>
 		{#snippet icon()}<IconRobot size={18} />{/snippet}
+
 		<div class="form-field">
 			<label for="baseUrl">
 				<span class="label-text">Server URL</span>
-				<span class="label-hint">URL of the OpenCode server (e.g., http://localhost:4096)</span>
+				<span class="label-hint">OpenCode server URL (e.g., http://localhost:4096)</span>
 			</label>
 			<input
 				id="baseUrl"
@@ -100,8 +89,8 @@
 				<span class="label-hint">AI service provider for code generation</span>
 			</label>
 			<select id="provider" bind:value={provider} {disabled}>
-				{#each providers as providerOption}
-					<option value={providerOption.value}>{providerOption.label}</option>
+				{#each providers as opt}
+					<option value={opt.value}>{opt.label}</option>
 				{/each}
 			</select>
 		</div>
@@ -115,19 +104,19 @@
 				id="model"
 				type="text"
 				bind:value={model}
-				placeholder={mode === 'global' ? 'claude-3-7-sonnet-20250219' : 'Use global default'}
+				placeholder={mode === 'global' ? 'claude-sonnet-4-20250514' : 'Use global default'}
 				{disabled}
 			/>
 		</div>
 	</FormSection>
 
-	<!-- Advanced Settings -->
 	<FormSection
 		title="Advanced"
 		description="Connection timeouts and retry settings"
 		{disabled}
 	>
 		{#snippet icon()}<IconRobot size={18} />{/snippet}
+
 		<div class="form-field">
 			<label for="timeout">
 				<span class="label-text">Timeout (ms)</span>
@@ -137,7 +126,7 @@
 				id="timeout"
 				type="number"
 				bind:value={timeout}
-				placeholder={mode === 'global' ? '60000' : 'Use global default'}
+				placeholder="60000"
 				min="1000"
 				step="1000"
 				{disabled}
@@ -147,13 +136,13 @@
 		<div class="form-field">
 			<label for="maxRetries">
 				<span class="label-text">Max Retries</span>
-				<span class="label-hint">Maximum number of retry attempts on failure</span>
+				<span class="label-hint">Maximum retry attempts on failure</span>
 			</label>
 			<input
 				id="maxRetries"
 				type="number"
 				bind:value={maxRetries}
-				placeholder={mode === 'global' ? '2' : 'Use global default'}
+				placeholder="2"
 				min="0"
 				max="10"
 				{disabled}
@@ -163,7 +152,7 @@
 </div>
 
 <style>
-	.opencode-settings-form {
+	.ai-settings-form {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);

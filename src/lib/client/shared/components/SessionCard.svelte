@@ -9,7 +9,7 @@
 	 * @typedef {Object} SessionCardProps
 	 * @property {Object} session - Session data object
 	 * @property {string} session.id - Unique session identifier
-	 * @property {string} session.type - Session type ('claude' or 'terminal')
+	 * @property {string} session.type - Session type ('ai' or 'terminal')
 	 * @property {string} session.title - Session display title
 	 * @property {string} session.workspacePath - Associated workspace path
 	 * @property {string|Date} session.lastActivity - Last activity timestamp
@@ -37,7 +37,7 @@
 	 * @fires {Object} action - Fired when action button clicked with session object
 	 */
 	import Button from './Button.svelte';
-	import IconClaude from './Icons/IconClaude.svelte';
+	import IconRobot from './Icons/IconRobot.svelte';
 	import IconTerminal from './Icons/IconTerminal.svelte';
 
 	// Props
@@ -84,8 +84,8 @@
 >
 	<div class="header-layout">
 		<div class="text-primary">
-			{#if session.type === 'claude'}
-				<IconClaude size={16} />
+			{#if session.type === 'ai'}
+				<IconRobot size={16} />
 			{:else}
 				<IconTerminal size={16} />
 			{/if}

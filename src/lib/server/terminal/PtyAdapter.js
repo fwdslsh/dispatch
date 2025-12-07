@@ -1,11 +1,13 @@
+/**
+ * PtyAdapter - Terminal session adapter using node-pty
+ *
+ * v2.0 Hard Fork: Uses canonical TERMINAL type
+ * @file src/lib/server/terminal/PtyAdapter.js
+ */
+
 import { logger } from '../shared/utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
 import { PtyConfig } from './PtyConfig.js';
-
-/**
- * PTY adapter for terminal sessions using node-pty
- * Provides a simple adapter interface that wraps node-pty functionality
- */
 export class PtyAdapter {
 	/**
 	 * @param {Object} params
@@ -77,7 +79,7 @@ export class PtyAdapter {
 
 		// Return adapter interface
 		return {
-			kind: SESSION_TYPE.PTY,
+			kind: SESSION_TYPE.TERMINAL,
 			input: {
 				write(data) {
 					const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
