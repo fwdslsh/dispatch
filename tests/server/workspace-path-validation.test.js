@@ -18,7 +18,6 @@ function isValidWorkspacePath(path, allowedRoot = null) {
 	if (path.length > 500) return false;
 
 	try {
-
 		// Decode any URL-encoded characters
 		const decoded = decodeURIComponent(path);
 

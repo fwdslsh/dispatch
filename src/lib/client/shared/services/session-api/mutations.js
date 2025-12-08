@@ -24,7 +24,13 @@ export async function createSession(
 		// Validate session type
 		if (
 			!type ||
-			![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(type)
+			![
+				SESSION_TYPE.PTY,
+				SESSION_TYPE.CLAUDE,
+				SESSION_TYPE.FILE_EDITOR,
+				SESSION_TYPE.OPENCODE,
+				SESSION_TYPE.OPENCODE_TUI
+			].includes(type)
 		) {
 			throw new Error(`Invalid session type: ${type}`);
 		}

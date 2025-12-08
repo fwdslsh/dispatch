@@ -66,7 +66,9 @@
 				settingsService.setClientOverride(`ai.${key}`, value);
 			});
 			saveStatus = 'AI settings saved successfully';
-			setTimeout(() => { saveStatus = ''; }, 3000);
+			setTimeout(() => {
+				saveStatus = '';
+			}, 3000);
 		} catch (error) {
 			saveStatus = 'Failed to save AI settings';
 		} finally {
@@ -78,7 +80,9 @@
 		settingsService.resetClientOverridesForCategory('ai');
 		updateSettingsFromService();
 		saveStatus = 'AI settings reset to defaults';
-		setTimeout(() => { saveStatus = ''; }, 3000);
+		setTimeout(() => {
+			saveStatus = '';
+		}, 3000);
 	}
 
 	async function checkServerStatus() {
@@ -168,7 +172,9 @@
 			if (response.ok) {
 				serverStatus = await response.json();
 				statusMessage = 'Configuration saved';
-				setTimeout(() => { statusMessage = ''; }, 3000);
+				setTimeout(() => {
+					statusMessage = '';
+				}, 3000);
 			} else {
 				const data = await response.json();
 				serverError = data.error || 'Failed to update configuration';
@@ -193,9 +199,7 @@
 
 	<!-- OpenCode Server Management -->
 	<h4>OPENCODE SERVER</h4>
-	<p class="subsection-description">
-		Manage the OpenCode server that powers AI sessions.
-	</p>
+	<p class="subsection-description">Manage the OpenCode server that powers AI sessions.</p>
 
 	{#if serverStatus}
 		{#if serverStatus.error && serverStatus.status === 'error'}
@@ -221,11 +225,7 @@
 
 			<div class="form-group">
 				<label class="checkbox-label">
-					<input
-						type="checkbox"
-						bind:checked={serverConfig.autoStart}
-						disabled={configSaving}
-					/>
+					<input type="checkbox" bind:checked={serverConfig.autoStart} disabled={configSaving} />
 					<span>Auto-start when Dispatch loads</span>
 				</label>
 			</div>
@@ -252,16 +252,29 @@
 				<div class="status-indicator" class:active={serverStatus.running}></div>
 				<span>
 					{serverStatus.running ? 'Running' : 'Stopped'}
-					{#if serverStatus.url} - {serverStatus.url}{/if}
+					{#if serverStatus.url}
+						- {serverStatus.url}{/if}
 				</span>
 			</div>
 			<div class="server-actions">
 				{#if !serverStatus.running}
-					<Button onclick={startServer} variant="primary" size="small" disabled={serverLoading} loading={serverLoading}>
+					<Button
+						onclick={startServer}
+						variant="primary"
+						size="small"
+						disabled={serverLoading}
+						loading={serverLoading}
+					>
 						Start Server
 					</Button>
 				{:else}
-					<Button onclick={stopServer} variant="danger" size="small" disabled={serverLoading} loading={serverLoading}>
+					<Button
+						onclick={stopServer}
+						variant="danger"
+						size="small"
+						disabled={serverLoading}
+						loading={serverLoading}
+					>
 						Stop Server
 					</Button>
 				{/if}
@@ -275,9 +288,7 @@
 
 	<!-- Session Defaults -->
 	<h4>SESSION DEFAULTS</h4>
-	<p class="subsection-description">
-		Default settings for new AI sessions.
-	</p>
+	<p class="subsection-description">Default settings for new AI sessions.</p>
 
 	<AISettings bind:settings mode="global" />
 
@@ -289,7 +300,13 @@
 			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
 				Reset Defaults
 			</Button>
-			<Button onclick={saveSettings} variant="primary" size="small" disabled={saving} loading={saving}>
+			<Button
+				onclick={saveSettings}
+				variant="primary"
+				size="small"
+				disabled={saving}
+				loading={saving}
+			>
 				Save Settings
 			</Button>
 		</div>

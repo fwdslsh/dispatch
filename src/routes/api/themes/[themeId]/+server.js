@@ -1,7 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { ThemeManager } from '$lib/server/themes/ThemeManager.js';
 import { XtermThemeParser } from '$lib/server/themes/XtermThemeParser.js';
-import { UnauthorizedError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	UnauthorizedError,
+	NotFoundError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 const parser = new XtermThemeParser();
 const themeManager = new ThemeManager(parser);

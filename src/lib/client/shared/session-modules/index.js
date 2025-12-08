@@ -68,8 +68,4 @@ export function getComponentForSessionType(type) {
 }
 
 // Register core session modules
-registerClientSessionModules(
-	terminalSessionModule,
-	aiSessionModule,
-	fileEditorSessionModule
-);
+registerClientSessionModules(terminalSessionModule, aiSessionModule, fileEditorSessionModule);

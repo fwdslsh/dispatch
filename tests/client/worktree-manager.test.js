@@ -222,9 +222,7 @@ describe('WorktreeManager Component', () => {
 
 		await waitFor(() => {
 			// Find the fetch call for worktree add
-			const addCall = mockFetch.mock.calls.find(
-				(call) => call[0] === '/api/git/worktree/add'
-			);
+			const addCall = mockFetch.mock.calls.find((call) => call[0] === '/api/git/worktree/add');
 
 			expect(addCall).toBeDefined();
 

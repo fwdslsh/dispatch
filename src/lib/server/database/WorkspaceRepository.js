@@ -285,10 +285,10 @@ export class WorkspaceRepository {
 	 * @returns {Promise<void>}
 	 */
 	async removePaneConfig(workspacePath, sessionId) {
-		await this.#db.run(
-			`DELETE FROM workspace_panes WHERE workspace_path = ? AND session_id = ?`,
-			[workspacePath, sessionId]
-		);
+		await this.#db.run(`DELETE FROM workspace_panes WHERE workspace_path = ? AND session_id = ?`, [
+			workspacePath,
+			sessionId
+		]);
 	}
 
 	/**

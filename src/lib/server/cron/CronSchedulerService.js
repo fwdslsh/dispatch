@@ -167,12 +167,16 @@ export class CronSchedulerService {
 			}
 
 			// Create scheduled task
-			const task = cron.schedule(job.cron_expression || job.cronExpression, async () => {
-				await this.executeJob(job);
-			}, {
-				scheduled: true,
-				timezone: 'UTC'
-			});
+			const task = cron.schedule(
+				job.cron_expression || job.cronExpression,
+				async () => {
+					await this.executeJob(job);
+				},
+				{
+					scheduled: true,
+					timezone: 'UTC'
+				}
+			);
 
 			this.scheduledTasks.set(job.id, task);
 			logger.info('CRON', `Scheduled job: ${job.name} (${job.id})`);
@@ -288,7 +292,10 @@ export class CronSchedulerService {
 				duration: completedAt - startTime
 			});
 
-			logger.info('CRON', `Job ${job.name} completed with status: ${status} (exit code: ${exitCode})`);
+			logger.info(
+				'CRON',
+				`Job ${job.name} completed with status: ${status} (exit code: ${exitCode})`
+			);
 		} catch (error) {
 			logger.error('CRON', `Job ${job.name} failed:`, error);
 

@@ -21,12 +21,7 @@
 	 */
 
 	// Props
-	let {
-		sessionId,
-		aiSessionId = null,
-		shouldResume = false,
-		sessionClient = null
-	} = $props();
+	let { sessionId, aiSessionId = null, shouldResume = false, sessionClient = null } = $props();
 
 	// Create ViewModel with dependency injection
 	const viewModel = new AIPaneViewModel({
@@ -215,7 +210,7 @@
 							filePath={message.toolData?.filePath}
 							command={message.toolData?.command}
 						/>
-					<!-- User Message -->
+						<!-- User Message -->
 					{:else if message.role === 'user'}
 						<div class="message user">
 							<div class="message-content">
@@ -225,7 +220,7 @@
 								<span class="avatar-user">You</span>
 							</div>
 						</div>
-					<!-- Error Message -->
+						<!-- Error Message -->
 					{:else if message.role === 'error'}
 						<div class="message error">
 							<div class="message-avatar">
@@ -234,13 +229,11 @@
 							<div class="message-content">
 								<p class="error-text">{message.text}</p>
 								{#if message.text.includes('Cannot connect')}
-									<p class="error-hint">
-										Tip: Go to Settings → AI to start the managed server.
-									</p>
+									<p class="error-hint">Tip: Go to Settings → AI to start the managed server.</p>
 								{/if}
 							</div>
 						</div>
-					<!-- Assistant Message -->
+						<!-- Assistant Message -->
 					{:else}
 						<div class="message assistant" class:streaming={message.streaming}>
 							<div class="message-avatar">
@@ -593,7 +586,8 @@
 	.input-form textarea:focus {
 		outline: none;
 		border-color: var(--primary);
-		box-shadow: 0 0 0 2px var(--primary-glow-15, color-mix(in oklab, var(--primary) 15%, transparent));
+		box-shadow: 0 0 0 2px
+			var(--primary-glow-15, color-mix(in oklab, var(--primary) 15%, transparent));
 	}
 
 	.input-form textarea:disabled {

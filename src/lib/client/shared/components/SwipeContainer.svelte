@@ -38,9 +38,7 @@
 
 	// Calculated swipe distance
 	const swipeDistance = $derived(isSwiping ? currentX - startX : 0);
-	const swipeProgress = $derived(
-		Math.min(1, Math.abs(swipeDistance) / (threshold * 2))
-	);
+	const swipeProgress = $derived(Math.min(1, Math.abs(swipeDistance) / (threshold * 2)));
 
 	function handleTouchStart(e) {
 		if (!enabled) return;
@@ -132,7 +130,7 @@
 	ontouchend={handleTouchEnd}
 	ontouchcancel={handleTouchCancel}
 	style:--swipe-distance="{swipeDistance}px"
-	style:--swipe-progress="{swipeProgress}"
+	style:--swipe-progress={swipeProgress}
 >
 	<!-- Left edge indicator -->
 	{#if showIndicators && canSwipeRight}
@@ -192,7 +190,9 @@
 		justify-content: center;
 		pointer-events: none;
 		opacity: 0;
-		transition: opacity 0.2s ease, transform 0.2s ease;
+		transition:
+			opacity 0.2s ease,
+			transform 0.2s ease;
 		z-index: 10;
 	}
 
@@ -232,7 +232,8 @@
 	}
 
 	@keyframes pulse-arrow {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 			transform: scale(1);
 		}

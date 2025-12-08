@@ -2,7 +2,13 @@ import { json } from '@sveltejs/kit';
 import { stat, readdir, mkdir, copyFile, access } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { constants } from 'node:fs';
-import { BadRequestError, NotFoundError, ForbiddenError, ConflictError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	BadRequestError,
+	NotFoundError,
+	ForbiddenError,
+	ConflictError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
@@ -117,7 +123,10 @@ export async function POST({ request }) {
 
 		// Prevent copying a directory into itself or a subdirectory
 		if (resolvedTarget.startsWith(resolvedSource + '/') || resolvedTarget === resolvedSource) {
-			throw new BadRequestError('Cannot copy directory into itself or its subdirectory', 'INVALID_TARGET');
+			throw new BadRequestError(
+				'Cannot copy directory into itself or its subdirectory',
+				'INVALID_TARGET'
+			);
 		}
 
 		// Perform the directory copy

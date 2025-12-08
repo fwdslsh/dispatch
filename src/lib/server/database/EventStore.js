@@ -43,7 +43,7 @@ export class EventStore {
 			if (!initLock) {
 				// Start initialization
 				initLock = (async () => {
-					try{
+					try {
 						const eventCount = await this.getEventCount(sessionId);
 						// If no events exist, start at 0. If events exist, start at count (which is max_seq + 1)
 						this.#sequences.set(sessionId, eventCount);

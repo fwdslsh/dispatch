@@ -297,7 +297,9 @@ describe('Git Worktree API Endpoints', () => {
 				if (path === '/test/repo') return true;
 				if (path === '/test/repo/.dispatchrc') return false;
 				if (path === '/test/repo-feature') return false;
-				return path.startsWith('/test/') && !path.includes('feature') && !path.includes('.dispatchrc');
+				return (
+					path.startsWith('/test/') && !path.includes('feature') && !path.includes('.dispatchrc')
+				);
 			});
 
 			// Mock git rev-parse success

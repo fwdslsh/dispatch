@@ -341,8 +341,7 @@ export class AIPaneViewModel {
 			eventType === 'text_delta' ||
 			eventType === 'content_block_delta'
 		) {
-			const text =
-				properties.text || aiEvent.text || aiEvent.delta?.text || aiEvent.data?.text;
+			const text = properties.text || aiEvent.text || aiEvent.delta?.text || aiEvent.data?.text;
 
 			if (text) {
 				// Check if we should append to last assistant message
@@ -521,8 +520,7 @@ export class AIPaneViewModel {
 
 			// Load user input messages
 			if (channel === 'system:input') {
-				const userText =
-					typeof payload === 'string' ? payload : payload?.input || payload?.text;
+				const userText = typeof payload === 'string' ? payload : payload?.input || payload?.text;
 				if (userText) {
 					loadedMessages.push({
 						role: 'user',
@@ -537,8 +535,7 @@ export class AIPaneViewModel {
 			if (channel === 'ai:message') {
 				const events = payload?.events || [];
 				for (const aiEvent of events) {
-					const text =
-						aiEvent.properties?.text || aiEvent.data?.text || aiEvent.text;
+					const text = aiEvent.properties?.text || aiEvent.data?.text || aiEvent.text;
 					if (text) {
 						loadedMessages.push({
 							role: 'assistant',

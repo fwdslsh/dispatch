@@ -180,7 +180,10 @@ export async function validateEnvironment(env = process.env) {
 	const warnings = [];
 	const isProduction = env.NODE_ENV === 'production';
 
-	logger.info('EnvValidation', `Validating environment (NODE_ENV=${env.NODE_ENV || 'development'})`);
+	logger.info(
+		'EnvValidation',
+		`Validating environment (NODE_ENV=${env.NODE_ENV || 'development'})`
+	);
 
 	// Production-required variables
 	if (isProduction) {
@@ -272,7 +275,10 @@ export async function validateEnvironment(env = process.env) {
 	if (valid && warnings.length === 0) {
 		logger.info('EnvValidation', 'Environment validation passed ✓');
 	} else if (valid) {
-		logger.info('EnvValidation', `Environment validation passed with ${warnings.length} warning(s)`);
+		logger.info(
+			'EnvValidation',
+			`Environment validation passed with ${warnings.length} warning(s)`
+		);
 	}
 
 	return {

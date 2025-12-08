@@ -2,7 +2,12 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { validateAndResolvePath } from '$lib/server/shared/path-validation.js';
 import { existsSync } from 'node:fs';
-import { BadRequestError, NotFoundError, ConflictError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	BadRequestError,
+	NotFoundError,
+	ConflictError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * Add a new git worktree
@@ -44,7 +49,10 @@ export async function POST({ request, locals: _locals }) {
 		});
 
 		if (!worktreeValidation.valid) {
-			throw new BadRequestError(`Invalid worktree path: ${worktreeValidation.error}`, 'INVALID_WORKTREE_PATH');
+			throw new BadRequestError(
+				`Invalid worktree path: ${worktreeValidation.error}`,
+				'INVALID_WORKTREE_PATH'
+			);
 		}
 
 		const resolvedWorktreePath = worktreeValidation.resolvedPath;
