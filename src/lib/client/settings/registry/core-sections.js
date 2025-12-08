@@ -110,6 +110,6 @@ export function registerCoreSettings() {
 	});
 }
 
-// NOTE: Claude settings are NOT registered here.
-// Claude is a session type and registers its own settings section
-// via the session module system in src/lib/client/claude/claude.js
+// NOTE: AI settings are NOT registered here.
+// AI is a session type and registers its own settings section
+// via the session module system in src/lib/client/ai/ai.js

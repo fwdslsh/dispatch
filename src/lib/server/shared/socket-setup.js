@@ -1,3 +1,10 @@
+/**
+ * Socket.IO Setup
+ *
+ * v2.0 Hard Fork: Removed Claude-specific authentication handlers
+ * @file src/lib/server/shared/socket-setup.js
+ */
+
 import { Server } from 'socket.io';
 import { logger } from './utils/logger.js';
 import { SocketEventMediator } from '../socket/SocketEventMediator.js';
@@ -6,7 +13,6 @@ import { createErrorHandlingMiddleware } from '../socket/middleware/errorHandlin
 import { requireAuth } from '../socket/middleware/authentication.js';
 import { createSessionHandlers } from '../socket/handlers/sessionHandlers.js';
 import { createTunnelHandlers } from '../socket/handlers/tunnelHandlers.js';
-import { createClaudeHandlers, CLAUDE_EVENTS } from '../socket/handlers/claudeHandlers.js';
 import { createVSCodeHandlers } from '../socket/handlers/vscodeHandlers.js';
 
 // Admin event tracking
@@ -116,7 +122,6 @@ export function setupSocketIO(httpServer, services) {
 	// Create domain-specific handlers
 	const sessionHandlers = createSessionHandlers(sessionOrchestrator);
 	const tunnelHandlers = createTunnelHandlers(services.tunnelManager);
-	const claudeHandlers = createClaudeHandlers(services.claudeAuthManager);
 	const vscodeHandlers = createVSCodeHandlers(services.vscodeManager);
 
 	// Register authentication event (client:hello)
@@ -181,17 +186,6 @@ export function setupSocketIO(httpServer, services) {
 		await tunnelHandlers.updateConfig(socket, data, callback);
 	});
 
-	// Register Claude authentication event handlers
-	mediator.on(CLAUDE_EVENTS.AUTH_START, async (socket, data, callback) => {
-		if (!(await requireAuth(socket, data, callback, services))) return;
-		await claudeHandlers.authStart(socket, data, callback);
-	});
-
-	mediator.on(CLAUDE_EVENTS.AUTH_CODE, async (socket, data, callback) => {
-		if (!(await requireAuth(socket, data, callback, services))) return;
-		await claudeHandlers.authCode(socket, data, callback);
-	});
-
 	// Register VS Code tunnel event handlers
 	mediator.on('vscode-tunnel:start', async (socket, data, callback) => {
 		if (!(await requireAuth(socket, data, callback, services))) return;
@@ -241,10 +235,6 @@ export function setupSocketIO(httpServer, services) {
 
 			if (sessionValidationTimer) {
 				clearInterval(sessionValidationTimer);
-			}
-
-			if (services.claudeAuthManager) {
-				services.claudeAuthManager.cleanup(socket.id);
 			}
 		});
 	});

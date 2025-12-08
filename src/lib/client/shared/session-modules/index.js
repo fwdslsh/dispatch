@@ -1,9 +1,18 @@
+/**
+ * Session Modules Index
+ *
+ * v2.0 Hard Fork: OpenCode-first architecture
+ * - Simplified to 3 session types: Terminal, AI, File Editor
+ * - AI sessions are powered by OpenCode SDK
+ *
+ * @file src/lib/client/shared/session-modules/index.js
+ */
+
 import { terminalSessionModule } from '../../terminal/terminal.js';
-import { claudeSessionModule } from '../../claude/claude.js';
-import { opencodeSessionModule } from '../../opencode/opencode.js';
-import { opencodeTuiSessionModule } from '../../opencode/opencode-tui.js';
+import { aiSessionModule } from '../../ai/ai.js';
 import { fileEditorSessionModule } from '../../file-editor/file-editor.js';
 import { registerSettingsSection } from '../../settings/registry/settings-registry.js';
+import { normalizeSessionType } from '$lib/shared/session-types.js';
 
 const moduleMap = new Map();
 
@@ -17,16 +26,30 @@ export function registerClientSessionModules(...modules) {
 		// Auto-register settings section if provided
 		if (module.settingsSection) {
 			registerSettingsSection({
-				category: 'sessions', // Default category for session modules
-				order: 70, // Default order for session modules
+				category: 'sessions',
+				order: 70,
 				...module.settingsSection
 			});
 		}
 	}
 }
 
+/**
+ * Get client session module by type
+ * Handles legacy type normalization for backward compatibility
+ * @param {string} type - Session type (may be legacy)
+ * @returns {Object|null} Session module or null
+ */
 export function getClientSessionModule(type) {
-	return type ? moduleMap.get(type) || null : null;
+	if (!type) return null;
+
+	// Try direct lookup first
+	const module = moduleMap.get(type);
+	if (module) return module;
+
+	// Normalize legacy types and try again
+	const normalizedType = normalizeSessionType(type);
+	return moduleMap.get(normalizedType) || null;
 }
 
 export function listClientSessionModules() {
@@ -36,18 +59,17 @@ export function listClientSessionModules() {
 /**
  * Get the Svelte component for a given session type
  * Used by sv-window-manager integration to render session components in panes
- * @param {string} type - Session type (e.g., 'pty', 'claude', 'file-editor')
- * @returns {import('svelte').SvelteComponent | null} - Svelte component class or null if not found
+ * @param {string} type - Session type (e.g., 'terminal', 'ai', 'file-editor')
+ * @returns {import('svelte').SvelteComponent | null} - Svelte component or null
  */
 export function getComponentForSessionType(type) {
 	const module = getClientSessionModule(type);
 	return module?.component || null;
 }
 
+// Register core session modules
 registerClientSessionModules(
 	terminalSessionModule,
-	claudeSessionModule,
-	opencodeSessionModule,
-	opencodeTuiSessionModule,
+	aiSessionModule,
 	fileEditorSessionModule
 );

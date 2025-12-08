@@ -13,7 +13,7 @@
 	import IconSearch from './Icons/IconSearch.svelte';
 	import IconTerminal from './Icons/IconTerminal.svelte';
 	import IconAsterisk from './Icons/IconAsterisk.svelte';
-	import IconClaude from './Icons/IconClaude.svelte';
+	import IconRobot from './Icons/IconRobot.svelte';
 	import IconLayoutGrid from './Icons/IconLayoutGrid.svelte';
 	import IconFolderPlus from './Icons/IconFolderPlus.svelte';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
@@ -587,17 +587,17 @@
 				<Button
 					variant="ghost"
 					augmented="none"
-					class={sessionType === 'claude' ? 'active' : ''}
-					onclick={() => changeType('claude')}
+					class={sessionType === 'ai' ? 'active' : ''}
+					onclick={() => changeType('ai')}
 				>
-					{#snippet icon()}<IconClaude size={16} />{/snippet}
-					<span class="button-text">Claude</span>
+					{#snippet icon()}<IconRobot size={16} />{/snippet}
+					<span class="button-text">AI</span>
 				</Button>
 				<Button
 					variant="ghost"
 					augmented="none"
-					class={sessionType === 'pty' ? 'active' : ''}
-					onclick={() => changeType('pty')}
+					class={sessionType === 'terminal' ? 'active' : ''}
+					onclick={() => changeType('terminal')}
 				>
 					{#snippet icon()}<IconTerminal size={16} />{/snippet}
 					<span class="button-text">Terminal</span>
@@ -606,17 +606,17 @@
 				<Button
 					variant="ghost"
 					augmented="none"
-					class={sessionType === 'claude' ? 'active' : ''}
-					onclick={() => changeType('claude')}
+					class={sessionType === 'ai' ? 'active' : ''}
+					onclick={() => changeType('ai')}
 				>
-					{#snippet icon()}<IconClaude size={16} />{/snippet}
-					<span class="button-text">Claude</span>
+					{#snippet icon()}<IconRobot size={16} />{/snippet}
+					<span class="button-text">AI</span>
 				</Button>
 				<Button
 					variant="ghost"
 					augmented="none"
-					class={sessionType === 'pty' ? 'active' : ''}
-					onclick={() => changeType('pty')}
+					class={sessionType === 'terminal' ? 'active' : ''}
+					onclick={() => changeType('terminal')}
 				>
 					{#snippet icon()}<IconTerminal size={16} />{/snippet}
 					<span class="button-text">Terminal</span>

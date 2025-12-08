@@ -171,13 +171,13 @@ export async function POST({ request, locals }) {
 		// Map specific error types to appropriate HTTP errors
 		if (err.message?.includes('node-pty')) {
 			throw new ServiceUnavailableError(
-				`${SESSION_TYPE.PTY} functionality is temporarily unavailable. Please try again in a moment.`,
-				'PTY_UNAVAILABLE'
+				`${SESSION_TYPE.TERMINAL} functionality is temporarily unavailable. Please try again in a moment.`,
+				'TERMINAL_UNAVAILABLE'
 			);
-		} else if (err.message?.includes('claude-code')) {
+		} else if (err.message?.includes('opencode') || err.message?.includes('OpencodeClient')) {
 			throw new ServiceUnavailableError(
-				`${SESSION_TYPE.CLAUDE} functionality is temporarily unavailable. Please try again in a moment.`,
-				'CLAUDE_UNAVAILABLE'
+				`${SESSION_TYPE.AI} functionality is temporarily unavailable. Please try again in a moment.`,
+				'AI_UNAVAILABLE'
 			);
 		} else if (err.message?.includes('No adapter')) {
 			throw new BadRequestError(

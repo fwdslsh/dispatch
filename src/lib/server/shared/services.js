@@ -13,7 +13,6 @@ import { AdapterRegistry } from '../sessions/AdapterRegistry.js';
 import { EventRecorder } from '../sessions/EventRecorder.js';
 import { SessionOrchestrator } from '../sessions/SessionOrchestrator.js';
 import { AuthService } from './auth.js';
-import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
 import { TunnelManager } from '../tunnels/TunnelManager.js';
 import { VSCodeTunnelManager } from '../tunnels/VSCodeTunnelManager.js';
 import { OpenCodeServerManager } from '../opencode/OpenCodeServerManager.js';
@@ -27,11 +26,9 @@ import { logger } from './utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
 import { validateEnvironment } from './utils/env-validation.js';
 
-// Adapters
+// Adapters - v2.0 Simplified Architecture
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
-import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
-import { OpenCodeAdapter } from '../opencode/OpenCodeAdapter.js';
-import { OpenCodeTuiAdapter } from '../opencode/OpenCodeTuiAdapter.js';
+import { AIAdapter } from '../ai/AIAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 
 // Cron scheduler
@@ -39,6 +36,10 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
 
 /**
  * Services object containing all initialized application services
+ *
+ * v2.0 Hard Fork: Simplified service architecture
+ * - Removed Claude-specific services (ClaudeAuthManager, ClaudeAdapter)
+ * - Consolidated AI adapters into single AIAdapter (OpenCode-powered)
  *
  * @typedef {Object} Services
  * @property {ConfigurationService} config
@@ -58,14 +59,11 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
  * @property {SessionManager} sessionManager
  * @property {UserManager} userManager
  * @property {OAuthManager} oauthManager
- * @property {ClaudeAuthManager} claudeAuthManager
  * @property {TunnelManager} tunnelManager
  * @property {VSCodeTunnelManager} vscodeManager
  * @property {OpenCodeServerManager} opencodeServerManager
- * @property {PtyAdapter} ptyAdapter
- * @property {ClaudeAdapter} claudeAdapter
- * @property {OpenCodeAdapter} opencodeAdapter
- * @property {OpenCodeTuiAdapter} opencodeTuiAdapter
+ * @property {PtyAdapter} terminalAdapter
+ * @property {AIAdapter} aiAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
  * @property {CronSchedulerService} cronScheduler
  * @property {() => DatabaseManager} getDatabase
@@ -129,7 +127,6 @@ export async function createServices(config = {}) {
 	const userManager = new UserManager(db);
 	const oauthManager = new OAuthManager(db, settingsRepository);
 	const authService = new AuthService(apiKeyManager);
-	const claudeAuthManager = new ClaudeAuthManager();
 
 	// Layer 6: Tunnel services and OpenCode server
 	const tunnelManager = new TunnelManager({
@@ -140,18 +137,22 @@ export async function createServices(config = {}) {
 	const vscodeManager = new VSCodeTunnelManager({ settingsRepository });
 	const opencodeServerManager = new OpenCodeServerManager({ settingsRepository });
 
-	// Layer 7: Register adapters
-	const ptyAdapter = new PtyAdapter();
-	const claudeAdapter = new ClaudeAdapter();
-	const opencodeAdapter = new OpenCodeAdapter();
-	const opencodeTuiAdapter = new OpenCodeTuiAdapter({ serverManager: opencodeServerManager });
+	// Layer 7: Register adapters - v2.0 Simplified Architecture
+	const terminalAdapter = new PtyAdapter();
+	const aiAdapter = new AIAdapter();
 	const fileEditorAdapter = new FileEditorAdapter();
 
-	adapterRegistry.register(SESSION_TYPE.PTY, ptyAdapter);
-	adapterRegistry.register(SESSION_TYPE.CLAUDE, claudeAdapter);
-	adapterRegistry.register(SESSION_TYPE.OPENCODE, opencodeAdapter);
-	adapterRegistry.register(SESSION_TYPE.OPENCODE_TUI, opencodeTuiAdapter);
+	// Register canonical session types
+	adapterRegistry.register(SESSION_TYPE.TERMINAL, terminalAdapter);
+	adapterRegistry.register(SESSION_TYPE.AI, aiAdapter);
 	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
+
+	// Register legacy aliases for backward compatibility (point to same adapters)
+	// These will be removed in a future version
+	adapterRegistry.register('pty', terminalAdapter);
+	adapterRegistry.register('claude', aiAdapter);
+	adapterRegistry.register('opencode', aiAdapter);
+	adapterRegistry.register('opencode-tui', aiAdapter);
 
 	// Layer 8: Cron scheduler (needs db, will get io instance later)
 	const cronScheduler = new CronSchedulerService(db, null);
@@ -181,7 +182,6 @@ export async function createServices(config = {}) {
 		sessionManager,
 		userManager,
 		oauthManager,
-		claudeAuthManager,
 
 		// Tunnels
 		tunnelManager,
@@ -190,11 +190,9 @@ export async function createServices(config = {}) {
 		// OpenCode server
 		opencodeServerManager,
 
-		// Adapters (direct access)
-		ptyAdapter,
-		claudeAdapter,
-		opencodeAdapter,
-		opencodeTuiAdapter,
+		// Adapters - v2.0 Simplified (direct access)
+		terminalAdapter,
+		aiAdapter,
 		fileEditorAdapter,
 
 		// Cron scheduler

@@ -1,3 +1,10 @@
+/**
+ * Terminal Session Module
+ *
+ * v2.0 Hard Fork: Uses canonical TERMINAL type
+ * @file src/lib/client/terminal/terminal.js
+ */
+
 import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
 import TerminalHeader from '$lib/client/terminal/TerminalHeader.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
@@ -6,7 +13,7 @@ import { SESSION_TYPE } from '$lib/shared/session-types.js';
  * @type {import('$lib/client/shared/types.js').ISessionModule} ISessionModule
  */
 export const terminalSessionModule = {
-	type: SESSION_TYPE.PTY,
+	type: SESSION_TYPE.TERMINAL,
 	component: TerminalPane,
 	header: TerminalHeader,
 	prepareProps(session = {}) {
