@@ -19,6 +19,10 @@
 	import PWAInstallPrompt from '$lib/client/shared/components/PWAInstallPrompt.svelte';
 	import PWAUpdateNotification from '$lib/client/shared/components/PWAUpdateNotification.svelte';
 	import Shell from '../Shell.svelte';
+	import CommandPalette from '../CommandPalette.svelte';
+
+	// Command palette state
+	let commandPaletteOpen = $state(false);
 
 	// Initialize service container
 	const container = provideServiceContainer({
@@ -254,9 +258,11 @@
 				<SingleSessionView
 					session={workspaceViewModel?.selectedSingleSession}
 					sessionIndex={workspaceViewModel?.currentSessionIndex}
+					totalSessions={workspaceViewModel?.totalSessions}
 					onSessionFocus={(session) => workspaceViewModel?.handleSessionFocus(session)}
 					onSessionClose={(sessionId) => workspaceViewModel?.handleSessionClose(sessionId)}
 					onCreateSession={(type) => workspaceViewModel?.handleCreateSession(type)}
+					onNavigateSession={(direction) => workspaceViewModel?.handleNavigateSession(direction)}
 				/>
 			{/if}
 		</div>
@@ -326,6 +332,14 @@
 
 	<PWAInstallPrompt />
 	<PWAUpdateNotification />
+
+	<!-- Command Palette (Cmd/Ctrl+K) -->
+	<CommandPalette
+		bind:open={commandPaletteOpen}
+		onCreateTerminal={() => workspaceViewModel?.handleCreateSession('pty')}
+		onCreateAI={() => workspaceViewModel?.handleCreateSession('ai')}
+		onLogout={() => workspaceViewModel?.handleLogout()}
+	/>
 </Shell>
 
 <style>

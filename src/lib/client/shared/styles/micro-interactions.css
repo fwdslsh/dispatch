@@ -1,0 +1,469 @@
+/**
+ * Micro-Interactions & Visual Polish
+ *
+ * Award-winning UX patterns for smooth, delightful interactions.
+ * Includes tactile feedback, loading states, and transition effects.
+ *
+ * @file src/lib/client/shared/styles/micro-interactions.css
+ */
+
+/* ==========================================================================
+   INTERACTION TOKENS
+   ========================================================================== */
+
+:root {
+	/* Timing functions for different interaction types */
+	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--ease-in-out-circ: cubic-bezier(0.85, 0, 0.15, 1);
+	--ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+	/* Duration scale */
+	--duration-instant: 50ms;
+	--duration-fast: 100ms;
+	--duration-normal: 200ms;
+	--duration-slow: 300ms;
+	--duration-slower: 500ms;
+}
+
+/* ==========================================================================
+   TACTILE FEEDBACK
+   ========================================================================== */
+
+/* Press feedback for buttons and interactive elements */
+.press-feedback {
+	transition: transform var(--duration-fast) var(--ease-out-expo),
+		box-shadow var(--duration-fast) var(--ease-out-expo);
+}
+
+.press-feedback:active {
+	transform: scale(0.97);
+	box-shadow: 0 0 0 0 transparent;
+}
+
+/* Bounce effect on tap */
+.tap-bounce {
+	transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.tap-bounce:active {
+	transform: scale(0.95);
+}
+
+/* Lift effect on hover (desktop) */
+@media (hover: hover) {
+	.hover-lift {
+		transition: transform var(--duration-normal) var(--ease-out-expo),
+			box-shadow var(--duration-normal) var(--ease-out-expo);
+	}
+
+	.hover-lift:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--primary-glow-10);
+	}
+}
+
+/* ==========================================================================
+   GLOW EFFECTS
+   ========================================================================== */
+
+/* Pulsing glow for active/important elements */
+.glow-pulse {
+	animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 5px var(--primary-glow-20), 0 0 10px var(--primary-glow-10);
+	}
+	50% {
+		box-shadow: 0 0 15px var(--primary-glow-40), 0 0 30px var(--primary-glow-20);
+	}
+}
+
+/* Breathing glow for focus states */
+.glow-breathe {
+	animation: glow-breathe 3s ease-in-out infinite;
+}
+
+@keyframes glow-breathe {
+	0%,
+	100% {
+		opacity: 0.6;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* Icon glow on hover */
+.icon-glow {
+	transition: filter var(--duration-normal) ease;
+}
+
+.icon-glow:hover {
+	filter: drop-shadow(0 0 6px var(--primary-glow-40));
+}
+
+/* ==========================================================================
+   LOADING STATES
+   ========================================================================== */
+
+/* Skeleton loading placeholder */
+.skeleton {
+	background: linear-gradient(
+		90deg,
+		var(--surface) 25%,
+		var(--surface-hover) 50%,
+		var(--surface) 75%
+	);
+	background-size: 200% 100%;
+	animation: skeleton-shimmer 1.5s ease-in-out infinite;
+	border-radius: var(--radius);
+}
+
+@keyframes skeleton-shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+/* Spinner variants */
+.spinner {
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--surface-border);
+	border-top-color: var(--primary);
+	border-radius: 50%;
+	animation: spinner-rotate 0.8s linear infinite;
+}
+
+.spinner-sm {
+	width: 14px;
+	height: 14px;
+	border-width: 1.5px;
+}
+
+.spinner-lg {
+	width: 32px;
+	height: 32px;
+	border-width: 3px;
+}
+
+@keyframes spinner-rotate {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Dots loading */
+.loading-dots {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.loading-dots span {
+	width: 6px;
+	height: 6px;
+	background: var(--primary);
+	border-radius: 50%;
+	animation: loading-dot 1.4s ease-in-out infinite both;
+}
+
+.loading-dots span:nth-child(1) {
+	animation-delay: -0.32s;
+}
+.loading-dots span:nth-child(2) {
+	animation-delay: -0.16s;
+}
+
+@keyframes loading-dot {
+	0%,
+	80%,
+	100% {
+		transform: scale(0);
+		opacity: 0.5;
+	}
+	40% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+/* Progress bar with glow */
+.progress-bar {
+	height: 4px;
+	background: var(--surface);
+	border-radius: var(--radius-full);
+	overflow: hidden;
+}
+
+.progress-bar-fill {
+	height: 100%;
+	background: linear-gradient(90deg, var(--primary), var(--accent-cyan, var(--primary)));
+	border-radius: var(--radius-full);
+	transition: width var(--duration-slow) var(--ease-out-expo);
+	box-shadow: 0 0 10px var(--primary-glow-40);
+}
+
+.progress-bar-indeterminate .progress-bar-fill {
+	width: 30%;
+	animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(400%);
+	}
+}
+
+/* ==========================================================================
+   TRANSITIONS & ANIMATIONS
+   ========================================================================== */
+
+/* Fade transitions */
+.fade-enter {
+	opacity: 0;
+}
+
+.fade-enter-active {
+	opacity: 1;
+	transition: opacity var(--duration-normal) ease;
+}
+
+.fade-exit {
+	opacity: 1;
+}
+
+.fade-exit-active {
+	opacity: 0;
+	transition: opacity var(--duration-fast) ease;
+}
+
+/* Slide transitions */
+.slide-up-enter {
+	opacity: 0;
+	transform: translateY(20px);
+}
+
+.slide-up-enter-active {
+	opacity: 1;
+	transform: translateY(0);
+	transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.slide-down-enter {
+	opacity: 0;
+	transform: translateY(-20px);
+}
+
+.slide-down-enter-active {
+	opacity: 1;
+	transform: translateY(0);
+	transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+/* Scale transitions */
+.scale-enter {
+	opacity: 0;
+	transform: scale(0.95);
+}
+
+.scale-enter-active {
+	opacity: 1;
+	transform: scale(1);
+	transition: all var(--duration-normal) var(--ease-spring);
+}
+
+/* Pop animation for success states */
+.pop {
+	animation: pop var(--duration-normal) var(--ease-spring);
+}
+
+@keyframes pop {
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.05);
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+/* Shake animation for errors */
+.shake {
+	animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+	10%,
+	90% {
+		transform: translateX(-1px);
+	}
+	20%,
+	80% {
+		transform: translateX(2px);
+	}
+	30%,
+	50%,
+	70% {
+		transform: translateX(-3px);
+	}
+	40%,
+	60% {
+		transform: translateX(3px);
+	}
+}
+
+/* ==========================================================================
+   FOCUS STATES
+   ========================================================================== */
+
+/* Custom focus ring */
+.focus-ring:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary);
+}
+
+/* Soft focus glow */
+.focus-glow:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px var(--primary-glow-30), 0 0 20px var(--primary-glow-20);
+}
+
+/* ==========================================================================
+   TOUCH FEEDBACK
+   ========================================================================== */
+
+/* Disable highlight on touch */
+.no-tap-highlight {
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+	touch-action: manipulation;
+}
+
+/* Ripple effect container */
+.ripple {
+	position: relative;
+	overflow: hidden;
+}
+
+.ripple::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	background: var(--primary-glow-30);
+	border-radius: 50%;
+	transform: translate(-50%, -50%);
+	opacity: 0;
+}
+
+.ripple:active::after {
+	width: 200%;
+	height: 200%;
+	opacity: 1;
+	transition: width 0s, height 0s, opacity 0s;
+}
+
+.ripple:not(:active)::after {
+	transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
+}
+
+/* ==========================================================================
+   SCROLLBAR STYLING
+   ========================================================================== */
+
+/* Custom scrollbar for webkit browsers */
+.custom-scrollbar::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+	background: var(--surface-border);
+	border-radius: var(--radius-full);
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: var(--text-muted);
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}
+
+/* Thin scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+	width: 4px;
+	height: 4px;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hidden {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+	display: none;
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+
+	.glow-pulse,
+	.glow-breathe,
+	.skeleton,
+	.loading-dots span,
+	.progress-bar-indeterminate .progress-bar-fill {
+		animation: none;
+	}
+
+	.hover-lift:hover {
+		transform: none;
+	}
+}
+
+/* ==========================================================================
+   HIGH CONTRAST MODE
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+	.focus-ring:focus-visible,
+	.focus-glow:focus-visible {
+		box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px currentColor;
+	}
+
+	.skeleton {
+		background: var(--surface-border);
+		animation: none;
+	}
+}

@@ -15,8 +15,11 @@
 /* 5. Animation utilities */
 @import url(./animations.css);
 
-/* 6. Utility classes */
+/* 6. Micro-interactions and visual polish */
+@import url(./micro-interactions.css);
+
+/* 7. Utility classes */
 @import url(./utilities.css);
 
-/* 7. Component styles */
+/* 8. Component styles */
 @import url(./components/index.css);
