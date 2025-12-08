@@ -282,13 +282,13 @@
 	function getClearMessage(type) {
 		switch (type) {
 			case 'all':
-				return 'This will permanently delete ALL local data including settings, sessions, and workspace history. This action cannot be undone.';
+				return 'This will permanently delete ALL local data including settings, tabs, and project history. This action cannot be undone.';
 			case 'sessions':
-				return 'This will delete all saved session data and history. Active sessions will not be affected.';
+				return 'This will delete all saved tab data and history. Active tabs will not be affected.';
 			case 'settings':
 				return 'This will reset all application settings to defaults.';
 			case 'cache':
-				return 'This will clear cached data and temporary files. Settings and sessions will be preserved.';
+				return 'This will clear cached data and temporary files. Settings and tabs will be preserved.';
 			default:
 				return 'Are you sure you want to proceed?';
 		}

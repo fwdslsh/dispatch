@@ -37,11 +37,11 @@
 	const commands = [
 		{
 			id: 'new-terminal',
-			label: 'New Terminal Session',
-			description: 'Create a new terminal session',
+			label: 'New Terminal Tab',
+			description: 'Create a new terminal tab',
 			icon: IconTerminal,
 			shortcut: '⌘T',
-			category: 'Sessions',
+			category: 'Tabs',
 			action: () => {
 				onCreateTerminal();
 				close();
@@ -49,11 +49,11 @@
 		},
 		{
 			id: 'new-ai',
-			label: 'New AI Session',
-			description: 'Start a new AI assistant session',
+			label: 'New AI Tab',
+			description: 'Start a new AI agent tab',
 			icon: IconRobot,
 			shortcut: '⌘I',
-			category: 'Sessions',
+			category: 'Tabs',
 			action: () => {
 				onCreateAI();
 				close();
@@ -61,8 +61,8 @@
 		},
 		{
 			id: 'workspace',
-			label: 'Go to Workspace',
-			description: 'Open the main workspace',
+			label: 'Go to Project',
+			description: 'Open the main project',
 			icon: IconFolder,
 			shortcut: '⌘1',
 			category: 'Navigation',
@@ -320,7 +320,9 @@
 		background: var(--surface);
 		border: 1px solid var(--surface-border);
 		border-radius: var(--radius);
-		box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--primary-glow-10);
+		box-shadow:
+			0 24px 48px rgba(0, 0, 0, 0.4),
+			0 0 0 1px var(--primary-glow-10);
 		overflow: hidden;
 		animation: slide-down 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	}

@@ -150,8 +150,8 @@ export class WorkspaceNavigationViewModel {
 	async deleteWorkspace(workspaceId) {
 		const workspace = this.workspaces.find((w) => w.path === workspaceId);
 		if (workspace && workspace.activeSessions && workspace.activeSessions.length > 0) {
-			this.error = 'Cannot delete workspace with active sessions';
-			console.error('Cannot delete workspace with active sessions:', workspaceId);
+			this.error = 'Cannot delete project with active tabs';
+			console.error('Cannot delete project with active tabs:', workspaceId);
 			return false;
 		}
 
