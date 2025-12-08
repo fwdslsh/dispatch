@@ -20,7 +20,7 @@ jobs:
       rc_tag_name: ${{ steps.check.outputs.rc_tag_name }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
     if: needs.check-rc-tag.outputs.has_rc_tag == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Extract version and commit hash
         id: version
