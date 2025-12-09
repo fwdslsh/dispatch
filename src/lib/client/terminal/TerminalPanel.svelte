@@ -3,7 +3,7 @@
 	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import '@xterm/xterm/css/xterm.css';
-	import { TerminalPaneViewModel } from './viewmodels/TerminalPaneViewModel.svelte.js';
+	import { TerminalPanelViewModel } from './viewmodels/TerminalPanelViewModel.svelte.js';
 	import MobileTerminalView from './MobileTerminalView.svelte';
 
 	const fitAddon = new FitAddon();
@@ -59,7 +59,7 @@
 
 	// Initialize ViewModel
 	// Authentication handled via session cookies (no auth key needed)
-	const viewModel = new TerminalPaneViewModel({
+	const viewModel = new TerminalPanelViewModel({
 		sessionId,
 		authKey: null, // Socket.IO authenticates via session cookie
 		shouldResume
@@ -91,8 +91,8 @@
 
 	onMount(async () => {
 		// Debug logging
-		console.log('[TERMINAL] TerminalPane mounted with sessionId:', sessionId);
-		console.log('[TERMINAL] TerminalPane props:', { sessionId, shouldResume });
+		console.log('[TERMINAL] TerminalPanel mounted with sessionId:', sessionId);
+		console.log('[TERMINAL] TerminalPanel props:', { sessionId, shouldResume });
 
 		// Detect if we should use touch-optimized mobile view
 		isTouchDevice = detectTouchDevice();

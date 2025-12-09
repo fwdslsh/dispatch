@@ -7,7 +7,7 @@
  * @file src/lib/client/ai/ai.js
  */
 
-import ChatPane from '$lib/client/ai/ChatPane.svelte';
+import AIPanel from '$lib/client/ai/AIPanel.svelte';
 import ChatHeader from '$lib/client/ai/ChatHeader.svelte';
 import AISettings from '$lib/client/ai/AISettings.svelte';
 import AISettingsSection from '$lib/client/settings/sections/sessions/AI.svelte';
@@ -20,7 +20,7 @@ import { SESSION_TYPE } from '$lib/shared/session-types.js';
  */
 export const aiSessionModule = {
 	type: SESSION_TYPE.AI,
-	component: ChatPane,
+	component: AIPanel,
 	header: ChatHeader,
 	settingsComponent: AISettings,
 

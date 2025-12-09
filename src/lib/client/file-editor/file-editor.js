@@ -1,4 +1,4 @@
-import FileEditorPane from '$lib/client/file-editor/FileEditorPane.svelte';
+import FileEditorPanel from '$lib/client/file-editor/FileEditorPanel.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 /**
@@ -6,7 +6,7 @@ import { SESSION_TYPE } from '$lib/shared/session-types.js';
  */
 export const fileEditorSessionModule = {
 	type: SESSION_TYPE.FILE_EDITOR,
-	component: FileEditorPane,
+	component: FileEditorPanel,
 	prepareProps(session = {}) {
 		console.log('[file-editor-module] Preparing props for session:', session);
 		// Use the session.id directly for file editor sessions

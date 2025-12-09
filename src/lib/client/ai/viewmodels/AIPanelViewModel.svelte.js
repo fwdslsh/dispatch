@@ -1,16 +1,16 @@
 /**
- * AIPaneViewModel.svelte.js
+ * AIPanelViewModel.svelte.js
  *
- * ViewModel for AI pane managing state and business logic for AI sessions.
+ * ViewModel for AI panel managing state and business logic for AI sessions.
  * Uses Svelte 5 runes-in-classes pattern for reactive state management.
  *
  * v2.0 Hard Fork: OpenCode-first architecture
- * - Simplified from ClaudePaneViewModel
+ * - Simplified from ClaudePanelViewModel
  * - Works with unified AI adapter (OpenCode-powered)
  * - No OAuth handling (OpenCode manages authentication)
  * - Tracks tool activities for mobile-friendly display
  *
- * @file src/lib/client/ai/viewmodels/AIPaneViewModel.svelte.js
+ * @file src/lib/client/ai/viewmodels/AIPanelViewModel.svelte.js
  */
 
 import { SvelteSet, SvelteMap, SvelteDate } from 'svelte/reactivity';
@@ -38,7 +38,7 @@ import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.j
  * @property {number} [endTime] - End timestamp
  */
 
-export class AIPaneViewModel {
+export class AIPanelViewModel {
 	// Dependency injection
 	sessionClient = null;
 
@@ -140,7 +140,7 @@ export class AIPaneViewModel {
 	async submitInput(e) {
 		if (e) e.preventDefault();
 
-		console.log('[AIPaneViewModel] submitInput:', {
+		console.log('[AIPanelViewModel] submitInput:', {
 			sessionId: this.sessionId,
 			input: this.input.trim(),
 			connected: this.sessionClient.getStatus().connected
@@ -148,11 +148,11 @@ export class AIPaneViewModel {
 
 		if (!this.input.trim()) return;
 		if (!this.isAttached) {
-			console.error('[AIPaneViewModel] Not attached to session');
+			console.error('[AIPanelViewModel] Not attached to session');
 			return;
 		}
 		if (!this.sessionId) {
-			console.error('[AIPaneViewModel] SessionId not available');
+			console.error('[AIPanelViewModel] SessionId not available');
 			return;
 		}
 
@@ -179,7 +179,7 @@ export class AIPaneViewModel {
 			// Send input through run session client
 			this.sessionClient.sendInput(this.sessionId, userMessage);
 		} catch (error) {
-			console.error('[AIPaneViewModel] Failed to send message:', error);
+			console.error('[AIPanelViewModel] Failed to send message:', error);
 			this.lastError = error.message || 'Failed to send message';
 			this.isWaitingForReply = false;
 		}
@@ -197,11 +197,11 @@ export class AIPaneViewModel {
 	 * @param {Object} event - Event with seq, channel, type, payload
 	 */
 	handleRunEvent(event) {
-		console.log('[AIPaneViewModel] Event:', event);
+		console.log('[AIPanelViewModel] Event:', event);
 
 		// Deduplication by sequence number
 		if (event.seq !== undefined && this.processedEventSeqs.has(event.seq)) {
-			console.log('[AIPaneViewModel] Skipping duplicate event:', event.seq);
+			console.log('[AIPanelViewModel] Skipping duplicate event:', event.seq);
 			return;
 		}
 
@@ -549,7 +549,7 @@ export class AIPaneViewModel {
 			}
 		}
 
-		console.log('[AIPaneViewModel] Loaded', loadedMessages.length, 'messages');
+		console.log('[AIPanelViewModel] Loaded', loadedMessages.length, 'messages');
 		this.messages = loadedMessages;
 		this.isCatchingUp = false;
 		this.shouldScrollToBottom = true;
