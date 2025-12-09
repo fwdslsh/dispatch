@@ -17,8 +17,8 @@
 <button
 	class="create-session-btn"
 	onclick={handleClick}
-	aria-label="Create new session"
-	title="Create new session"
+	aria-label="Create new tab"
+	title="Create new tab"
 >
 	<svg
 		width="20"

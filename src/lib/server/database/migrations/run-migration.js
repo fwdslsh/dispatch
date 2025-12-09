@@ -12,9 +12,7 @@ import { DatabaseManager } from '../DatabaseManager.js';
 import { logger } from '../../shared/utils/logger.js';
 
 // Available migrations
-const MIGRATIONS = [
-	
-];
+const MIGRATIONS = [];
 
 /**
  * Run all pending migrations
@@ -54,10 +52,11 @@ async function runMigrations() {
 				await migration.up(db);
 
 				// Record migration
-				await db.run(
-					'INSERT INTO migrations (id, name, executed_at) VALUES (?, ?, ?)',
-					[migration.id, migration.name, Date.now()]
-				);
+				await db.run('INSERT INTO migrations (id, name, executed_at) VALUES (?, ?, ?)', [
+					migration.id,
+					migration.name,
+					Date.now()
+				]);
 
 				logger.info('MIGRATION', `✓ ${migration.id} completed successfully`);
 			} catch (error) {

@@ -167,9 +167,7 @@ test.describe('Regression Tests - Login Error Handling', () => {
 		await expect(errorMessage).toBeVisible({ timeout: 5000 });
 	});
 
-	test('Issue #3: Error should clear and stay cleared when typing valid key', async ({
-		page
-	}) => {
+	test('Issue #3: Error should clear and stay cleared when typing valid key', async ({ page }) => {
 		await page.goto(`${BASE_URL}/login`);
 
 		// Submit invalid key

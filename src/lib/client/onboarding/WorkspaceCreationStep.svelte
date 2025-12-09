@@ -174,24 +174,24 @@
 			</div>
 
 			<div class="info-box">
-				<h4>💡 What is a workspace?</h4>
+				<h4>💡 What is a project?</h4>
 				<ul>
-					<li>A workspace organizes your project files and sessions</li>
-					<li>You can create terminal and Claude sessions within a workspace</li>
-					<li>Switch between workspaces to work on different projects</li>
-					<li>You can always create more workspaces later</li>
+					<li>A project organizes your files and tabs</li>
+					<li>You can create terminal and AI agent tabs within a project</li>
+					<li>Switch between projects to work on different codebases</li>
+					<li>You can always create more projects later</li>
 				</ul>
 			</div>
 		</div>
 	{:else}
 		<div class="success-state">
 			<div class="success-icon">🎉</div>
-			<h3>Workspace Created Successfully!</h3>
+			<h3>Project Created Successfully!</h3>
 			<div class="workspace-details">
 				<p><strong>Name:</strong> {successWorkspace.name}</p>
 				<p><strong>Path:</strong> {successWorkspace.path}</p>
 			</div>
-			<p>Your workspace is ready for development</p>
+			<p>Your project is ready for development</p>
 		</div>
 	{/if}
 

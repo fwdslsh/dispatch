@@ -2,7 +2,10 @@
  * @vitest-environment node
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { validateEnvironment, validateEnvironmentOrThrow } from '../../../../src/lib/server/shared/utils/env-validation.js';
+import {
+	validateEnvironment,
+	validateEnvironmentOrThrow
+} from '../../../../src/lib/server/shared/utils/env-validation.js';
 
 describe('Environment Validation', () => {
 	// Helper to create test environment

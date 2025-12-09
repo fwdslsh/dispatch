@@ -304,13 +304,13 @@
 	<div class="tab-content">
 		<!-- Tab Content -->
 		{#if currentTab === 'active'}
-			<!-- Active Sessions with Search and Filters -->
+			<!-- Active Tabs with Search and Filters -->
 			<div class="panel">
 				<div class="panel-header">
 					<div class="header-content">
 						<h2 class="panel-title">
 							<IconActivity size={20} />
-							Active Sessions
+							Active Tabs
 						</h2>
 						{#if filteredSessions.filter((s) => s.isActive).length > 0}
 							<span class="count-badge">{filteredSessions.filter((s) => s.isActive).length}</span>
@@ -320,7 +320,7 @@
 
 				<div class="panel-list">
 					{#if loading}
-						<div class="status-message">Loading sessions...</div>
+						<div class="status-message">Loading tabs...</div>
 					{:else if error}
 						<div class="status-message error">{error}</div>
 					{:else}
@@ -328,10 +328,10 @@
 						{#if activeSessions.length === 0}
 							<div class="status-message">
 								{searchTerm
-									? `No active sessions match "${searchTerm}"`
+									? `No active tabs match "${searchTerm}"`
 									: sessionType === 'all'
-										? 'No active sessions found'
-										: `No active ${sessionType} sessions found`}
+										? 'No active tabs found'
+										: `No active ${sessionType} tabs found`}
 							</div>
 						{:else}
 							{#each activeSessions as session (session.id)}
@@ -350,7 +350,7 @@
 				</div>
 			</div>
 		{:else if currentTab === 'create'}
-			<!-- Create Session Section -->
+			<!-- Create Tab Section -->
 			<div class="panel">
 				{#if showDirectoryPicker}
 					<div class="panel-header">
@@ -378,7 +378,7 @@
 						<div class="header-content">
 							<h2 class="panel-title">
 								<IconPlus size={18} />
-								Create Session
+								Create Tab
 							</h2>
 						</div>
 					</div>
@@ -386,7 +386,7 @@
 						<div class="form-group">
 							<label class="form-label">
 								<IconFolder size={16} />
-								Workspace Directory
+								Project Directory
 							</label>
 							<button
 								class="directory-button"
@@ -407,7 +407,7 @@
 							{#snippet icon()}
 								{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
 							{/snippet}
-							New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
+							New {sessionType === 'claude' ? 'AI Agent' : 'Terminal'} Tab
 						</Button>
 					</div>
 				{/if}
@@ -419,7 +419,7 @@
 					<div class="header-content">
 						<h2 class="panel-title">
 							<IconHistory size={20} />
-							Browse Sessions
+							Browse Tabs
 						</h2>
 						{#if filteredSessions.filter((s) => !s.isActive).length > 0}
 							<span class="count-badge">{filteredSessions.filter((s) => !s.isActive).length}</span>
@@ -429,7 +429,7 @@
 
 				<div class="panel-list">
 					{#if loading}
-						<div class="status-message">Loading sessions...</div>
+						<div class="status-message">Loading tabs...</div>
 					{:else if error}
 						<div class="status-message error">{error}</div>
 					{:else}
@@ -437,10 +437,10 @@
 						{#if historicalSessions.length === 0}
 							<div class="status-message">
 								{searchTerm
-									? `No historical sessions match "${searchTerm}"`
+									? `No historical tabs match "${searchTerm}"`
 									: sessionType === 'all'
-										? 'No historical sessions found'
-										: `No historical ${sessionType} sessions found`}
+										? 'No historical tabs found'
+										: `No historical ${sessionType} tabs found`}
 							</div>
 						{:else}
 							{#each historicalSessions as session (session.id)}
@@ -465,7 +465,7 @@
 					<div class="header-content">
 						<h2 class="panel-title">
 							<IconLayoutGrid size={20} />
-							Workspaces
+							Projects
 						</h2>
 						{#if workspaceNavigation?.activeWorkspaces?.length > 0}
 							<span class="count-badge">{workspaceNavigation.activeWorkspaces.length}</span>
@@ -484,14 +484,14 @@
 
 				<div class="panel-list">
 					{#if workspaceNavigation?.isLoading}
-						<div class="status-message">Loading workspaces...</div>
+						<div class="status-message">Loading projects...</div>
 					{:else if workspaceNavigation?.error}
 						<div class="status-message error">{workspaceNavigation.error}</div>
 					{:else if workspaceNavigation?.filteredWorkspaces?.length === 0}
 						<div class="status-message">
 							{workspaceNavigation.searchTerm
-								? `No workspaces match "${workspaceNavigation.searchTerm}"`
-								: 'No workspaces found. Create your first workspace to get started.'}
+								? `No projects match "${workspaceNavigation.searchTerm}"`
+								: 'No projects found. Create your first project to get started.'}
 						</div>
 					{:else if workspaceNavigation?.filteredWorkspaces}
 						{#each workspaceNavigation.filteredWorkspaces as workspace (workspace.path)}
@@ -525,9 +525,9 @@
 
 				{#if showWorkspaceCreate}
 					<div class="workspace-create-form">
-						<h3>Create New Workspace</h3>
+						<h3>Create New Project</h3>
 						<div class="form-group">
-							<label for="workspace-name">Workspace Name</label>
+							<label for="workspace-name">Project Name</label>
 							<input
 								id="workspace-name"
 								type="text"
@@ -537,7 +537,7 @@
 							/>
 						</div>
 						<div class="form-group">
-							<label for="workspace-path">Workspace Path</label>
+							<label for="workspace-path">Project Path</label>
 							<input
 								id="workspace-path"
 								type="text"
@@ -636,7 +636,7 @@
 				aria-controls="workspaces-panel"
 			>
 				{#snippet icon()}<IconLayoutGrid size={16} />{/snippet}
-				<span class="button-text">Workspaces</span>
+				<span class="button-text">Projects</span>
 			</Button>
 			<Button
 				variant="ghost"
@@ -673,10 +673,10 @@
 				<input
 					type="text"
 					placeholder={currentTab === 'active'
-						? 'Search active sessions...'
+						? 'Search active tabs...'
 						: currentTab === 'browse'
-							? 'Search sessions...'
-							: 'Search workspaces...'}
+							? 'Search tabs...'
+							: 'Search projects...'}
 					value={currentTab === 'workspaces' ? workspaceNavigation?.searchTerm || '' : searchTerm}
 					oninput={(e) => {
 						const value = /** @type {HTMLInputElement} */ (e.target).value;
@@ -688,10 +688,10 @@
 					}}
 					class="search-input"
 					aria-label={currentTab === 'active'
-						? 'Search active sessions'
+						? 'Search active tabs'
 						: currentTab === 'browse'
 							? 'Search sessions'
-							: 'Search workspaces'}
+							: 'Search projects'}
 					role="searchbox"
 				/>
 				{#if currentTab === 'workspaces' ? workspaceNavigation?.searchTerm : searchTerm}

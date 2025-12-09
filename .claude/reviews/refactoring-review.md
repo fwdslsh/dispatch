@@ -12,6 +12,7 @@
 The Dispatch project demonstrates a well-architected foundation with modern patterns including event sourcing, dependency injection, and clean separation of concerns. However, the codebase exhibits several code quality issues that should be addressed before RC1:
 
 **Key Findings:**
+
 - **578-line socket-setup.js** violates Single Responsibility Principle with massive duplication
 - **Authentication logic repeated 4+ times** across socket handlers (DRY violation)
 - **Missing error boundaries** around critical async operations
@@ -34,24 +35,27 @@ The Dispatch project demonstrates a well-architected foundation with modern patt
 **Principle Violated:** Security by Design
 
 **Issue:**
+
 ```javascript
 providers[provider] = {
-    enabled: true,
-    clientId,
-    clientSecret, // TODO: Encrypt in production <-- CRITICAL
-    redirectUri: redirectUri || this.getDefaultRedirectUri(provider),
-    updatedAt: Date.now()
+	enabled: true,
+	clientId,
+	clientSecret, // TODO: Encrypt in production <-- CRITICAL
+	redirectUri: redirectUri || this.getDefaultRedirectUri(provider),
+	updatedAt: Date.now()
 };
 ```
 
 OAuth client secrets are stored in plaintext in SQLite database. This is a critical security vulnerability.
 
 **Impact:**
+
 - Database compromise exposes OAuth credentials
 - Violates OAuth security best practices
 - Regulatory compliance risk (GDPR, SOC2)
 
 **Recommended Refactoring:**
+
 1. Implement encryption-at-rest using Node.js crypto module
 2. Store encryption key in environment variable (not in database)
 3. Create EncryptionService with encrypt/decrypt methods
@@ -70,6 +74,7 @@ OAuth client secrets are stored in plaintext in SQLite database. This is a criti
 
 **Issue:**
 Single file handles:
+
 - Socket.IO initialization
 - Authentication (3 different strategies)
 - Session event routing
@@ -81,50 +86,54 @@ Single file handles:
 - State validation
 
 **Violations:**
+
 1. **SRP violation:** 9+ distinct responsibilities in one file
 2. **OCP violation:** Adding new event types requires modifying this file
 3. **DRY violation:** Authentication logic repeated 4+ times (lines 79-102, 171-235, 278-290, 307-319, 373-415)
 4. **High cyclomatic complexity:** Multiple nested conditionals
 
 **Code Duplication Example:**
+
 ```javascript
 // Pattern repeated 4+ times:
 const { apiKey, terminalKey } = data || {};
 const token = apiKey || terminalKey;
 if (token) {
-    const isValid = await requireValidAuth(socket, token, callback, services);
-    if (!isValid) return;
+	const isValid = await requireValidAuth(socket, token, callback, services);
+	if (!isValid) return;
 } else if (!socket.data.authenticated) {
-    logger.warn('SOCKET', `Unauthenticated ${eventName} from socket ${socket.id}`);
-    if (callback) callback({ success: false, error: 'Authentication required' });
-    return;
+	logger.warn('SOCKET', `Unauthenticated ${eventName} from socket ${socket.id}`);
+	if (callback) callback({ success: false, error: 'Authentication required' });
+	return;
 }
 ```
 
 **Recommended Refactoring:**
 
 **Phase 1: Extract Authentication Middleware (Small - 1 day)**
+
 ```javascript
 // src/lib/server/socket/middleware/authentication.js
 export function createAuthenticationMiddleware(services) {
-    return async (socket, data, callback, next) => {
-        const result = await authenticateSocket(socket, data, services);
-        if (!result.authenticated) {
-            return callback?.({ success: false, error: result.error });
-        }
-        next();
-    };
+	return async (socket, data, callback, next) => {
+		const result = await authenticateSocket(socket, data, services);
+		if (!result.authenticated) {
+			return callback?.({ success: false, error: result.error });
+		}
+		next();
+	};
 }
 
 async function authenticateSocket(socket, data, services) {
-    // Unified authentication logic (single source of truth)
-    // Strategy 1: Explicit token
-    // Strategy 2: Session cookie
-    // Strategy 3: Handshake cookie
+	// Unified authentication logic (single source of truth)
+	// Strategy 1: Explicit token
+	// Strategy 2: Session cookie
+	// Strategy 3: Handshake cookie
 }
 ```
 
 **Phase 2: Extract Event Handlers (Medium - 2 days)**
+
 ```javascript
 // src/lib/server/socket/handlers/
 // ├── sessionHandlers.js (already exists)
@@ -134,37 +143,46 @@ async function authenticateSocket(socket, data, services) {
 
 // Each handler module exports createHandlers(services)
 export function createTunnelHandlers(services) {
-    return {
-        start: async (socket, data, callback) => { /* ... */ },
-        stop: async (socket, data, callback) => { /* ... */ },
-        status: async (socket, data, callback) => { /* ... */ },
-        updateConfig: async (socket, data, callback) => { /* ... */ }
-    };
+	return {
+		start: async (socket, data, callback) => {
+			/* ... */
+		},
+		stop: async (socket, data, callback) => {
+			/* ... */
+		},
+		status: async (socket, data, callback) => {
+			/* ... */
+		},
+		updateConfig: async (socket, data, callback) => {
+			/* ... */
+		}
+	};
 }
 ```
 
 **Phase 3: Refactor setupSocketIO (Small - 1 day)**
+
 ```javascript
 // src/lib/server/shared/socket-setup.js (reduced to ~150 lines)
 export function setupSocketIO(httpServer, services) {
-    const io = new Server(httpServer, { cors: { origin: '*' } });
-    const mediator = new SocketEventMediator(io);
+	const io = new Server(httpServer, { cors: { origin: '*' } });
+	const mediator = new SocketEventMediator(io);
 
-    // Register middleware
-    mediator.use(createAuthenticationMiddleware(services));
-    mediator.use(createLoggingMiddleware());
-    mediator.use(createErrorHandlingMiddleware());
+	// Register middleware
+	mediator.use(createAuthenticationMiddleware(services));
+	mediator.use(createLoggingMiddleware());
+	mediator.use(createErrorHandlingMiddleware());
 
-    // Register handlers
-    registerSessionHandlers(mediator, services);
-    registerTunnelHandlers(mediator, services);
-    registerClaudeHandlers(mediator, services);
-    registerVSCodeHandlers(mediator, services);
+	// Register handlers
+	registerSessionHandlers(mediator, services);
+	registerTunnelHandlers(mediator, services);
+	registerClaudeHandlers(mediator, services);
+	registerVSCodeHandlers(mediator, services);
 
-    // Setup event recorder
-    setupEventRecorder(io, services.eventRecorder);
+	// Setup event recorder
+	setupEventRecorder(io, services.eventRecorder);
 
-    return io;
+	return io;
 }
 ```
 
@@ -180,27 +198,30 @@ export function setupSocketIO(httpServer, services) {
 **Principle Violated:** Performance Best Practices
 
 **Issue:**
+
 ```javascript
 for (const workspace of workspaces) {
-    const sessions = await database.all(
-        `SELECT COUNT(*) as count, status
+	const sessions = await database.all(
+		`SELECT COUNT(*) as count, status
          FROM sessions
          WHERE JSON_EXTRACT(meta_json, '$.workspacePath') = ?
          GROUP BY status`,
-        [workspace.path]
-    );
-    // ... process results
+		[workspace.path]
+	);
+	// ... process results
 }
 ```
 
 This creates N database queries for N workspaces (classic N+1 problem).
 
 **Impact:**
+
 - 100 workspaces = 101 database queries
 - Significant latency with large workspace counts
 - Database connection pool exhaustion under load
 
 **Recommended Refactoring:**
+
 ```javascript
 // Single query with JOIN or subquery
 const workspacesWithCounts = await database.all(`
@@ -234,42 +255,46 @@ const workspacesWithCounts = await database.all(`
 API routes use 3 different error handling patterns:
 
 **Pattern 1 - Try/Catch with Error Rethrow (sessions/+server.js:76-78)**
+
 ```javascript
 try {
-    // ...
+	// ...
 } catch (error) {
-    console.error('[API] Failed to list sessions:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+	console.error('[API] Failed to list sessions:', error);
+	return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 }
 ```
 
 **Pattern 2 - Try/Catch with SvelteKit error() (workspaces/+server.js:88-94)**
+
 ```javascript
 try {
-    // ...
+	// ...
 } catch (err) {
-    if (err?.status && err?.body) {
-        throw err;
-    }
-    logger.error('WORKSPACE_API', 'Failed to list workspaces:', err);
-    throw error(500, { message: 'Failed to retrieve workspaces' });
+	if (err?.status && err?.body) {
+		throw err;
+	}
+	logger.error('WORKSPACE_API', 'Failed to list workspaces:', err);
+	throw error(500, { message: 'Failed to retrieve workspaces' });
 }
 ```
 
 **Pattern 3 - Try/Catch with json() Response (workspaces/+server.js:158-164)**
+
 ```javascript
 try {
-    // ...
+	// ...
 } catch (err) {
-    if (err?.status && err?.body) {
-        throw err;
-    }
-    logger.error('WORKSPACE_API', 'Failed to create workspace:', err);
-    throw error(500, { message: 'Failed to create workspace' });
+	if (err?.status && err?.body) {
+		throw err;
+	}
+	logger.error('WORKSPACE_API', 'Failed to create workspace:', err);
+	throw error(500, { message: 'Failed to create workspace' });
 }
 ```
 
 **Problems:**
+
 1. Inconsistent response formats
 2. Some routes log with `console.error`, others with `logger.error`
 3. Error status codes not standardized
@@ -278,64 +303,66 @@ try {
 **Recommended Refactoring:**
 
 **Create Error Handler Utility:**
+
 ```javascript
 // src/lib/server/shared/utils/api-errors.js
 export class ApiError extends Error {
-    constructor(message, status = 500, code = 'INTERNAL_ERROR') {
-        super(message);
-        this.status = status;
-        this.code = code;
-    }
+	constructor(message, status = 500, code = 'INTERNAL_ERROR') {
+		super(message);
+		this.status = status;
+		this.code = code;
+	}
 }
 
 export class BadRequestError extends ApiError {
-    constructor(message, code = 'BAD_REQUEST') {
-        super(message, 400, code);
-    }
+	constructor(message, code = 'BAD_REQUEST') {
+		super(message, 400, code);
+	}
 }
 
 export class NotFoundError extends ApiError {
-    constructor(message, code = 'NOT_FOUND') {
-        super(message, 404, code);
-    }
+	constructor(message, code = 'NOT_FOUND') {
+		super(message, 404, code);
+	}
 }
 
 export class UnauthorizedError extends ApiError {
-    constructor(message, code = 'UNAUTHORIZED') {
-        super(message, 401, code);
-    }
+	constructor(message, code = 'UNAUTHORIZED') {
+		super(message, 401, code);
+	}
 }
 
 // Centralized handler
 export function handleApiError(err, context = '') {
-    // Already a SvelteKit error
-    if (err?.status && err?.body) {
-        throw err;
-    }
+	// Already a SvelteKit error
+	if (err?.status && err?.body) {
+		throw err;
+	}
 
-    // Custom API error
-    if (err instanceof ApiError) {
-        logger.error(context, err.message, { code: err.code, status: err.status });
-        throw error(err.status, { message: err.message, code: err.code });
-    }
+	// Custom API error
+	if (err instanceof ApiError) {
+		logger.error(context, err.message, { code: err.code, status: err.status });
+		throw error(err.status, { message: err.message, code: err.code });
+	}
 
-    // Unknown error - don't expose details to client
-    logger.error(context, 'Unexpected error:', err);
-    throw error(500, { message: 'An unexpected error occurred', code: 'INTERNAL_ERROR' });
+	// Unknown error - don't expose details to client
+	logger.error(context, 'Unexpected error:', err);
+	throw error(500, { message: 'An unexpected error occurred', code: 'INTERNAL_ERROR' });
 }
 ```
 
 **Usage:**
+
 ```javascript
 export async function GET({ url, locals }) {
-    try {
-        if (!locals.auth?.authenticated) {
-            throw new UnauthorizedError('Authentication required');
-        }
-        // ... logic
-    } catch (err) {
-        return handleApiError(err, 'WORKSPACE_API');
-    }
+	try {
+		if (!locals.auth?.authenticated) {
+			throw new UnauthorizedError('Authentication required');
+		}
+		// ... logic
+	} catch (err) {
+		return handleApiError(err, 'WORKSPACE_API');
+	}
 }
 ```
 
@@ -352,117 +379,121 @@ export async function GET({ url, locals }) {
 
 **Issue:**
 `authenticationMiddleware` function is 112 lines with:
+
 - Nested if/else chains (8 levels deep)
 - Duplicate cookie parsing logic
 - Mixed concerns (auth + session refresh + routing)
 - Special case handling scattered throughout
 
 **Current Structure:**
+
 ```javascript
 async function authenticationMiddleware({ event, resolve }) {
-    // Route checking (lines 82-98)
-    // Strategy 1: Session cookie (lines 104-146)
-    // Strategy 2: API key (lines 148-170)
-    // Unauthenticated handling (lines 172-193)
+	// Route checking (lines 82-98)
+	// Strategy 1: Session cookie (lines 104-146)
+	// Strategy 2: API key (lines 148-170)
+	// Unauthenticated handling (lines 172-193)
 }
 ```
 
 **Recommended Refactoring:**
 
 **Extract Authentication Strategies (Strategy Pattern):**
+
 ```javascript
 // src/lib/server/auth/strategies/AuthStrategy.js
 export class AuthStrategy {
-    async authenticate(event, services) {
-        throw new Error('Must implement authenticate()');
-    }
+	async authenticate(event, services) {
+		throw new Error('Must implement authenticate()');
+	}
 }
 
 // src/lib/server/auth/strategies/SessionCookieStrategy.js
 export class SessionCookieStrategy extends AuthStrategy {
-    async authenticate(event, services) {
-        const sessionId = CookieService.getSessionCookie(event.cookies);
-        if (!sessionId) return null;
+	async authenticate(event, services) {
+		const sessionId = CookieService.getSessionCookie(event.cookies);
+		if (!sessionId) return null;
 
-        const sessionData = await services.sessionManager.validateSession(sessionId);
-        if (!sessionData) return null;
+		const sessionData = await services.sessionManager.validateSession(sessionId);
+		if (!sessionData) return null;
 
-        // Refresh if needed
-        if (sessionData.needsRefresh) {
-            await services.sessionManager.refreshSession(sessionId);
-        }
+		// Refresh if needed
+		if (sessionData.needsRefresh) {
+			await services.sessionManager.refreshSession(sessionId);
+		}
 
-        return {
-            authenticated: true,
-            provider: sessionData.session.provider,
-            userId: sessionData.session.userId,
-            session: sessionData.session,
-            user: sessionData.user
-        };
-    }
+		return {
+			authenticated: true,
+			provider: sessionData.session.provider,
+			userId: sessionData.session.userId,
+			session: sessionData.session,
+			user: sessionData.user
+		};
+	}
 }
 
 // src/lib/server/auth/strategies/ApiKeyStrategy.js
 export class ApiKeyStrategy extends AuthStrategy {
-    async authenticate(event, services) {
-        const token = services.auth.getAuthKeyFromRequest(event.request);
-        if (!token) return null;
+	async authenticate(event, services) {
+		const token = services.auth.getAuthKeyFromRequest(event.request);
+		if (!token) return null;
 
-        const authResult = await services.auth.validateAuth(token);
-        if (!authResult.valid) return null;
+		const authResult = await services.auth.validateAuth(token);
+		if (!authResult.valid) return null;
 
-        return {
-            authenticated: true,
-            provider: authResult.provider,
-            userId: authResult.userId,
-            apiKeyId: authResult.apiKeyId,
-            label: authResult.label
-        };
-    }
+		return {
+			authenticated: true,
+			provider: authResult.provider,
+			userId: authResult.userId,
+			apiKeyId: authResult.apiKeyId,
+			label: authResult.label
+		};
+	}
 }
 
 // src/lib/server/auth/AuthenticationCoordinator.js
 export class AuthenticationCoordinator {
-    constructor(strategies) {
-        this.strategies = strategies; // Ordered array
-    }
+	constructor(strategies) {
+		this.strategies = strategies; // Ordered array
+	}
 
-    async authenticate(event, services) {
-        for (const strategy of this.strategies) {
-            const result = await strategy.authenticate(event, services);
-            if (result) return result;
-        }
-        return { authenticated: false };
-    }
+	async authenticate(event, services) {
+		for (const strategy of this.strategies) {
+			const result = await strategy.authenticate(event, services);
+			if (result) return result;
+		}
+		return { authenticated: false };
+	}
 }
 ```
 
 **Simplified Middleware:**
+
 ```javascript
 // hooks.server.js (reduced from 112 to ~40 lines)
 async function authenticationMiddleware({ event, resolve }) {
-    const { pathname } = event.url;
+	const { pathname } = event.url;
 
-    // Skip public routes
-    if (isPublicRoute(pathname) && !isOptionalAuthRoute(pathname)) {
-        return resolve(event);
-    }
+	// Skip public routes
+	if (isPublicRoute(pathname) && !isOptionalAuthRoute(pathname)) {
+		return resolve(event);
+	}
 
-    // Authenticate using strategy pattern
-    const coordinator = new AuthenticationCoordinator([
-        new SessionCookieStrategy(),
-        new ApiKeyStrategy()
-    ]);
+	// Authenticate using strategy pattern
+	const coordinator = new AuthenticationCoordinator([
+		new SessionCookieStrategy(),
+		new ApiKeyStrategy()
+	]);
 
-    const authResult = await coordinator.authenticate(event, event.locals.services);
-    event.locals.auth = authResult;
+	const authResult = await coordinator.authenticate(event, event.locals.services);
+	event.locals.auth = authResult;
 
-    // Handle unauthenticated
-    if (!authResult.authenticated && !isOptionalAuthRoute(pathname)) {
-        return handleUnauthenticated(event);
-    }
+	// Handle unauthenticated
+	if (!authResult.authenticated && !isOptionalAuthRoute(pathname)) {
+		return handleUnauthenticated(event);
+	}
 
-    return resolve(event);
+	return resolve(event);
 }
 ```
 
@@ -481,32 +512,33 @@ async function authenticationMiddleware({ event, resolve }) {
 Several critical async operations lack proper error boundaries:
 
 **Example 1 - SessionOrchestrator (lines 70-98):**
+
 ```javascript
 try {
-    this.#eventRecorder.startBuffering(session.id);
+	this.#eventRecorder.startBuffering(session.id);
 
-    const process = await adapter.create({
-        ...adapterOptions,
-        ...metadata,
-        onEvent: (ev) => {
-            // No error handling if recordEvent fails
-            this.#eventRecorder.recordEvent(session.id, ev);
-        }
-    });
+	const process = await adapter.create({
+		...adapterOptions,
+		...metadata,
+		onEvent: (ev) => {
+			// No error handling if recordEvent fails
+			this.#eventRecorder.recordEvent(session.id, ev);
+		}
+	});
 
-    // If flushBuffer fails, session is left in inconsistent state
-    await this.#eventRecorder.flushBuffer(session.id);
-
+	// If flushBuffer fails, session is left in inconsistent state
+	await this.#eventRecorder.flushBuffer(session.id);
 } catch (error) {
-    await this.#sessionRepository.updateStatus(session.id, 'error');
-    // What if updateStatus fails? Silent failure
-    this.#eventRecorder.clearBuffer(session.id);
-    // What if clearBuffer fails? Silent failure
-    throw error;
+	await this.#sessionRepository.updateStatus(session.id, 'error');
+	// What if updateStatus fails? Silent failure
+	this.#eventRecorder.clearBuffer(session.id);
+	// What if clearBuffer fails? Silent failure
+	throw error;
 }
 ```
 
 **Problems:**
+
 1. `recordEvent` in onEvent callback has no error handler
 2. `updateStatus` failure in catch block is not handled
 3. `clearBuffer` failure is silently ignored
@@ -515,6 +547,7 @@ try {
 **Recommended Refactoring:**
 
 **Implement Try-Finally Pattern:**
+
 ```javascript
 async createSession(kind, options) {
     const { workspacePath, metadata = {}, ownerUserId = null, ...adapterOptions } = options;
@@ -608,6 +641,7 @@ async #safeCleanup(sessionId, process) {
 **Principle Violated:** Configuration Management
 
 **Issue:**
+
 ```javascript
 const baseUrl = 'https://localhost:5173'; // Replace with actual base URL in production
 redirectUri = new URL(redirectUri, baseUrl).toString();
@@ -616,6 +650,7 @@ redirectUri = new URL(redirectUri, baseUrl).toString();
 This will break in production and prevents deployment flexibility.
 
 **Recommended Refactoring:**
+
 ```javascript
 // src/lib/server/config/environment.js
 export const config = {
@@ -654,17 +689,20 @@ buildAuthorizationUrl(provider, config, state, customRedirectUri) {
 **Principle Violated:** Type Safety
 
 **Issue:**
+
 ```javascript
 const runId = `${kind}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 ```
 
 Problems:
+
 1. Session ID generation scattered across codebase
 2. No validation of ID format
 3. Difficult to test (random component)
 4. No type safety
 
 **Recommended Refactoring:**
+
 ```javascript
 // src/lib/server/shared/SessionId.js
 export class SessionId {
@@ -729,52 +767,54 @@ The service exposes too much internal state and requires clients to check state 
 ```javascript
 // Client code has to know about service internals
 if (!this.socket?.connected) {
-    this.queueMessage(event, data, callback);
-    return;
+	this.queueMessage(event, data, callback);
+	return;
 }
 ```
 
 Clients must:
+
 1. Check `socket?.connected`
 2. Know about message queuing
 3. Understand connection state management
 
 **Recommended Refactoring:**
+
 ```javascript
 // Encapsulate connection state checks
 export class SocketService {
-    emit(event, data, callback) {
-        // Service handles connection state internally
-        if (!this.#isConnected()) {
-            return this.#handleDisconnected(event, data, callback);
-        }
-        return this.#sendMessage(event, data, callback);
-    }
+	emit(event, data, callback) {
+		// Service handles connection state internally
+		if (!this.#isConnected()) {
+			return this.#handleDisconnected(event, data, callback);
+		}
+		return this.#sendMessage(event, data, callback);
+	}
 
-    #isConnected() {
-        return this.socket?.connected === true;
-    }
+	#isConnected() {
+		return this.socket?.connected === true;
+	}
 
-    #handleDisconnected(event, data, callback) {
-        // Auto-reconnect or queue based on configuration
-        if (this.config.autoQueue) {
-            this.#queueMessage(event, data, callback);
-            return Promise.resolve({ queued: true });
-        }
-        throw new SocketDisconnectedError('Socket not connected');
-    }
+	#handleDisconnected(event, data, callback) {
+		// Auto-reconnect or queue based on configuration
+		if (this.config.autoQueue) {
+			this.#queueMessage(event, data, callback);
+			return Promise.resolve({ queued: true });
+		}
+		throw new SocketDisconnectedError('Socket not connected');
+	}
 
-    #sendMessage(event, data, callback) {
-        return new Promise((resolve, reject) => {
-            if (callback) {
-                this.socket.emit(event, data, callback);
-                resolve({ sent: true });
-            } else {
-                this.socket.emit(event, data);
-                resolve({ sent: true });
-            }
-        });
-    }
+	#sendMessage(event, data, callback) {
+		return new Promise((resolve, reject) => {
+			if (callback) {
+				this.socket.emit(event, data, callback);
+				resolve({ sent: true });
+			} else {
+				this.socket.emit(event, data);
+				resolve({ sent: true });
+			}
+		});
+	}
 }
 ```
 
@@ -790,6 +830,7 @@ export class SocketService {
 **Principle Violated:** Named Constants
 
 **Issue:**
+
 ```javascript
 async run(sql, params = [], retries = 3) {
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -802,6 +843,7 @@ async run(sql, params = [], retries = 3) {
 Magic numbers: `3` retries, `100` ms base delay
 
 **Recommended Refactoring:**
+
 ```javascript
 // src/lib/server/database/DatabaseConfig.js
 export const DB_CONFIG = {
@@ -857,6 +899,7 @@ The `create` method accepts a massive options object with 20+ properties documen
 **Recommended Refactoring:**
 
 **Create Configuration Objects:**
+
 ```javascript
 // src/lib/server/terminal/PtyConfig.js
 export class PtyConfig {
@@ -920,19 +963,20 @@ async create({ cwd, options = {}, onEvent }) {
 **Principle Violated:** Readability
 
 **Issue:**
+
 ```javascript
 const operation = buffer.eventQueue
-    .then(async () => {
-        return await this.#persistAndEmit(sessionId, event);
-    })
-    .catch((/** @type {Error} */ err) => {
-        console.error(`Event queue error for ${sessionId}:`, err);
-        this.#eventEmitter.emit('error', { sessionId, error: err, event });
-        throw err;
-    });
+	.then(async () => {
+		return await this.#persistAndEmit(sessionId, event);
+	})
+	.catch((/** @type {Error} */ err) => {
+		console.error(`Event queue error for ${sessionId}:`, err);
+		this.#eventEmitter.emit('error', { sessionId, error: err, event });
+		throw err;
+	});
 
 buffer.eventQueue = operation.catch(() => {
-    // Swallow to keep queue healthy
+	// Swallow to keep queue healthy
 });
 
 return operation;
@@ -941,6 +985,7 @@ return operation;
 Complex promise chaining with error swallowing is difficult to reason about.
 
 **Recommended Refactoring:**
+
 ```javascript
 async recordEvent(sessionId, event) {
     const buffer = this.#buffers.get(sessionId);
@@ -990,12 +1035,14 @@ async #enqueueOperation(sessionId, event, buffer) {
 
 **Issue:**
 Production code contains `console.log` statements:
+
 - `SessionRepository.js:179` - console.warn for JSON parse failure
 - `EventRecorder.js:91, 100, 107, 113, 141, 145` - console.log for debugging
 - `sessions/+server.js:31, 43, 65` - console.log for API debugging
 
 **Recommended Refactoring:**
 Replace all `console.*` with `logger.*`:
+
 ```javascript
 // Before
 console.warn('Failed to parse session metadata:', e);
@@ -1015,6 +1062,7 @@ logger.warn('SESSION_REPO', 'Failed to parse session metadata:', e);
 **Code Smell:** Dead Code
 
 **Issue:**
+
 ```javascript
 // import { AuthProvider } from '../../shared/auth-types.js';
 ```
@@ -1035,12 +1083,14 @@ Commented imports should be removed or uncommented.
 
 **Issue:**
 Many public methods lack JSDoc documentation:
+
 - `ServiceContainer.svelte.js` - Most methods missing JSDoc
 - `SocketService.svelte.js` - Public methods lack parameter docs
 - `SessionOrchestrator.js` - Good JSDoc, but some methods incomplete
 
 **Recommended Refactoring:**
 Add comprehensive JSDoc to all public methods:
+
 ```javascript
 /**
  * Register a service factory for lazy instantiation
@@ -1069,6 +1119,7 @@ registerFactory(name, factory) {
 ### Current State
 
 **Strengths:**
+
 - Good unit test coverage for core business logic
 - 38 test files covering client and server
 - Comprehensive SessionOrchestrator tests
@@ -1079,30 +1130,32 @@ registerFactory(name, factory) {
 ### 1. Missing Authentication Tests
 
 **Files Lacking Tests:**
+
 - `hooks.server.js` - No tests for authentication middleware
 - `socket-setup.js` - No tests for socket authentication
 - `CookieService.server.js` - No validation tests
 - `OAuth.server.js` - No OAuth flow tests
 
 **Recommended Tests:**
+
 ```javascript
 // tests/server/auth/authentication-middleware.test.js
 describe('authenticationMiddleware', () => {
-    it('should authenticate with valid session cookie', async () => {});
-    it('should authenticate with valid API key', async () => {});
-    it('should reject invalid credentials', async () => {});
-    it('should refresh expiring sessions', async () => {});
-    it('should redirect unauthenticated browser requests', async () => {});
-    it('should return 401 for unauthenticated API requests', async () => {});
-    it('should handle optional auth routes correctly', async () => {});
+	it('should authenticate with valid session cookie', async () => {});
+	it('should authenticate with valid API key', async () => {});
+	it('should reject invalid credentials', async () => {});
+	it('should refresh expiring sessions', async () => {});
+	it('should redirect unauthenticated browser requests', async () => {});
+	it('should return 401 for unauthenticated API requests', async () => {});
+	it('should handle optional auth routes correctly', async () => {});
 });
 
 // tests/server/socket/socket-authentication.test.js
 describe('Socket Authentication', () => {
-    it('should authenticate socket with session cookie', async () => {});
-    it('should authenticate socket with API key', async () => {});
-    it('should validate session on periodic check', async () => {});
-    it('should disconnect on expired session', async () => {});
+	it('should authenticate socket with session cookie', async () => {});
+	it('should authenticate socket with API key', async () => {});
+	it('should validate session on periodic check', async () => {});
+	it('should disconnect on expired session', async () => {});
 });
 ```
 
@@ -1113,6 +1166,7 @@ describe('Socket Authentication', () => {
 ### 2. Missing E2E Tests
 
 **Critical User Journeys Not Covered:**
+
 - Complete onboarding flow with OAuth
 - Session creation and attachment via Socket.IO
 - Real-time event streaming
@@ -1120,30 +1174,31 @@ describe('Socket Authentication', () => {
 - Session resume after server restart
 
 **Recommended E2E Tests:**
+
 ```javascript
 // e2e/session-lifecycle.spec.js
 test('complete session lifecycle', async ({ page }) => {
-    // Create session
-    // Attach to session
-    // Send input
-    // Verify output
-    // Close session
-    // Verify cleanup
+	// Create session
+	// Attach to session
+	// Send input
+	// Verify output
+	// Close session
+	// Verify cleanup
 });
 
 // e2e/multi-client-sync.spec.js
 test('multiple clients sync session state', async ({ browser }) => {
-    // Open session in tab 1
-    // Attach in tab 2
-    // Send input in tab 1
-    // Verify tab 2 receives events
+	// Open session in tab 1
+	// Attach in tab 2
+	// Send input in tab 1
+	// Verify tab 2 receives events
 });
 
 // e2e/oauth-authentication.spec.js
 test('OAuth GitHub authentication flow', async ({ page }) => {
-    // Mock OAuth provider
-    // Complete OAuth flow
-    // Verify session creation
+	// Mock OAuth provider
+	// Complete OAuth flow
+	// Verify session creation
 });
 ```
 
@@ -1154,24 +1209,26 @@ test('OAuth GitHub authentication flow', async ({ page }) => {
 ### 3. Missing Integration Tests
 
 **Areas Needing Integration Tests:**
+
 - Database migrations and schema validation
 - Socket.IO event emission from EventRecorder
 - Adapter registration and session orchestration
 - Settings repository with migrations
 
 **Recommended Integration Tests:**
+
 ```javascript
 // tests/integration/session-orchestration.test.js
 describe('Session Orchestration Integration', () => {
-    it('should create session, persist events, and emit to socket', async () => {
-        // Real database + real EventRecorder + real adapters
-    });
+	it('should create session, persist events, and emit to socket', async () => {
+		// Real database + real EventRecorder + real adapters
+	});
 });
 
 // tests/integration/database-migrations.test.js
 describe('Database Migrations', () => {
-    it('should migrate from version 1 to current', async () => {});
-    it('should preserve data during migration', async () => {});
+	it('should migrate from version 1 to current', async () => {});
+	it('should preserve data during migration', async () => {});
 });
 ```
 
@@ -1184,24 +1241,30 @@ describe('Database Migrations', () => {
 **SessionOrchestrator.test.js Analysis:**
 
 **Problems:**
+
 1. **Line 157-162:** Accessing private fields via bracket notation
+
    ```javascript
    const activeSessions = orchestrator['_SessionOrchestrator__activeSessions'];
    ```
+
    This is a code smell - tests should not access private implementation details.
 
 2. **Line 174:** Incorrect channel name in assertion
+
    ```javascript
    channel: 'system', // Should be 'system:input' based on actual implementation
    ```
 
 3. **Line 181, 212:** Error message mismatch
+
    ```javascript
    await expect(orchestrator.sendInput('invalid', 'test')).rejects.toThrow('Session not found');
    // Actual implementation throws 'Session not active: invalid'
    ```
 
 4. **Line 207, 215:** Incorrect status value
+
    ```javascript
    expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(sessionId, 'closed');
    // Actual implementation uses 'stopped', not 'closed'
@@ -1213,29 +1276,30 @@ describe('Database Migrations', () => {
    - Tests check for `adapter.resume()` which doesn't exist
 
 **Recommended Refactoring:**
+
 ```javascript
 // Instead of accessing private fields:
 // orchestrator['_SessionOrchestrator__activeSessions']
 
 // Use public API:
 describe('sendInput', () => {
-    it('should send input to active session', async () => {
-        // Create session via public API
-        const session = await orchestrator.createSession('pty', {
-            workspacePath: '/test'
-        });
+	it('should send input to active session', async () => {
+		// Create session via public API
+		const session = await orchestrator.createSession('pty', {
+			workspacePath: '/test'
+		});
 
-        // Now test input (no private field access needed)
-        await orchestrator.sendInput(session.id, 'test input');
+		// Now test input (no private field access needed)
+		await orchestrator.sendInput(session.id, 'test input');
 
-        expect(mockEventRecorder.recordEvent).toHaveBeenCalledWith(
-            session.id,
-            expect.objectContaining({
-                channel: 'system:input', // Correct channel name
-                type: 'input'
-            })
-        );
-    });
+		expect(mockEventRecorder.recordEvent).toHaveBeenCalledWith(
+			session.id,
+			expect.objectContaining({
+				channel: 'system:input', // Correct channel name
+				type: 'input'
+			})
+		);
+	});
 });
 ```
 
@@ -1253,6 +1317,7 @@ describe('sendInput', () => {
 
 **Issue:**
 Schema creation uses sequential `await` for each table:
+
 ```javascript
 await this.run(`CREATE TABLE IF NOT EXISTS sessions ...`);
 await this.run(`CREATE TABLE IF NOT EXISTS session_events ...`);
@@ -1264,6 +1329,7 @@ await this.run(`CREATE TABLE IF NOT EXISTS workspace_layout ...`);
 This creates 12 sequential round-trips to SQLite.
 
 **Recommended Optimization:**
+
 ```javascript
 async #createSchema() {
     // Create all tables in parallel
@@ -1292,47 +1358,49 @@ async #createSchema() {
 **Impact:** CPU usage during high-throughput sessions
 
 **Issue:**
+
 ```javascript
 const emitClaudeEvent = (rawEvent) => {
-    if (!rawEvent) return;
+	if (!rawEvent) return;
 
-    let serialized;
-    try {
-        serialized = JSON.parse(JSON.stringify(rawEvent)); // Deep clone via serialize
-    } catch (error) {
-        logger.warn('CLAUDE_ADAPTER', 'Failed to serialize Claude event', error);
-        return;
-    }
+	let serialized;
+	try {
+		serialized = JSON.parse(JSON.stringify(rawEvent)); // Deep clone via serialize
+	} catch (error) {
+		logger.warn('CLAUDE_ADAPTER', 'Failed to serialize Claude event', error);
+		return;
+	}
 
-    onEvent({
-        channel: 'claude:message',
-        type: serialized.type || 'event',
-        payload: { events: [serialized] }
-    });
+	onEvent({
+		channel: 'claude:message',
+		type: serialized.type || 'event',
+		payload: { events: [serialized] }
+	});
 };
 ```
 
 `JSON.parse(JSON.stringify())` is slow for large objects.
 
 **Recommended Optimization:**
+
 ```javascript
 import { structuredClone } from 'node:v8';
 
 const emitClaudeEvent = (rawEvent) => {
-    if (!rawEvent) return;
+	if (!rawEvent) return;
 
-    try {
-        // structuredClone is 2-3x faster than JSON round-trip
-        const serialized = structuredClone(rawEvent);
+	try {
+		// structuredClone is 2-3x faster than JSON round-trip
+		const serialized = structuredClone(rawEvent);
 
-        onEvent({
-            channel: 'claude:message',
-            type: serialized.type || 'event',
-            payload: { events: [serialized] }
-        });
-    } catch (error) {
-        logger.warn('CLAUDE_ADAPTER', 'Failed to clone Claude event', error);
-    }
+		onEvent({
+			channel: 'claude:message',
+			type: serialized.type || 'event',
+			payload: { events: [serialized] }
+		});
+	} catch (error) {
+		logger.warn('CLAUDE_ADAPTER', 'Failed to clone Claude event', error);
+	}
 };
 ```
 
@@ -1367,6 +1435,7 @@ Profile concurrent request performance under load. If bottleneck identified, con
 ## Security Analysis
 
 ### 1. OAuth Client Secrets in Plaintext
+
 **Covered in Critical Issues #1**
 
 ### 2. No Rate Limiting on Authentication
@@ -1377,59 +1446,61 @@ Profile concurrent request performance under load. If bottleneck identified, con
 
 **Issue:**
 No rate limiting on:
+
 - API key validation attempts
 - Session cookie validation
 - OAuth callbacks
 
 **Recommended Mitigation:**
+
 ```javascript
 // src/lib/server/auth/RateLimiter.js
 import { LRUCache } from 'lru-cache';
 
 export class RateLimiter {
-    constructor(maxAttempts = 10, windowMs = 60000) {
-        this.attempts = new LRUCache({
-            max: 10000,
-            ttl: windowMs
-        });
-        this.maxAttempts = maxAttempts;
-    }
+	constructor(maxAttempts = 10, windowMs = 60000) {
+		this.attempts = new LRUCache({
+			max: 10000,
+			ttl: windowMs
+		});
+		this.maxAttempts = maxAttempts;
+	}
 
-    check(identifier) {
-        const count = this.attempts.get(identifier) || 0;
-        if (count >= this.maxAttempts) {
-            return { allowed: false, retryAfter: this.#getRetryAfter(identifier) };
-        }
+	check(identifier) {
+		const count = this.attempts.get(identifier) || 0;
+		if (count >= this.maxAttempts) {
+			return { allowed: false, retryAfter: this.#getRetryAfter(identifier) };
+		}
 
-        this.attempts.set(identifier, count + 1);
-        return { allowed: true };
-    }
+		this.attempts.set(identifier, count + 1);
+		return { allowed: true };
+	}
 
-    #getRetryAfter(identifier) {
-        // Calculate time until TTL expires
-        const remainingTTL = this.attempts.getRemainingTTL(identifier);
-        return Math.ceil(remainingTTL / 1000); // seconds
-    }
+	#getRetryAfter(identifier) {
+		// Calculate time until TTL expires
+		const remainingTTL = this.attempts.getRemainingTTL(identifier);
+		return Math.ceil(remainingTTL / 1000); // seconds
+	}
 }
 
 // hooks.server.js
 const rateLimiter = new RateLimiter(10, 60000); // 10 attempts per minute
 
 async function authenticationMiddleware({ event, resolve }) {
-    const identifier = event.getClientAddress(); // or use API key hash
+	const identifier = event.getClientAddress(); // or use API key hash
 
-    const { allowed, retryAfter } = rateLimiter.check(identifier);
-    if (!allowed) {
-        return json(
-            { error: 'Too many authentication attempts' },
-            {
-                status: 429,
-                headers: { 'Retry-After': retryAfter.toString() }
-            }
-        );
-    }
+	const { allowed, retryAfter } = rateLimiter.check(identifier);
+	if (!allowed) {
+		return json(
+			{ error: 'Too many authentication attempts' },
+			{
+				status: 429,
+				headers: { 'Retry-After': retryAfter.toString() }
+			}
+		);
+	}
 
-    // ... rest of auth logic
+	// ... rest of auth logic
 }
 ```
 
@@ -1445,55 +1516,58 @@ async function authenticationMiddleware({ event, resolve }) {
 
 **Issue:**
 Current validation is weak:
+
 ```javascript
 function isValidWorkspacePath(path) {
-    if (!path || typeof path !== 'string') return false;
+	if (!path || typeof path !== 'string') return false;
 
-    if (path.includes('..') || path.includes('~')) return false; // Incomplete
-    if (path.length > 500) return false;
-    if (!path.startsWith('/')) return false;
+	if (path.includes('..') || path.includes('~')) return false; // Incomplete
+	if (path.length > 500) return false;
+	if (!path.startsWith('/')) return false;
 
-    return true;
+	return true;
 }
 ```
 
 Problems:
+
 1. Doesn't check for encoded path traversal (`%2e%2e%2f`)
 2. Doesn't check for symlink attacks
 3. Doesn't validate against allowed workspace root
 
 **Recommended Hardening:**
+
 ```javascript
 import { resolve, normalize } from 'path';
 
 function isValidWorkspacePath(path, allowedRoot = process.env.WORKSPACES_ROOT) {
-    if (!path || typeof path !== 'string') return false;
-    if (path.length > 500) return false;
+	if (!path || typeof path !== 'string') return false;
+	if (path.length > 500) return false;
 
-    try {
-        // Decode and normalize path
-        const decoded = decodeURIComponent(path);
-        const normalized = normalize(decoded);
-        const resolved = resolve(normalized);
+	try {
+		// Decode and normalize path
+		const decoded = decodeURIComponent(path);
+		const normalized = normalize(decoded);
+		const resolved = resolve(normalized);
 
-        // Must be absolute
-        if (!resolved.startsWith('/')) return false;
+		// Must be absolute
+		if (!resolved.startsWith('/')) return false;
 
-        // Must be within allowed workspace root
-        if (allowedRoot && !resolved.startsWith(resolve(allowedRoot))) {
-            return false;
-        }
+		// Must be within allowed workspace root
+		if (allowedRoot && !resolved.startsWith(resolve(allowedRoot))) {
+			return false;
+		}
 
-        // No path traversal attempts
-        if (normalized.includes('..')) return false;
+		// No path traversal attempts
+		if (normalized.includes('..')) return false;
 
-        // No home directory references
-        if (normalized.includes('~')) return false;
+		// No home directory references
+		if (normalized.includes('~')) return false;
 
-        return true;
-    } catch {
-        return false; // Decoding or resolution failed
-    }
+		return true;
+	} catch {
+		return false; // Decoding or resolution failed
+	}
 }
 ```
 
@@ -1509,20 +1583,22 @@ function isValidWorkspacePath(path, allowedRoot = process.env.WORKSPACES_ROOT) {
 
 **Issue:**
 Socket.IO accepts connections from any origin:
+
 ```javascript
 const io = new Server(httpServer, {
-    cors: { origin: '*', methods: ['GET', 'POST'] }
+	cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 ```
 
 **Recommended Hardening:**
+
 ```javascript
 const io = new Server(httpServer, {
-    cors: {
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
-        methods: ['GET', 'POST'],
-        credentials: true
-    }
+	cors: {
+		origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+		methods: ['GET', 'POST'],
+		credentials: true
+	}
 });
 ```
 
@@ -1535,22 +1611,19 @@ const io = new Server(httpServer, {
 ### Immediate Actions (Before RC1)
 
 **Critical Priority (1-2 weeks):**
+
 1. ✅ **Encrypt OAuth client secrets** (#1) - 2 days
 2. ✅ **Refactor socket-setup.js** (#2) - 4 days
 3. ✅ **Fix N+1 query in workspace API** (#3) - 4 hours
 4. ✅ **Standardize error handling** (#4) - 3 days
 5. ✅ **Add error boundaries** (#6) - 3 days
 
-**High Priority (2-3 weeks):**
-6. ✅ **Refactor authentication middleware** (#5) - 3 days
-7. ✅ **Fix hardcoded OAuth URL** (#7) - 2 hours
-8. ✅ **Add authentication tests** (Test Coverage #1) - 4 days
-9. ✅ **Add rate limiting** (Security #2) - 1 day
-10. ✅ **Harden path validation** (Security #3) - 3 hours
+**High Priority (2-3 weeks):** 6. ✅ **Refactor authentication middleware** (#5) - 3 days 7. ✅ **Fix hardcoded OAuth URL** (#7) - 2 hours 8. ✅ **Add authentication tests** (Test Coverage #1) - 4 days 9. ✅ **Add rate limiting** (Security #2) - 1 day 10. ✅ **Harden path validation** (Security #3) - 3 hours
 
 ### Post-RC1 Improvements
 
 **Medium Priority:**
+
 - Implement SessionId value object (#8)
 - Reduce SocketService feature envy (#9)
 - Extract magic numbers (#10)
@@ -1560,6 +1633,7 @@ const io = new Server(httpServer, {
 - Add integration tests (Test Coverage #3)
 
 **Low Priority:**
+
 - Replace console.log with logger (#13)
 - Remove commented code (#14)
 - Add comprehensive JSDoc (#15)
@@ -1570,6 +1644,7 @@ const io = new Server(httpServer, {
 ### Technical Debt Tracking
 
 **Recommended Approach:**
+
 1. Create GitHub issues for each item
 2. Label by priority (critical/high/medium/low)
 3. Group into milestones (Pre-RC1, Post-RC1)
@@ -1577,6 +1652,7 @@ const io = new Server(httpServer, {
 5. Track progress in project board
 
 **Example Issue Template:**
+
 ```markdown
 ## Refactoring: Extract Socket Authentication Middleware
 
@@ -1585,12 +1661,15 @@ const io = new Server(httpServer, {
 **Related:** #2 (God Object: socket-setup.js)
 
 ### Current Problem
+
 Authentication logic duplicated 4+ times in socket-setup.js (lines 79-102, 171-235, 278-290, ...)
 
 ### Proposed Solution
+
 Extract to createAuthenticationMiddleware() following Strategy pattern.
 
 ### Acceptance Criteria
+
 - [ ] Authentication logic centralized to single function
 - [ ] All socket handlers use middleware
 - [ ] Tests added for authentication middleware
@@ -1609,11 +1688,13 @@ The Dispatch project has a solid architectural foundation with good separation o
 4. **Security** (plaintext secrets, weak validation)
 
 **Recommended Timeline for RC1:**
+
 - **Week 1-2:** Critical security + socket refactoring
 - **Week 3:** Error handling + authentication refactoring
 - **Week 4:** Testing + polish
 
 Following this refactoring plan will result in:
+
 - ✅ **60% reduction** in socket-setup.js complexity
 - ✅ **Zero authentication duplication**
 - ✅ **Consistent error handling** across all APIs

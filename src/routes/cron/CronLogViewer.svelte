@@ -10,74 +10,66 @@
 	}
 </script>
 
-<Modal
-	bind:open
-	title="Execution History"
-	size="large"
-	onclose={handleClose}
->
+<Modal bind:open title="Execution History" size="large" onclose={handleClose}>
 	<div class="modal-subtitle">
 		<span class="job-name">{job.name}</span>
 	</div>
 
 	<div class="logs-container">
-			{#if logs.length === 0}
-				<div class="empty-state">
-					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<path
-							d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-							stroke-width="2"
-						/>
-						<polyline points="14 2 14 8 20 8" stroke-width="2" />
-					</svg>
-					<p>No execution history yet</p>
-				</div>
-			{:else}
-				{#each logs as log (log.id)}
-					<div class="log-entry {log.status}">
-						<div class="log-header">
-							<div class="log-status">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-									{#if log.status === 'success'}
-										<path d="M20 6L9 17l-5-5" stroke-width="2" stroke-linecap="round" />
-									{:else if log.status === 'failed'}
-										<circle cx="12" cy="12" r="10" stroke-width="2" />
-										<path d="M15 9l-6 6m0-6l6 6" stroke-width="2" stroke-linecap="round" />
-									{:else}
-										<circle cx="12" cy="12" r="10" stroke-width="2" />
-										<path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" />
-									{/if}
-								</svg>
-								<span class="status-label">{log.status}</span>
-							</div>
-							<div class="log-meta">
-								<span class="log-time">{formatRelativeTime(log.startedAt)}</span>
-								{#if log.duration}
-									<span class="log-duration">{formatDuration(log.duration)}</span>
+		{#if logs.length === 0}
+			<div class="empty-state">
+				<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="2" />
+					<polyline points="14 2 14 8 20 8" stroke-width="2" />
+				</svg>
+				<p>No execution history yet</p>
+			</div>
+		{:else}
+			{#each logs as log (log.id)}
+				<div class="log-entry {log.status}">
+					<div class="log-header">
+						<div class="log-status">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+								{#if log.status === 'success'}
+									<path d="M20 6L9 17l-5-5" stroke-width="2" stroke-linecap="round" />
+								{:else if log.status === 'failed'}
+									<circle cx="12" cy="12" r="10" stroke-width="2" />
+									<path d="M15 9l-6 6m0-6l6 6" stroke-width="2" stroke-linecap="round" />
+								{:else}
+									<circle cx="12" cy="12" r="10" stroke-width="2" />
+									<path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" />
 								{/if}
-								{#if log.exitCode !== null && log.exitCode !== undefined}
-									<span class="exit-code">Exit: {log.exitCode}</span>
-								{/if}
-							</div>
+							</svg>
+							<span class="status-label">{log.status}</span>
 						</div>
-
-						{#if log.output}
-							<details class="log-output">
-								<summary>Output</summary>
-								<pre>{log.output}</pre>
-							</details>
-						{/if}
-
-						{#if log.error}
-							<div class="log-error">
-								<strong>Error:</strong>
-								<pre>{log.error}</pre>
-							</div>
-						{/if}
+						<div class="log-meta">
+							<span class="log-time">{formatRelativeTime(log.startedAt)}</span>
+							{#if log.duration}
+								<span class="log-duration">{formatDuration(log.duration)}</span>
+							{/if}
+							{#if log.exitCode !== null && log.exitCode !== undefined}
+								<span class="exit-code">Exit: {log.exitCode}</span>
+							{/if}
+						</div>
 					</div>
-				{/each}
-			{/if}
-		</div>
+
+					{#if log.output}
+						<details class="log-output">
+							<summary>Output</summary>
+							<pre>{log.output}</pre>
+						</details>
+					{/if}
+
+					{#if log.error}
+						<div class="log-error">
+							<strong>Error:</strong>
+							<pre>{log.error}</pre>
+						</div>
+					{/if}
+				</div>
+			{/each}
+		{/if}
+	</div>
 </Modal>
 
 <style>

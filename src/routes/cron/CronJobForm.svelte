@@ -42,12 +42,7 @@
 	}
 </script>
 
-<Modal
-	bind:open
-	title={job ? 'Edit Task' : 'Create New Task'}
-	size="medium"
-	onclose={handleCancel}
->
+<Modal bind:open title={job ? 'Edit Task' : 'Create New Task'} size="medium" onclose={handleCancel}>
 	<form onsubmit={handleSubmit} class="cron-form">
 		<FormSection title="Task Details">
 			<div class="form-field">

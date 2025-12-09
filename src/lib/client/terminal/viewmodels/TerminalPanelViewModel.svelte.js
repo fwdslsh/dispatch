@@ -1,7 +1,7 @@
 /**
- * TerminalPaneViewModel.svelte.js
+ * TerminalPanelViewModel.svelte.js
  *
- * ViewModel for terminal pane business logic using Svelte 5 runes.
+ * ViewModel for terminal panel business logic using Svelte 5 runes.
  * Handles session attachment, authentication, event handling, and state management.
  *
  * ARCHITECTURE PRINCIPLES:
@@ -16,7 +16,7 @@ import { createLogger } from '$lib/client/shared/utils/logger.js';
 
 const log = createLogger('terminal:viewmodel');
 
-export class TerminalPaneViewModel {
+export class TerminalPanelViewModel {
 	/**
 	 * @param {Object} config - Configuration options
 	 * @param {string} config.sessionId - Terminal session ID

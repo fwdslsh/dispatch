@@ -17,10 +17,7 @@ export async function POST({ request, locals }) {
 	try {
 		const services = locals.services;
 		if (!services?.oauthManager) {
-			throw new ServiceUnavailableError(
-				'OAuth manager not initialized',
-				'OAUTH_NOT_INITIALIZED'
-			);
+			throw new ServiceUnavailableError('OAuth manager not initialized', 'OAUTH_NOT_INITIALIZED');
 		}
 
 		const body = await request.json();

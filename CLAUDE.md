@@ -441,6 +441,7 @@ Dynamic session component loading via `src/lib/client/shared/session-modules/`:
 📖 **Visit `/api-docs`** for interactive API documentation with live request testing.
 
 **Features:**
+
 - Browse all API endpoints with request/response schemas
 - Test endpoints with authentication (API keys or session cookies)
 - Download OpenAPI 3.0 specification at `/openapi.json`
@@ -448,6 +449,7 @@ Dynamic session component loading via `src/lib/client/shared/session-modules/`:
 - Server selection (development, test, production)
 
 **Access:**
+
 ```
 http://localhost:5173/api-docs      # Development server
 http://localhost:7173/api-docs      # Test server

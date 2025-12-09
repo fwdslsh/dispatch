@@ -20,19 +20,13 @@
 	// State initialized from settings service
 	let baseUrl = $state(
 		settings.baseUrl ??
-			(mode === 'global'
-				? settingsService.get('ai.baseUrl', 'http://localhost:4096')
-				: '')
+			(mode === 'global' ? settingsService.get('ai.baseUrl', 'http://localhost:4096') : '')
 	);
 	let model = $state(
 		settings.model ??
-			(mode === 'global'
-				? settingsService.get('ai.model', 'claude-sonnet-4-20250514')
-				: '')
+			(mode === 'global' ? settingsService.get('ai.model', 'claude-sonnet-4-20250514') : '')
 	);
-	let provider = $state(
-		settings.provider ?? settingsService.get('ai.provider', 'anthropic')
-	);
+	let provider = $state(settings.provider ?? settingsService.get('ai.provider', 'anthropic'));
 	let timeout = $state(settings.timeout ?? settingsService.get('ai.timeout', 60000));
 	let maxRetries = $state(settings.maxRetries ?? settingsService.get('ai.maxRetries', 2));
 
@@ -46,12 +40,14 @@
 
 	// Sync settings binding when values change
 	$effect(() => {
-		const newSettings = mode === 'global'
-			? { baseUrl, model, provider, timeout, maxRetries }
-			: Object.fromEntries(
-					Object.entries({ baseUrl, model, provider, timeout, maxRetries })
-						.filter(([_, value]) => value !== '' && value !== null && value !== undefined)
-				);
+		const newSettings =
+			mode === 'global'
+				? { baseUrl, model, provider, timeout, maxRetries }
+				: Object.fromEntries(
+						Object.entries({ baseUrl, model, provider, timeout, maxRetries }).filter(
+							([_, value]) => value !== '' && value !== null && value !== undefined
+						)
+					);
 
 		const currentStr = JSON.stringify(settings);
 		const newStr = JSON.stringify(newSettings);
@@ -62,11 +58,7 @@
 </script>
 
 <div class="ai-settings-form">
-	<FormSection
-		title="AI Server"
-		description="OpenCode server connection settings"
-		{disabled}
-	>
+	<FormSection title="AI Server" description="OpenCode server connection settings" {disabled}>
 		{#snippet icon()}<IconRobot size={18} />{/snippet}
 
 		<div class="form-field">
@@ -110,11 +102,7 @@
 		</div>
 	</FormSection>
 
-	<FormSection
-		title="Advanced"
-		description="Connection timeouts and retry settings"
-		{disabled}
-	>
+	<FormSection title="Advanced" description="Connection timeouts and retry settings" {disabled}>
 		{#snippet icon()}<IconRobot size={18} />{/snippet}
 
 		<div class="form-field">

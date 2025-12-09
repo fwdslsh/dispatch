@@ -42,11 +42,11 @@ describe('EncryptionService', () => {
 			// Temporarily clear environment variable
 			const savedKey = process.env.ENCRYPTION_KEY;
 			delete process.env.ENCRYPTION_KEY;
-			
+
 			// Pass null explicitly to override process.env check
 			const noKeyService = new EncryptionService(null);
 			expect(noKeyService.isAvailable()).toBe(false);
-			
+
 			// Restore environment
 			process.env.ENCRYPTION_KEY = savedKey;
 		});
@@ -83,12 +83,12 @@ describe('EncryptionService', () => {
 			// Temporarily clear environment variable
 			const savedKey = process.env.ENCRYPTION_KEY;
 			delete process.env.ENCRYPTION_KEY;
-			
+
 			// Create a service with no key
 			const noKeyService = new EncryptionService(null);
 			const result = noKeyService.encrypt('secret');
 			expect(result).toBeNull();
-			
+
 			// Restore environment
 			process.env.ENCRYPTION_KEY = savedKey;
 		});
@@ -131,11 +131,11 @@ describe('EncryptionService', () => {
 			// Temporarily clear environment variable
 			const savedKey = process.env.ENCRYPTION_KEY;
 			delete process.env.ENCRYPTION_KEY;
-			
+
 			const noKeyService = new EncryptionService(null);
 			const invalid = 'not-encrypted';
 			expect(noKeyService.decrypt(invalid)).toBe(invalid);
-			
+
 			// Restore environment
 			process.env.ENCRYPTION_KEY = savedKey;
 		});
@@ -204,9 +204,7 @@ describe('EncryptionService', () => {
 		});
 
 		it('should throw error for non-object input', () => {
-			expect(() => service.encryptFields('not-an-object', [])).toThrow(
-				'Input must be an object'
-			);
+			expect(() => service.encryptFields('not-an-object', [])).toThrow('Input must be an object');
 		});
 	});
 
@@ -235,9 +233,7 @@ describe('EncryptionService', () => {
 		});
 
 		it('should throw error for non-object input', () => {
-			expect(() => service.decryptFields('not-an-object', [])).toThrow(
-				'Input must be an object'
-			);
+			expect(() => service.decryptFields('not-an-object', [])).toThrow('Input must be an object');
 		});
 	});
 

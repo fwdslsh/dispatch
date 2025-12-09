@@ -38,7 +38,12 @@
 				<h4>Session</h4>
 				<p class="logout-description">Log out of your current session to clear authentication.</p>
 			</div>
-			<Button variant="secondary" onclick={handleLogout} disabled={isLoggingOut} loading={isLoggingOut}>
+			<Button
+				variant="secondary"
+				onclick={handleLogout}
+				disabled={isLoggingOut}
+				loading={isLoggingOut}
+			>
 				{#if isLoggingOut}
 					Logging out...
 				{:else}

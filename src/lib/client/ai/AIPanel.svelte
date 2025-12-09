@@ -1,6 +1,6 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import { AIPaneViewModel } from './viewmodels/AIPaneViewModel.svelte.js';
+	import { AIPanelViewModel } from './viewmodels/AIPanelViewModel.svelte.js';
 	import ActivityStrip from './components/ActivityStrip.svelte';
 	import ToolActivityCard from './components/ToolActivityCard.svelte';
 	import IconMessage from '../shared/components/Icons/IconMessage.svelte';
@@ -11,25 +11,20 @@
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 
 	/**
-	 * ChatPane Component - Mobile-Friendly AI Chat Interface
+	 * AIPanel Component - Mobile-Friendly AI Chat Interface
 	 *
 	 * v2.0 Hard Fork: OpenCode-first architecture
 	 * Single chat interface for all AI sessions powered by OpenCode.
 	 * Features activity icons, touch-friendly design, and tool activity display.
 	 *
-	 * @file src/lib/client/ai/ChatPane.svelte
+	 * @file src/lib/client/ai/AIPanel.svelte
 	 */
 
 	// Props
-	let {
-		sessionId,
-		aiSessionId = null,
-		shouldResume = false,
-		sessionClient = null
-	} = $props();
+	let { sessionId, aiSessionId = null, shouldResume = false, sessionClient = null } = $props();
 
 	// Create ViewModel with dependency injection
-	const viewModel = new AIPaneViewModel({
+	const viewModel = new AIPanelViewModel({
 		sessionId,
 		aiSessionId,
 		shouldResume,
@@ -83,7 +78,7 @@
 
 	// Mount lifecycle
 	onMount(async () => {
-		console.log('[ChatPane] Mounting:', { sessionId, aiSessionId, shouldResume });
+		console.log('[AIPanel] Mounting:', { sessionId, aiSessionId, shouldResume });
 
 		try {
 			// Ensure socket is authenticated
@@ -91,7 +86,7 @@
 				try {
 					await runSessionClient.authenticate();
 				} catch (e) {
-					console.warn('[ChatPane] Auth warning:', e?.message);
+					console.warn('[AIPanel] Auth warning:', e?.message);
 				}
 			}
 
@@ -105,7 +100,7 @@
 			);
 
 			viewModel.attach();
-			console.log('[ChatPane] Attached to session:', result);
+			console.log('[AIPanel] Attached to session:', result);
 
 			// Clear catching up state after timeout
 			if (shouldResume) {
@@ -123,7 +118,7 @@
 				window.addEventListener('resize', handleResize);
 			}
 		} catch (error) {
-			console.error('[ChatPane] Mount error:', error);
+			console.error('[AIPanel] Mount error:', error);
 			viewModel.setConnectionError(`Failed to initialize: ${error.message}`);
 			viewModel.isCatchingUp = false;
 			viewModel.loading = false;
@@ -136,7 +131,7 @@
 			try {
 				runSessionClient.detachFromRunSession(sessionId);
 			} catch (error) {
-				console.error('[ChatPane] Detach error:', error);
+				console.error('[AIPanel] Detach error:', error);
 			}
 		}
 		if (typeof window !== 'undefined') {
@@ -215,7 +210,7 @@
 							filePath={message.toolData?.filePath}
 							command={message.toolData?.command}
 						/>
-					<!-- User Message -->
+						<!-- User Message -->
 					{:else if message.role === 'user'}
 						<div class="message user">
 							<div class="message-content">
@@ -225,7 +220,7 @@
 								<span class="avatar-user">You</span>
 							</div>
 						</div>
-					<!-- Error Message -->
+						<!-- Error Message -->
 					{:else if message.role === 'error'}
 						<div class="message error">
 							<div class="message-avatar">
@@ -234,13 +229,11 @@
 							<div class="message-content">
 								<p class="error-text">{message.text}</p>
 								{#if message.text.includes('Cannot connect')}
-									<p class="error-hint">
-										Tip: Go to Settings → AI to start the managed server.
-									</p>
+									<p class="error-hint">Tip: Go to Settings → AI to start the managed server.</p>
 								{/if}
 							</div>
 						</div>
-					<!-- Assistant Message -->
+						<!-- Assistant Message -->
 					{:else}
 						<div class="message assistant" class:streaming={message.streaming}>
 							<div class="message-avatar">
@@ -593,7 +586,8 @@
 	.input-form textarea:focus {
 		outline: none;
 		border-color: var(--primary);
-		box-shadow: 0 0 0 2px var(--primary-glow-15, color-mix(in oklab, var(--primary) 15%, transparent));
+		box-shadow: 0 0 0 2px
+			var(--primary-glow-15, color-mix(in oklab, var(--primary) 15%, transparent));
 	}
 
 	.input-form textarea:disabled {

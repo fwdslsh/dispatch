@@ -272,7 +272,9 @@ test.describe('Authentication - API Key Management', () => {
 		await confirmButton.click();
 
 		// Should show the new API key (displayed only once)
-		const newKeyDisplay = page.locator('[data-testid="api-key-display"], code, pre, input[readonly]');
+		const newKeyDisplay = page.locator(
+			'[data-testid="api-key-display"], code, pre, input[readonly]'
+		);
 		await expect(newKeyDisplay.first()).toBeVisible({ timeout: 5000 });
 
 		// Verify key format (should be base64url format)
@@ -426,7 +428,10 @@ test.describe('Authentication - API Routes with Bearer Token', () => {
 		expect(response.status()).toBe(401);
 	});
 
-	test('should accept either cookie or Bearer token for authentication', async ({ page, request }) => {
+	test('should accept either cookie or Bearer token for authentication', async ({
+		page,
+		request
+	}) => {
 		// First, login via browser to get cookie
 		await page.goto(`${BASE_URL}/login`);
 		await page.fill('input[name="key"]', apiKey);

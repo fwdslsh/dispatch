@@ -133,13 +133,7 @@ export class OpenCodeServerManager {
 			if (options.hostname) this.hostname = options.hostname;
 			if (options.port) this.port = options.port;
 
-			const args = [
-				'serve',
-				'--hostname',
-				this.hostname,
-				'--port',
-				this.port.toString()
-			];
+			const args = ['serve', '--hostname', this.hostname, '--port', this.port.toString()];
 
 			logger.info(
 				'OPENCODE_SERVER',
@@ -194,7 +188,10 @@ export class OpenCodeServerManager {
 								serverReady = true;
 								clearTimeout(timeout);
 								this.status = 'running';
-								logger.info('OPENCODE_SERVER', `Server ready at http://${this.hostname}:${this.port}`);
+								logger.info(
+									'OPENCODE_SERVER',
+									`Server ready at http://${this.hostname}:${this.port}`
+								);
 								resolve(true);
 							}
 						}, 500);

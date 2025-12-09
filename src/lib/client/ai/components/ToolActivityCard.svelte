@@ -200,15 +200,33 @@
 		color: var(--text-muted);
 	}
 
-	.tool-icon.bash { color: var(--accent-green, #22c55e); }
-	.tool-icon.read { color: var(--accent-blue, #3b82f6); }
-	.tool-icon.write { color: var(--accent-purple, #a855f7); }
-	.tool-icon.edit { color: var(--accent-yellow, #eab308); }
-	.tool-icon.glob { color: var(--accent-cyan, #06b6d4); }
-	.tool-icon.grep { color: var(--accent-orange, #f97316); }
-	.tool-icon.web_fetch { color: var(--accent-pink, #ec4899); }
-	.tool-icon.web_search { color: var(--accent-pink, #ec4899); }
-	.tool-icon.task { color: var(--primary); }
+	.tool-icon.bash {
+		color: var(--accent-green, #22c55e);
+	}
+	.tool-icon.read {
+		color: var(--accent-blue, #3b82f6);
+	}
+	.tool-icon.write {
+		color: var(--accent-purple, #a855f7);
+	}
+	.tool-icon.edit {
+		color: var(--accent-yellow, #eab308);
+	}
+	.tool-icon.glob {
+		color: var(--accent-cyan, #06b6d4);
+	}
+	.tool-icon.grep {
+		color: var(--accent-orange, #f97316);
+	}
+	.tool-icon.web_fetch {
+		color: var(--accent-pink, #ec4899);
+	}
+	.tool-icon.web_search {
+		color: var(--accent-pink, #ec4899);
+	}
+	.tool-icon.task {
+		color: var(--primary);
+	}
 
 	.tool-info {
 		flex: 1;
@@ -264,8 +282,13 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.7; }
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
 	}
 
 	.expand-icon {

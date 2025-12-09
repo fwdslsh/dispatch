@@ -123,4 +123,3 @@ export async function getWorkspaceLayout(config) {
 		throw error;
 	}
 }
-

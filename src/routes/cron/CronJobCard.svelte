@@ -44,22 +44,8 @@
 			{#if job.status === 'active'}
 				<button class="action-btn" title="Pause" onclick={onPause}>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<rect
-							x="6"
-							y="4"
-							width="4"
-							height="16"
-							stroke-width="2"
-							stroke-linecap="round"
-						/>
-						<rect
-							x="14"
-							y="4"
-							width="4"
-							height="16"
-							stroke-width="2"
-							stroke-linecap="round"
-						/>
+						<rect x="6" y="4" width="4" height="16" stroke-width="2" stroke-linecap="round" />
+						<rect x="14" y="4" width="4" height="16" stroke-width="2" stroke-linecap="round" />
 					</svg>
 				</button>
 			{:else if job.status === 'paused' || job.status === 'error'}

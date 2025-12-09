@@ -25,8 +25,8 @@ export async function GET({ url, locals }) {
 		const limit = parseInt(url.searchParams.get('limit') || '50', 10);
 		const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
-	// Get workspaces with session counts in a single query (fixes N+1 problem)
-	const workspacesWithCounts = await database.all(`
+		// Get workspaces with session counts in a single query (fixes N+1 problem)
+		const workspacesWithCounts = await database.all(`
 		SELECT
 			w.path,
 			w.name,
@@ -43,34 +43,34 @@ export async function GET({ url, locals }) {
 		ORDER BY w.last_active DESC NULLS LAST
 	`);
 
-	// Build workspace objects with session counts
-	let workspaces = workspacesWithCounts.map((row) => {
-		const workspace = {
-			path: row.path,
-			name: row.name,
-			createdAt: row.created_at,
-			lastActive: row.last_active,
-			updatedAt: row.updated_at,
-			sessionCounts: {
-				total: row.total_count,
-				running: row.running_count,
-				stopped: row.stopped_count,
-				error: row.error_count
+		// Build workspace objects with session counts
+		let workspaces = workspacesWithCounts.map((row) => {
+			const workspace = {
+				path: row.path,
+				name: row.name,
+				createdAt: row.created_at,
+				lastActive: row.last_active,
+				updatedAt: row.updated_at,
+				sessionCounts: {
+					total: row.total_count,
+					running: row.running_count,
+					stopped: row.stopped_count,
+					error: row.error_count
+				}
+			};
+
+			// Add derived status based on activity and session state
+			if (workspace.sessionCounts.running > 0) {
+				workspace.status = 'active';
+			} else if (workspace.lastActive) {
+				const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
+				workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
+			} else {
+				workspace.status = 'new';
 			}
-		};
 
-		// Add derived status based on activity and session state
-		if (workspace.sessionCounts.running > 0) {
-			workspace.status = 'active';
-		} else if (workspace.lastActive) {
-			const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
-			workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
-		} else {
-			workspace.status = 'new';
-		}
-
-		return workspace;
-	});
+			return workspace;
+		});
 
 		// Filter by status if specified
 		if (status && ['active', 'inactive', 'archived', 'new'].includes(status)) {

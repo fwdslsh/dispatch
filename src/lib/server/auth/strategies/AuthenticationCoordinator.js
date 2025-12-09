@@ -48,11 +48,7 @@ export class AuthenticationCoordinator {
 				}
 			} catch (err) {
 				// Strategy threw an error - log and continue to next strategy
-				logger.error(
-					'AUTH',
-					`${strategy.name} strategy threw error for ${pathname}:`,
-					err
-				);
+				logger.error('AUTH', `${strategy.name} strategy threw error for ${pathname}:`, err);
 				// Continue to next strategy
 			}
 		}

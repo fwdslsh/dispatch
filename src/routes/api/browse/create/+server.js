@@ -3,7 +3,12 @@ import { mkdir, access } from 'node:fs/promises';
 import { resolve, normalize, dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { constants } from 'node:fs';
-import { BadRequestError, ForbiddenError, ConflictError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	BadRequestError,
+	ForbiddenError,
+	ConflictError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Get the base directory for browsing (can be configured via environment)
 function getBaseDirectory() {

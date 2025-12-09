@@ -40,7 +40,10 @@ async function resolveActiveTheme(
 				}
 			}
 		} catch (error) {
-			logger.warn('THEMES', 'Failed to check workspace override', { workspaceId, error: error.message });
+			logger.warn('THEMES', 'Failed to check workspace override', {
+				workspaceId,
+				error: error.message
+			});
 		}
 	}
 

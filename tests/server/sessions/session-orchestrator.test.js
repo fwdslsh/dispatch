@@ -117,9 +117,7 @@ describe('SessionOrchestrator', () => {
 			});
 
 			// Act & Assert
-			await expect(orchestrator.createSession('unknown', {})).rejects.toThrow(
-				'Adapter not found'
-			);
+			await expect(orchestrator.createSession('unknown', {})).rejects.toThrow('Adapter not found');
 
 			// The error was thrown, cleanup should have occurred
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
@@ -178,9 +176,7 @@ describe('SessionOrchestrator', () => {
 
 		it('should throw error for non-existent session', async () => {
 			// Act & Assert
-			await expect(orchestrator.sendInput('invalid', 'test')).rejects.toThrow(
-				'Session not active'
-			);
+			await expect(orchestrator.sendInput('invalid', 'test')).rejects.toThrow('Session not active');
 		});
 	});
 
@@ -287,9 +283,7 @@ describe('SessionOrchestrator', () => {
 			mockSessionRepository.findById.mockResolvedValue(null);
 
 			// Act & Assert
-			await expect(orchestrator.resumeSession('invalid')).rejects.toThrow(
-				'Session not found'
-			);
+			await expect(orchestrator.resumeSession('invalid')).rejects.toThrow('Session not found');
 		});
 
 		it('should handle session already running', async () => {

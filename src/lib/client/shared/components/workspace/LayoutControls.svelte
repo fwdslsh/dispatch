@@ -9,7 +9,11 @@
 	let { viewMode = 'window-manager', onSelectView = () => {} } = $props();
 
 	function handleSelect(mode) {
-		console.log('[LayoutControls] handleSelect called:', { mode, currentViewMode: viewMode, willCall: viewMode !== mode });
+		console.log('[LayoutControls] handleSelect called:', {
+			mode,
+			currentViewMode: viewMode,
+			willCall: viewMode !== mode
+		});
 		if (viewMode === mode) {
 			console.log('[LayoutControls] Early return - already in this mode');
 			return;
@@ -32,7 +36,7 @@
 
 	<IconButton
 		onclick={() => handleSelect('single-session')}
-		text="Single Session"
+		text="Single Tab"
 		variant={viewMode === 'single-session' ? 'primary' : 'ghost'}
 		class={viewMode === 'single-session' ? 'active' : ''}
 		size="small"

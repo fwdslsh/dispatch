@@ -158,7 +158,6 @@ export class CreateSessionViewModel {
 	 * @returns {Promise<Object|null>} Created session object or null on failure
 	 */
 	async createSession() {
-
 		// Validate before attempting creation
 		if (!this.validate()) {
 			console.error('[CreateSessionViewModel] Validation failed:', this.error);
@@ -175,7 +174,6 @@ export class CreateSessionViewModel {
 				workspacePath: this.workspacePath,
 				options: this.sessionSettings
 			});
-
 
 			// Return success data for the View to handle
 			return {

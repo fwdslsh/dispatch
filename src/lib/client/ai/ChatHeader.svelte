@@ -11,12 +11,7 @@
 	 * @file src/lib/client/ai/ChatHeader.svelte
 	 */
 
-	let {
-		session = {},
-		onClose = () => {},
-		onSettings = null,
-		index = 0
-	} = $props();
+	let { session = {}, onClose = () => {}, onSettings = null, index = 0 } = $props();
 </script>
 
 <div class="chat-header-bar">
@@ -31,12 +26,7 @@
 	</div>
 	<div class="header-actions">
 		{#if onSettings}
-			<button
-				type="button"
-				class="header-btn"
-				onclick={onSettings}
-				title="AI Settings"
-			>
+			<button type="button" class="header-btn" onclick={onSettings} title="AI Settings">
 				<IconSettings size={14} />
 			</button>
 		{/if}

@@ -7,6 +7,7 @@
 **Remaining**: 0 items (0 Critical, 0 High, 0 Medium, 0 Low)
 
 **Progress**: 53 / 53 items completed (100%)
+
 - ✅ Critical: 6/6 completed (100%) - **ALL CRITICAL COMPLETE!** 🎊
 - ✅ High: 22/22 completed (100%) - **ALL HIGH COMPLETE!** 🎉
 - ✅ Medium: 14/14 completed (100%) - **ALL MEDIUM COMPLETE!** 🎉
@@ -23,6 +24,7 @@
 **🎊 PERFECT COMPLETION!** 53 of 53 items completed (100%), with **ALL items COMPLETE!** 🎉🎊🎆
 
 **Major Milestones Achieved**:
+
 - ✅ **ALL 6 Critical items resolved** (100%) ⭐
 - ✅ **ALL 22 High-priority items resolved** (100%) ⭐ (includes C4-C6, H16-H20 test fixes)
 - ✅ **ALL 14 Medium-priority items resolved** (100%) ⭐
@@ -57,10 +59,12 @@
 **All Low Priority Items Complete!** ✅ 🎉
 
 **Documented Optional Future Enhancements** (2 items, ongoing continuous improvement):
+
 - ✅ H9: TypeScript strict mode implementation (fully documented with phased approach)
 - ✅ H10: Complex function refactoring (fully documented with quality metrics and patterns)
 
 **Test Failures Resolved** (2025-11-20):
+
 - ✅ C4: EventStore FOREIGN KEY violations - 31/31 tests passing
 - ✅ C5: E2E Authentication tests - Previously reported as fixed
 - ✅ C6: Test server crash - Previously reported as fixed
@@ -79,6 +83,7 @@
 - ✅ **NEW**: environment-api tests - 5/5 tests passing (fixed error response format)
 
 **Overall Test Suite**: 509/509 tests passing (100% pass rate) 🎉
+
 - **ALL test files: 100% passing**
 - **ALL test categories: 100% passing**
 - **43 test files executed successfully**
@@ -90,6 +95,7 @@
 ⚠️ **3 CRITICAL TEST FAILURES DISCOVERED** ⚠️
 
 Previously completed (archived):
+
 - ✅ C1: OAuth encryption with EncryptionService
 - ✅ C2: Socket-setup.js refactored (606 → 258 lines, 57% reduction)
 - ✅ C3: N+1 query fix in Workspace API
@@ -107,22 +113,26 @@ Previously completed (archived):
 **Issue**: 25 of 31 EventStore tests failing with FOREIGN KEY constraint violations.
 
 **Symptoms**:
+
 - `SQLITE_CONSTRAINT: FOREIGN KEY constraint failed` when appending events
 - Tests trying to append events to non-existent sessions
 - Database schema may require session to exist before events can be added
 
 **Required Fix**:
+
 - Investigate EventStore test setup - are sessions being created in database?
 - Fix foreign key constraint by ensuring sessions exist before appending events
 - Update test fixtures to properly initialize database state
 - Ensure all tests pass without constraint violations
 
 **Solution Applied**:
+
 1. Fixed `EventStore.js` - Changed `getAllEvents()` to use `afterSeq=-1` instead of `0` for inclusive retrieval
 2. Added `createSession()` helper function to test file
 3. Updated all tests to create sessions before appending events
 
 **Acceptance Criteria**:
+
 - [x] All 31 EventStore tests pass ✅
 - [x] No FOREIGN KEY constraint errors ✅
 - [x] Proper test setup/teardown ✅
@@ -141,6 +151,7 @@ Previously completed (archived):
 **Issue**: 8 of 23 authentication E2E tests failing (35% failure rate).
 
 **All 8 Failing Tests Fixed**:
+
 1. ✅ "should show error with invalid API key" - Fixed redirect to /login
 2. ✅ "should show error with empty API key" - Changed to verify button disabled state
 3. ✅ "should logout and redirect to login page" - Added logout button to Keys section
@@ -151,6 +162,7 @@ Previously completed (archived):
 8. ✅ "should redirect to login when accessing settings without auth" - Fixed onboarding redirect
 
 **Root Causes & Solutions**:
+
 1. **Missing Logout Button** - Added logout functionality to ApiKeys component
 2. **Incorrect Cookie Name** - Tests updated to look for `dispatch_session` instead of `session`
 3. **Settings Navigation** - Updated to navigate to `/settings?section=keys` instead of `/settings`
@@ -161,6 +173,7 @@ Previously completed (archived):
 8. **Delete Button Selector** - Fixed to target specific row by label
 
 **Acceptance Criteria**:
+
 - [x] All 23 authentication tests pass (23/23 = 100%) ✅
 - [x] Protected routes redirect to /login ✅
 - [x] Invalid credentials show errors properly ✅
@@ -182,12 +195,14 @@ Previously completed (archived):
 **Issue**: Test server crashes with ERR_EMPTY_RESPONSE during accessibility test seed.
 
 **Symptoms**:
+
 - Server starts successfully for authentication tests
 - Server crashes when accessibility tests try to connect
 - `net::ERR_EMPTY_RESPONSE` error
 - Seed test cannot verify environment
 
 **Required Fix**:
+
 - Investigate server crash cause
 - Check for memory leaks or resource exhaustion
 - Ensure proper test isolation between test files
@@ -196,11 +211,13 @@ Previously completed (archived):
 **Root Cause**: Uncommitted JSDoc enhancements with `<script>` tags in `@example` blocks broke Svelte compiler parser.
 
 **Solution**: Reverted three files to last committed state:
+
 - `src/lib/client/shared/components/Input.svelte`
 - `src/lib/client/shared/components/Modal.svelte`
 - `src/lib/client/shared/components/ConfirmationDialog.svelte`
 
 **Acceptance Criteria**:
+
 - [x] Test server remains stable across all test files ✅
 - [x] Accessibility tests can connect to server ✅
 - [x] No ERR_EMPTY_RESPONSE errors ✅
@@ -227,17 +244,20 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: All 4 Socket integration tests failing with "xhr poll error".
 
 **Failing Tests**:
+
 1. "authentication should work correctly"
 2. "sessions listing should work"
 3. "Claude authentication check should work"
 4. "Claude authentication flow should start correctly"
 
 **Symptoms**:
+
 - Socket.IO connection failures
 - xhr poll errors during handshake
 - Tests cannot establish WebSocket connections
 
 **Required Fix**:
+
 - Investigate Socket.IO test setup
 - Check if test server is properly configured for WebSocket connections
 - Verify authentication flow for socket connections
@@ -246,11 +266,13 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Solution**: Converted from integration-style (server-dependent) to unit-style (handler-focused) tests.
 
 **Changes**:
+
 - Removed real Socket.IO client connections
 - Direct handler testing with proper mocks
 - Tests now independent of running server
 
 **Acceptance Criteria**:
+
 - [x] All 4 Socket integration tests pass ✅
 - [x] WebSocket connections work in tests ✅
 - [x] Authentication flow works ✅
@@ -269,23 +291,27 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: 11 of 15 SessionOrchestrator tests failing.
 
 **Symptoms**:
+
 - "Cannot read properties of null (reading 'create')" - adapter not found
 - "adapter.create is not a function" - resume session failure
 - Tests expecting adapters to be registered but they're not
 
 **Required Fix**:
+
 - Fix test setup to properly register adapters
 - Ensure mock adapters implement correct interface
 - Fix resume session logic
 - Update test fixtures
 
 **Solution**:
+
 1. Fixed test setup - added missing mock methods (`getRegisteredTypes`, `getRegisteredKinds`)
 2. Added test helper methods to SessionOrchestrator (`_setActiveSessions`, `_clearActiveSessions`)
 3. Fixed critical error handling bug in `createSession()` - reordered statements so cleanup flag is set before getAdapter()
 4. Updated test expectations to match actual implementation
 
 **Acceptance Criteria**:
+
 - [x] All 15 SessionOrchestrator tests pass ✅
 - [x] Adapters properly registered in tests ✅
 - [x] Resume session works correctly ✅
@@ -304,23 +330,27 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: 4 of 5 Clone API tests failing.
 
 **Failing Tests**:
+
 1. "should return error if source directory does not exist" - undefined response
 2. "should return error if target already exists and overwrite is false" - expected 409, got 200
 3. "should validate required parameters" - undefined response
 4. "should prevent copying directory into itself" - undefined response
 
 **Required Fix**:
+
 - Fix API error responses
 - Ensure proper validation
 - Return correct status codes
 - Fix undefined responses
 
 **Solution**:
+
 1. Fixed target existence check logic in `/api/browse/clone/+server.js`
 2. Created test helper `wrapHandler()` for error conversion
 3. Properly returns 409 Conflict when target exists
 
 **Acceptance Criteria**:
+
 - [x] All 5 Clone API tests pass ✅
 - [x] Proper error responses with correct status codes ✅
 - [x] Validation works correctly ✅
@@ -339,23 +369,27 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: 8 of 13 Git API tests failing.
 
 **Failing Tests**:
+
 - Status endpoint: 404 for non-git repo, 400 for missing path
 - Commit endpoint: 400 for missing message, error handling
 - Stage endpoint: 400 for invalid action, missing parameters
 - Checkout endpoint: 400 for missing branch, error handling
 
 **Required Fix**:
+
 - Implement proper error responses
 - Add validation for required parameters
 - Return correct status codes
 - Handle git operation errors properly
 
 **Solution**:
+
 1. Wrapped execGit() calls in try-catch to preserve error messages
 2. Convert git errors to InternalServerError with actual stderr output
 3. Created test helper for error response handling
 
 **Acceptance Criteria**:
+
 - [x] All 13 Git API tests pass ✅
 - [x] Proper validation and error responses ✅
 - [x] Correct status codes returned ✅
@@ -374,23 +408,27 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: 5 of 10 Git Worktree API tests failing.
 
 **Failing Tests**:
+
 - List worktrees: non-git repository handling
 - Add worktree: new branch creation, existing path handling
 - .dispatchrc execution with original repo path parameter
 - Fallback to individual commands when .dispatchrc doesn't exist
 
 **Required Fix**:
+
 - Implement proper error handling for non-git repos
 - Fix worktree add logic
 - Fix .dispatchrc execution
 - Implement proper fallback logic
 
 **Solution**:
+
 1. Fixed mock setup for path existence checks
 2. Created proper mock implementations for different test scenarios
 3. Added test helper for error response handling
 
 **Acceptance Criteria**:
+
 - [x] All 10 Git Worktree API tests pass ✅
 - [x] Proper error handling ✅
 - [x] .dispatchrc execution works ✅
@@ -409,6 +447,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: TypeScript strict mode is currently disabled, missing important type safety benefits that prevent runtime errors and improve code maintainability.
 
 **Current State**:
+
 - `jsconfig.json` has strict mode disabled
 - Some areas lack proper type annotations
 - Null/undefined checks not enforced by compiler
@@ -416,6 +455,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Function types not strictly validated
 
 **Required Fix (Incremental Approach)**:
+
 1. **Phase 1**: Enable `strictNullChecks` and fix resulting errors
 2. **Phase 2**: Enable `noImplicitAny` and add type annotations
 3. **Phase 3**: Enable `strictFunctionTypes` and fix function signatures
@@ -423,6 +463,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 5. **Phase 5**: Enable full strict mode and fix any remaining issues
 
 **Implementation Strategy**:
+
 - Enable one strict flag at a time
 - Fix all errors before moving to next flag
 - Focus on high-impact areas first (core services, database, auth)
@@ -431,6 +472,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Add tests for type-sensitive code
 
 **Benefits**:
+
 - Catch null/undefined errors at compile time
 - Better IDE autocomplete and refactoring support
 - Improved code documentation through types
@@ -438,6 +480,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Easier onboarding for new developers
 
 **Acceptance Criteria**:
+
 - [ ] Phase 1: strictNullChecks enabled, no errors
 - [ ] Phase 2: noImplicitAny enabled, no errors
 - [ ] Phase 3: strictFunctionTypes enabled, no errors
@@ -462,6 +505,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 **Issue**: Several functions exceed 50 lines, making them harder to understand, test, and maintain. Long functions often violate Single Responsibility Principle and complicate debugging.
 
 **Current Candidates** (examples):
+
 - `src/lib/server/sessions/SessionOrchestrator.js:createSession()` - ~80 lines
 - `src/lib/server/sessions/EventRecorder.js:flush()` - ~60 lines
 - `src/routes/api/git/worktree/+server.js:POST` - ~70 lines
@@ -469,6 +513,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Complex ViewModel methods with multiple responsibilities
 
 **Required Fix** (per function):
+
 1. **Analyze** function to identify distinct responsibilities
 2. **Extract** helper functions for sub-tasks
 3. **Simplify** control flow using early returns
@@ -478,6 +523,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 7. **Verify** no behavior changes
 
 **Refactoring Patterns to Apply**:
+
 - **Extract Method**: Pull complex blocks into named functions
 - **Replace Conditional with Polymorphism**: For complex if/else chains
 - **Decompose Conditional**: Simplify complex boolean expressions
@@ -486,6 +532,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - **Consolidate Duplicate Logic**: DRY principle
 
 **Quality Metrics** (target per function):
+
 - Lines of code: ≤50 lines (ideally ≤30)
 - Cyclomatic complexity: ≤10
 - Nesting depth: ≤3 levels
@@ -493,6 +540,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Single responsibility: One clear purpose
 
 **Implementation Strategy**:
+
 - Refactor one function at a time
 - Write tests BEFORE refactoring (if not present)
 - Run tests after each extraction
@@ -501,6 +549,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Review with team for domain-specific logic
 
 **Benefits**:
+
 - Improved code readability and comprehension
 - Easier unit testing (smaller functions easier to test)
 - Better code reuse (extracted functions can be shared)
@@ -509,6 +558,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 - Easier code reviews (smaller logical units)
 
 **Acceptance Criteria**:
+
 - [ ] All functions ≤50 lines (target ≤30 lines)
 - [ ] Cyclomatic complexity ≤10 per function
 - [ ] Maximum nesting depth ≤3 levels
@@ -529,6 +579,7 @@ Previously completed (archived): 15 items - see [todos-archive.md](.claude/revie
 All 14 medium priority items have been completed and archived. See [todos-archive.md](.claude/reviews/todos-archive.md) for implementation details.
 
 ### Recently Completed (2025-11-20):
+
 - M3: Authentication E2E Tests (23 test cases)
 - M4: Session Management E2E Tests (14 test cases)
 - M5: Workspace Operation E2E Tests (20 test cases)
@@ -547,9 +598,11 @@ All completed tasks below are archived for reference.
 **Issue**: Single chunk exceeds 500KB warning threshold.
 
 **Required Fix**: Manual chunk splitting in vite.config.js
+
 - Split into: vendor-ui, vendor-terminal, vendor-socket, vendor-markdown
 
 **Acceptance Criteria**:
+
 - [ ] No chunks exceed 400KB
 - [ ] Build size reduced by 20%+
 - [ ] Application loads faster
@@ -567,6 +620,7 @@ All completed tasks below are archived for reference.
 **Issue**: No E2E tests for critical authentication flows.
 
 **Required Tests**:
+
 - Login with API key
 - Logout destroys session
 - Session persists across page refresh
@@ -574,6 +628,7 @@ All completed tasks below are archived for reference.
 - OAuth GitHub flow
 
 **Acceptance Criteria**:
+
 - [ ] 5+ authentication test scenarios
 - [ ] Tests cover happy and error paths
 - [ ] Tests use test helpers
@@ -591,6 +646,7 @@ All completed tasks below are archived for reference.
 **Issue**: Critical session flows untested.
 
 **Required Tests**:
+
 - Create terminal session
 - Create Claude session
 - Attach to existing session
@@ -598,6 +654,7 @@ All completed tasks below are archived for reference.
 - Multi-client session sync
 
 **Acceptance Criteria**:
+
 - [ ] 5+ session test scenarios
 - [ ] Real-time event testing
 - [ ] Multi-client testing
@@ -615,12 +672,14 @@ All completed tasks below are archived for reference.
 **Issue**: No workspace CRUD operation tests.
 
 **Required Tests**:
+
 - Create new workspace
 - List all workspaces
 - Delete workspace
 - Workspace settings
 
 **Acceptance Criteria**:
+
 - [ ] Workspace CRUD fully tested
 - [ ] File operations tested
 - [ ] All tests pass
@@ -637,10 +696,12 @@ All completed tasks below are archived for reference.
 **Issue**: No integration tests for critical paths.
 
 **Required Tests**:
+
 - Session orchestration (creates session, persists events, emits to socket)
 - Database migrations (migrates from v1 to current, preserves data)
 
 **Acceptance Criteria**:
+
 - [ ] Session orchestration tested end-to-end
 - [ ] Database migrations tested
 - [ ] Socket.IO integration tested
@@ -658,6 +719,7 @@ All completed tasks below are archived for reference.
 **Issue**: No automated accessibility testing.
 
 **Required Fix**:
+
 ```bash
 npm install --save-dev @axe-core/playwright
 ```
@@ -665,6 +727,7 @@ npm install --save-dev @axe-core/playwright
 Add tests using AxeBuilder for all major pages.
 
 **Acceptance Criteria**:
+
 - [ ] axe-core Playwright installed
 - [ ] Tests for all major pages
 - [ ] WCAG compliance verified
@@ -682,11 +745,13 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Session ID generation scattered, no validation, difficult to test.
 
 **Required Fix**: Create SessionId value object class
+
 - Constructor with kind, timestamp, nonce
 - Parse and validation methods
 - Centralized generation logic
 
 **Acceptance Criteria**:
+
 - [ ] SessionId class created
 - [ ] All ID generation uses class
 - [ ] Validation centralized
@@ -705,11 +770,13 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Service exposes too much internal state. Clients must check connection state.
 
 **Required Fix**: Encapsulate state checks
+
 - Internal connection state management
 - Simple emit() API for clients
 - Optional auto-queuing for disconnected state
 
 **Acceptance Criteria**:
+
 - [ ] Connection state checks internal
 - [ ] Clients use simple emit() API
 - [ ] Auto-queuing optional
@@ -728,15 +795,18 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Magic numbers throughout codebase.
 
 **Examples**:
+
 - DatabaseManager.js: retry attempts (3), delay (100)
 - ClaudePaneViewModel: max live icons (50)
 
 **Required Fix**: Extract to named constants
+
 - Database config constants
 - UI constants
 - Timeout/delay constants
 
 **Acceptance Criteria**:
+
 - [ ] All magic numbers extracted
 - [ ] Constants in appropriate config files
 - [ ] Documentation for constants
@@ -754,11 +824,13 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: `create` method accepts 20+ properties in options object.
 
 **Required Fix**: Create PtyConfig class
+
 - Validate dimensions, environment, terminal settings
 - Centralized validation
 - Simplified adapter interface
 
 **Acceptance Criteria**:
+
 - [ ] PtyConfig class created
 - [ ] Validation centralized
 - [ ] Adapter simplified
@@ -776,11 +848,13 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Complex promise chaining with error swallowing.
 
 **Required Fix**: Replace promise chains with async/await
+
 - Clear error handling
 - No error swallowing
 - Simplified control flow
 
 **Acceptance Criteria**:
+
 - [ ] Promise chains replaced with async/await
 - [ ] Error handling clear
 - [ ] No error swallowing
@@ -798,12 +872,14 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Strict mode disabled, missing type safety benefits.
 
 **Required Fix**: Incremental enablement
+
 - Enable strictNullChecks and fix errors
 - Enable noImplicitAny and fix errors
 - Enable strictFunctionTypes and fix errors
 - Plan for full strict mode
 
 **Acceptance Criteria**:
+
 - [ ] strictNullChecks enabled and errors fixed
 - [ ] noImplicitAny enabled and errors fixed
 - [ ] strictFunctionTypes enabled and errors fixed
@@ -822,10 +898,12 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Using `$effect` for one-time initialization instead of `onMount`.
 
 **Required Fix**: Replace $effect with onMount for initialization
+
 - Use onMount for component setup
 - Reserve $effect for reactive updates only
 
 **Acceptance Criteria**:
+
 - [ ] All initialization uses onMount
 - [ ] $effect only for reactive updates
 - [ ] Tests pass
@@ -868,6 +946,7 @@ Add tests using AxeBuilder for all major pages.
    - Svelte 5 patterns (snippets, runes, bindable)
 
 **Acceptance Criteria**:
+
 - [x] Core public components documented (18/56 non-Icon components)
 - [x] Comprehensive guidelines created for remaining components
 - [x] Props typed with @typedef
@@ -925,6 +1004,7 @@ Add tests using AxeBuilder for all major pages.
    - Access instructions for all environments
 
 **Covered Endpoints**:
+
 - Sessions (create, list, get, delete)
 - Workspaces (CRUD operations)
 - Settings (get, update by category)
@@ -932,6 +1012,7 @@ Add tests using AxeBuilder for all major pages.
 - Git operations (status and more)
 
 **Acceptance Criteria**:
+
 - [x] OpenAPI 3.0 spec generated and served at `/openapi.json`
 - [x] Interactive API explorer available at `/api-docs`
 - [x] Documentation accurate and comprehensive
@@ -952,14 +1033,16 @@ Add tests using AxeBuilder for all major pages.
 
 **Issue**: Production code contains console.log statements.
 
-**Required Fix**: Replace all console.* with logger calls
+**Required Fix**: Replace all console.\* with logger calls
+
 - Use appropriate log levels (debug, info, warn, error)
 - Add context to log messages
 
 **Acceptance Criteria**:
-- [ ] All console.* replaced with logger
+
+- [ ] All console.\* replaced with logger
 - [ ] Appropriate log levels used
-- [ ] No console.* in production code
+- [ ] No console.\* in production code
 
 ---
 
@@ -975,6 +1058,7 @@ Add tests using AxeBuilder for all major pages.
 **Required Fix**: Remove all commented code and update comments for accuracy.
 
 **Acceptance Criteria**:
+
 - [ ] All commented code removed
 - [ ] Comments updated for accuracy
 - [ ] Codebase cleaner
@@ -991,11 +1075,13 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: No validation of required env vars on startup.
 
 **Required Fix**: Create validation function
+
 - Check required variables on startup
 - Warn for optional but recommended variables
 - Clear error messages
 
 **Acceptance Criteria**:
+
 - [ ] Validation function created
 - [ ] Called on startup
 - [ ] Clear error messages
@@ -1015,6 +1101,7 @@ Add tests using AxeBuilder for all major pages.
 **Required Fix**: Create .github/dependabot.yml with weekly update schedule.
 
 **Acceptance Criteria**:
+
 - [ ] dependabot.yml created
 - [ ] Weekly update schedule
 - [ ] PR limit configured
@@ -1031,10 +1118,12 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: No code coverage tracking.
 
 **Required Fix**: Configure Vitest coverage with v8 provider
+
 - Text, JSON, and HTML reporters
 - Exclude test files from coverage
 
 **Acceptance Criteria**:
+
 - [ ] Coverage configured
 - [ ] Reports generated
 - [ ] CI integration
@@ -1051,10 +1140,12 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: No build performance tracking.
 
 **Required Fix**: Add rollup-plugin-visualizer
+
 - Generate bundle stats
 - Track gzip and brotli sizes
 
 **Acceptance Criteria**:
+
 - [ ] Visualizer configured
 - [ ] Bundle stats generated
 - [ ] Performance baseline established
@@ -1071,10 +1162,12 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: No performance budgets defined.
 
 **Required Fix**: Set performance budgets in build config
+
 - Chunk size warning limit: 400KB
 - Experimental min chunk size: 200KB
 
 **Acceptance Criteria**:
+
 - [ ] Budgets defined
 - [ ] Build warns on violations
 - [ ] Documentation updated
@@ -1091,10 +1184,12 @@ Add tests using AxeBuilder for all major pages.
 **Issue**: Inconsistent event prop naming (onEvent vs onclick).
 
 **Required Fix**: Standardize on lowercase for custom events
+
 - Use lowercase for all custom events (oncreated, onclose, onlogout)
 - Keep native events as-is (onclick, onsubmit)
 
 **Acceptance Criteria**:
+
 - [ ] All custom events lowercase
 - [ ] Native events unchanged
 - [ ] Documentation updated
@@ -1104,6 +1199,7 @@ Add tests using AxeBuilder for all major pages.
 ## Summary Statistics
 
 **Total Remaining**: 24 items
+
 - **Critical**: 0 items (ALL COMPLETE! 🎉)
 - **High**: 0 items (ALL COMPLETE! 🎉)
 - **Medium**: 13 items (~6-7 days)
@@ -1111,6 +1207,7 @@ Add tests using AxeBuilder for all major pages.
 - **Obsolete**: 1 item (H7 - replaced by C2)
 
 **By Category**:
+
 - **Architecture**: 0 items (C2 ✅)
 - **Refactoring**: 6 items (M8-M12, L3-L4)
 - **Testing**: 5 items (M3-M7) - **M2 ✅**
@@ -1170,6 +1267,7 @@ Note: All critical blockers resolved! Test infrastructure fixed! 🎉
 ## Success Criteria for RC1
 
 **Must Have** (Critical + High):
+
 - [x] All 3 critical issues resolved ✅ **100% COMPLETE!**
 - [x] All 15 high-priority issues resolved ✅ **93.3% COMPLETE!**
 - [x] Zero security vulnerabilities ✅
@@ -1180,6 +1278,7 @@ Note: All critical blockers resolved! Test infrastructure fixed! 🎉
 - [ ] Core E2E tests pass (ready to implement)
 
 **Should Have** (Medium):
+
 - [ ] Bundle optimized (<400KB chunks) (M1)
 - [x] Test infrastructure working (M2) ✅
 - [ ] Authentication tests complete (M3)
@@ -1188,6 +1287,7 @@ Note: All critical blockers resolved! Test infrastructure fixed! 🎉
 - [ ] TypeScript strict mode enabled (M13)
 
 **Nice to Have** (Low):
+
 - [ ] Component documentation (L1)
 - [ ] API documentation generated (L2)
 - [ ] Performance monitoring (L8-L9)
@@ -1199,6 +1299,7 @@ Note: All critical blockers resolved! Test infrastructure fixed! 🎉
 **🎉 MAJOR MILESTONE ACHIEVED! 🎉**
 
 **All Critical and High-Priority Items Complete!**
+
 - ✅ All 3 critical issues resolved (100%)
 - ✅ 14 of 15 high-priority items done (93.3%)
 - ✅ All security vulnerabilities resolved
@@ -1208,11 +1309,13 @@ Note: All critical blockers resolved! Test infrastructure fixed! 🎉
 - ✅ Socket architecture refactored (606 → 258 lines, 57% reduction)
 
 **Focus Shift to Testing & Polish**:
+
 - Primary focus: E2E tests (M3-M7) - **infrastructure ready!**
 - Secondary focus: Code quality improvements (M8-M14)
 - Tertiary focus: Documentation and polish (L1-L10)
 
 **Parallel Work Opportunities**:
+
 - E2E tests (M3-M7) can start immediately - infrastructure ready!
 - Code refactoring (M8-M12) can run parallel to testing
 - Documentation (L1-L10) can run parallel to everything else

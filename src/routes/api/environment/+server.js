@@ -31,7 +31,9 @@ export async function GET() {
 			const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 			appVersion = packageJson.version;
 		} catch (error) {
-			logger.warn('ENVIRONMENT_API', 'Failed to read app version from package.json', { error: error.message });
+			logger.warn('ENVIRONMENT_API', 'Failed to read app version from package.json', {
+				error: error.message
+			});
 		}
 
 		return json({

@@ -37,10 +37,7 @@ export class RateLimiter {
 		// Periodic cleanup to prevent memory leaks
 		this.cleanupInterval = setInterval(() => this.cleanup(), windowMs);
 
-		logger.info(
-			'RATE_LIMITER',
-			`Initialized ${name}: ${maxAttempts} attempts per ${windowMs}ms`
-		);
+		logger.info('RATE_LIMITER', `Initialized ${name}: ${maxAttempts} attempts per ${windowMs}ms`);
 	}
 
 	/**

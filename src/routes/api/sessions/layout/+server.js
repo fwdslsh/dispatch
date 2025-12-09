@@ -24,7 +24,10 @@ export async function POST({ request, locals }) {
 		const actualRunId = runId || sessionId;
 
 		if (!actualRunId || !tileId) {
-			throw new BadRequestError('Missing required parameters: runId, tileId', 'MISSING_LAYOUT_PARAMS');
+			throw new BadRequestError(
+				'Missing required parameters: runId, tileId',
+				'MISSING_LAYOUT_PARAMS'
+			);
 		}
 
 		await locals.services.workspaceRepository.setWorkspaceLayout(actualRunId, clientId, tileId);

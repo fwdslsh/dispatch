@@ -74,17 +74,17 @@ describe('Settings Registry', () => {
 			expect(sections[0].category).toBe('sessions');
 		});
 
-	it('should silently skip invalid sections', () => {
-		// @ts-expect-error - Testing invalid section (missing required fields)
-		registerSettingsSection({
-			id: 'test-section',
-			label: 'Test Section'
-			// Missing required 'component' field
-		});
+		it('should silently skip invalid sections', () => {
+			// @ts-expect-error - Testing invalid section (missing required fields)
+			registerSettingsSection({
+				id: 'test-section',
+				label: 'Test Section'
+				// Missing required 'component' field
+			});
 
-		// Should skip invalid section without warning (silent in production)
-		expect(getSettingsSections()).toHaveLength(0);
-	});
+			// Should skip invalid section without warning (silent in production)
+			expect(getSettingsSections()).toHaveLength(0);
+		});
 	});
 
 	describe('getSettingsSections', () => {

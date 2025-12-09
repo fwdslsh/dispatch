@@ -721,7 +721,9 @@ export class SessionViewModel {
 				};
 
 				// Filter out undefined values to keep payload clean
-				return Object.fromEntries(Object.entries(cleanSettings).filter(([_, v]) => v !== undefined));
+				return Object.fromEntries(
+					Object.entries(cleanSettings).filter(([_, v]) => v !== undefined)
+				);
 			}
 
 			default:

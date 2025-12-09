@@ -49,7 +49,6 @@ describe('EventStore', () => {
 			// Create session first to satisfy foreign key constraint
 			await createSession('session-1');
 
-
 			const event = {
 				channel: 'pty:stdout',
 				type: 'chunk',

@@ -1,20 +1,21 @@
 <script>
 	import Button from '../Button.svelte';
+	import { TAB_TYPE } from '$lib/shared/tab-types.js';
 
-	let { onCreateSession = () => {} } = $props();
+	let { onCreateTab = () => {} } = $props();
 
 	function create(type) {
-		onCreateSession?.(type);
+		onCreateTab?.(type);
 	}
 </script>
 
 <div class="empty-state">
-	<h2>Choose a session type to start</h2>
-	<p>Select the type of session you want to create.</p>
+	<h2>Choose a tab type to start</h2>
+	<p>Select the type of tab you want to create.</p>
 	<div class="empty-actions">
-		<Button onclick={() => create('pty')}>+ Terminal</Button>
-		<Button onclick={() => create('claude')}>+ Claude Code</Button>
-		<Button onclick={() => create('file-editor')}>+ File Editor</Button>
+		<Button onclick={() => create(TAB_TYPE.TERMINAL)}>+ Terminal</Button>
+		<Button onclick={() => create(TAB_TYPE.AI)}>+ AI Agent</Button>
+		<Button onclick={() => create(TAB_TYPE.FILE_EDITOR)}>+ File Editor</Button>
 	</div>
 </div>
 

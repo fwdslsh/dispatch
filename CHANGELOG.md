@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2025-01-20
 
 ### Added
+
 - **E2E Test Suite**: Comprehensive regression test coverage (33 tests passing)
   - New `e2e/onboarding-regressions.spec.js` with 10 regression tests
   - Authentication test suite (23 tests) covering API key login, session persistence, and multi-tab synchronization
@@ -43,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dedicated `dev:test` server for automated UI testing (port 7173, no SSL)
 
 ### Fixed
+
 - **Critical UX Issues**:
   - Login page now accessible during onboarding (exempted from redirects)
   - Login error messages clear reactively when user starts typing
@@ -69,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Socket.IO authentication event handling
 
 ### Changed
+
 - **Refactoring**:
   - Authentication middleware refactored with Strategy pattern (H8)
   - All 57 API routes migrated to standardized error handling (H7)
@@ -88,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Import patterns prevention guide
 
 ### Removed
+
 - Test-specific API endpoints (`/api/test/*`) - anti-pattern eliminated
 - Obsolete E2E test files:
   - `e2e/auth-login.spec.ts` (duplicated functionality)
@@ -99,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.1] - 2024-12-15
 
 ### Added
+
 - Release script for versioning and tagging
 - Server-driven home directory detection via environment API
 - Comprehensive documentation for Home Directory Manager
@@ -106,23 +111,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Session event cleanup logic for failed run sessions
 
 ### Fixed
+
 - Text selection behavior during drag in Split component
 - Terminal scroll class for full height rendering
 - Directory browser and file editor style fixes
 - Base URL for testing environment
 
 ### Changed
+
 - Relocated TerminalHeader component and updated import paths
 - Simplified terminal layout styles by removing unnecessary flex properties
 - Enhanced CSS style guide with comprehensive documentation
 - Finalized CSS refactor with accurate completion status
 
 ### Removed
+
 - CSS Optimization Report and Refactor TODO documents after 97% CSS reduction
 
 ## [0.2.0] - 2024-12-01
 
 ### Added
+
 - Git operations for DirectoryBrowser component with tests
 - Tunnel URL check after container start with API integration
 - Runtime tunnel control with TunnelManager and UI
@@ -132,11 +141,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI agent sandbox documentation
 
 ### Fixed
+
 - Directory cloning layout issues and JavaScript errors
 - Accessibility fixes across components
 - TunnelControl localStorage key correction
 
 ### Changed
+
 - Font styles refactoring and build script improvements
 - Simplified setup by removing PTY_MODE configuration
 - Enhanced setup instructions and security feature documentation
@@ -145,6 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.2] - 2024-11-15
 
 ### Added
+
 - FileEditor component for editing files with save/cancel functionality
 - Quick-create buttons for file editor
 - Confirmation dialogs for unsaved changes
@@ -155,11 +167,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom settings sections for session type modules
 
 ### Fixed
+
 - Session creation logic for file editor
 - Default model handling in Claude settings
 - Mobile terminal input for better usability
 
 ### Changed
+
 - Expanded Claude settings component to support full SDK configuration options
 - Updated Claude default query options to bypass permissions and enable all tools
 - Enhanced PWA installation instructions
@@ -167,11 +181,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modularized icon components
 
 ### Removed
+
 - Mobile text input and keyboard toolbar components from terminal pane (replaced with mobile-specific view)
 
 ## [0.1.1] - 2024-11-01
 
 ### Added
+
 - Message ID generation for Claude sessions
 - Session resume functionality with improved state management
 - Comprehensive session management and creation tests
@@ -179,20 +195,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reactive session management features
 
 ### Fixed
+
 - Terminal session ID mapping and session resume API
 - Session history loading and Docker fixes
 
 ### Changed
+
 - Implemented clean single-ID terminal architecture
 - Enhanced SessionViewModel with session normalization and improved logging
 - Refactored tests and improved Svelte 5 rune shims
 
 ### Removed
+
 - ModalViewModel and SessionViewModel tests (superseded by new architecture)
 
 ## [0.1.0] - 2024-10-15
 
 ### Added
+
 - Initial public release
 - Cookie-based authentication system
 - Session management with event sourcing
@@ -208,6 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Onboarding flow
 
 ### Security
+
 - bcrypt password hashing for sessions and API keys
 - Rate limiting on authentication endpoints
 - Session expiration and rotation
@@ -216,12 +237,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.10] - 2024-09-01
 
 ### Changed
+
 - Pre-release refinements
 - Bug fixes and stability improvements
 
 ## [0.0.7] - 2024-08-15
 
 ### Added
+
 - Early alpha features
 - Core session management
 - Basic authentication

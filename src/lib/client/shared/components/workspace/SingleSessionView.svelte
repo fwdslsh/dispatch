@@ -6,7 +6,7 @@
 	Displays an empty state when no sessions are available.
 -->
 <script>
-	import EmptySessionPane from './EmptySessionPane.svelte';
+	import EmptyTabPanel from './EmptyTabPanel.svelte';
 	import SessionContainer from './SessionContainer.svelte';
 	import SessionHeaderRenderer from './SessionHeaderRenderer.svelte';
 	import SessionViewport from './SessionViewport.svelte';
@@ -61,7 +61,7 @@
 				{/snippet}
 			</SessionContainer>
 		{:else}
-			<EmptySessionPane {onCreateSession}></EmptySessionPane>
+			<EmptyTabPanel onCreateTab={onCreateSession}></EmptyTabPanel>
 		{/if}
 	</SwipeContainer>
 

@@ -15,7 +15,15 @@ export function validateSessionType(type) {
 		return { success: false, error: 'Session type is required' };
 	}
 
-	if (![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR, SESSION_TYPE.OPENCODE, SESSION_TYPE.OPENCODE_TUI].includes(type)) {
+	if (
+		![
+			SESSION_TYPE.PTY,
+			SESSION_TYPE.CLAUDE,
+			SESSION_TYPE.FILE_EDITOR,
+			SESSION_TYPE.OPENCODE,
+			SESSION_TYPE.OPENCODE_TUI
+		].includes(type)
+	) {
 		return { success: false, error: `Invalid session type: ${type}` };
 	}
 

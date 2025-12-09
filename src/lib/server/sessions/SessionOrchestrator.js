@@ -224,7 +224,11 @@ export class SessionOrchestrator {
 			}
 		} catch (error) {
 			errors.push({ operation: 'emitSocketEvent', error });
-			logger.warn('SESSION', `Error emitting session:closed event for ${sessionId}:`, error.message);
+			logger.warn(
+				'SESSION',
+				`Error emitting session:closed event for ${sessionId}:`,
+				error.message
+			);
 		}
 
 		if (errors.length > 0) {

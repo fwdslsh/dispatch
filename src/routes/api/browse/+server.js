@@ -2,7 +2,12 @@ import { json } from '@sveltejs/kit';
 import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { BadRequestError, NotFoundError, ForbiddenError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	BadRequestError,
+	NotFoundError,
+	ForbiddenError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Get the base directory for browsing (can be configured via environment)
 function getBaseDirectory() {

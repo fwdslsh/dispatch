@@ -124,10 +124,7 @@ test.describe('Accessibility - Interactive Components', () => {
 			// Wait for dialog to appear
 			await page.waitForSelector('[role="dialog"], .modal', { timeout: 5000 });
 
-			const accessibilityResults = await checkAccessibility(
-				page,
-				'Session Creation Dialog'
-			);
+			const accessibilityResults = await checkAccessibility(page, 'Session Creation Dialog');
 
 			// Allow some violations for dynamic dialogs
 			expect(accessibilityResults.violations.length).toBeLessThanOrEqual(3);

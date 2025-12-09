@@ -1,5 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { ServiceUnavailableError, BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	ServiceUnavailableError,
+	BadRequestError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * VS Code Remote Tunnel API

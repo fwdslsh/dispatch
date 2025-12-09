@@ -80,9 +80,7 @@
 	};
 
 	// Get running activities
-	const runningActivities = $derived(
-		activities.filter(a => a.status === 'running')
-	);
+	const runningActivities = $derived(activities.filter((a) => a.status === 'running'));
 
 	// Check if anything is active
 	const hasActivity = $derived(runningActivities.length > 0 || isThinking);
@@ -168,7 +166,8 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 			transform: scale(1);
 		}

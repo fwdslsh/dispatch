@@ -32,7 +32,8 @@
 
 /* Press feedback for buttons and interactive elements */
 .press-feedback {
-	transition: transform var(--duration-fast) var(--ease-out-expo),
+	transition:
+		transform var(--duration-fast) var(--ease-out-expo),
 		box-shadow var(--duration-fast) var(--ease-out-expo);
 }
 
@@ -53,13 +54,16 @@
 /* Lift effect on hover (desktop) */
 @media (hover: hover) {
 	.hover-lift {
-		transition: transform var(--duration-normal) var(--ease-out-expo),
+		transition:
+			transform var(--duration-normal) var(--ease-out-expo),
 			box-shadow var(--duration-normal) var(--ease-out-expo);
 	}
 
 	.hover-lift:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--primary-glow-10);
+		box-shadow:
+			0 8px 24px rgba(0, 0, 0, 0.15),
+			0 0 0 1px var(--primary-glow-10);
 	}
 }
 
@@ -75,10 +79,14 @@
 @keyframes glow-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 5px var(--primary-glow-20), 0 0 10px var(--primary-glow-10);
+		box-shadow:
+			0 0 5px var(--primary-glow-20),
+			0 0 10px var(--primary-glow-10);
 	}
 	50% {
-		box-shadow: 0 0 15px var(--primary-glow-40), 0 0 30px var(--primary-glow-20);
+		box-shadow:
+			0 0 15px var(--primary-glow-40),
+			0 0 30px var(--primary-glow-20);
 	}
 }
 
@@ -333,13 +341,17 @@
 /* Custom focus ring */
 .focus-ring:focus-visible {
 	outline: none;
-	box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary);
+	box-shadow:
+		0 0 0 2px var(--bg),
+		0 0 0 4px var(--primary);
 }
 
 /* Soft focus glow */
 .focus-glow:focus-visible {
 	outline: none;
-	box-shadow: 0 0 0 3px var(--primary-glow-30), 0 0 20px var(--primary-glow-20);
+	box-shadow:
+		0 0 0 3px var(--primary-glow-30),
+		0 0 20px var(--primary-glow-20);
 }
 
 /* ==========================================================================
@@ -376,11 +388,17 @@
 	width: 200%;
 	height: 200%;
 	opacity: 1;
-	transition: width 0s, height 0s, opacity 0s;
+	transition:
+		width 0s,
+		height 0s,
+		opacity 0s;
 }
 
 .ripple:not(:active)::after {
-	transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
+	transition:
+		width 0.4s ease-out,
+		height 0.4s ease-out,
+		opacity 0.4s ease-out;
 }
 
 /* ==========================================================================
@@ -459,7 +477,9 @@
 @media (prefers-contrast: high) {
 	.focus-ring:focus-visible,
 	.focus-glow:focus-visible {
-		box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px currentColor;
+		box-shadow:
+			0 0 0 3px var(--bg),
+			0 0 0 5px currentColor;
 	}
 
 	.skeleton {

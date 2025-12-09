@@ -34,7 +34,7 @@
 		class="bottom-btn nav-btn"
 		onclick={handlePrevious}
 		{disabled}
-		aria-label="Previous session"
+		aria-label="Previous tab"
 	>
 		<IconPlayerTrackPrev size={18} />
 	</IconButton>
@@ -45,7 +45,7 @@
 		</span>
 	{/if} -->
 
-	<IconButton class="bottom-btn nav-btn" onclick={handleNext} {disabled} aria-label="Next session">
+	<IconButton class="bottom-btn nav-btn" onclick={handleNext} {disabled} aria-label="Next tab">
 		<IconPlayerTrackNext size={18} />
 	</IconButton>
 </div>

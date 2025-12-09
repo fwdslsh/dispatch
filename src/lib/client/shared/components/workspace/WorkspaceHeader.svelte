@@ -29,13 +29,21 @@
 
 	<!-- Navigation Links -->
 	<nav class="header-nav">
-		<a href="/workspace" class="nav-link" class:active={globalThis.location?.pathname === '/workspace'}>
-			Workspace
+		<a
+			href="/workspace"
+			class="nav-link"
+			class:active={globalThis.location?.pathname === '/workspace'}
+		>
+			Project
 		</a>
 		<a href="/cron" class="nav-link" class:active={globalThis.location?.pathname === '/cron'}>
 			Cron Jobs
 		</a>
-		<a href="/settings" class="nav-link" class:active={globalThis.location?.pathname === '/settings'}>
+		<a
+			href="/settings"
+			class="nav-link"
+			class:active={globalThis.location?.pathname === '/settings'}
+		>
 			Settings
 		</a>
 	</nav>
@@ -65,7 +73,6 @@
 <style>
 	/* Component-specific sizing only */
 	.workspace-header {
-
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);

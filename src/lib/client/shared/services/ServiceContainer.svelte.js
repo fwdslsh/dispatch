@@ -55,15 +55,20 @@ class ServiceContainer {
 		});
 
 		// API Clients
+		this.registerFactory('tabApi', async () => {
+			const { TabApiClient } = await import('./TabApiClient.js');
+			return new TabApiClient(this.config);
+		});
 
+		// Legacy sessionApi (for components not yet migrated)
 		this.registerFactory('sessionApi', async () => {
 			const { SessionApiClient } = await import('./SessionApiClient.js');
 			return new SessionApiClient(this.config);
 		});
 
-		// Alias for compatibility
+		// Alias for compatibility (prefers tabApi)
 		this.registerFactory('apiClient', async () => {
-			return await this.get('sessionApi');
+			return await this.get('tabApi');
 		});
 
 		// Core Services

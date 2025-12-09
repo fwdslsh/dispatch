@@ -5,7 +5,7 @@
  * @file src/lib/client/terminal/terminal.js
  */
 
-import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
+import TerminalPanel from '$lib/client/terminal/TerminalPanel.svelte';
 import TerminalHeader from '$lib/client/terminal/TerminalHeader.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
@@ -14,7 +14,7 @@ import { SESSION_TYPE } from '$lib/shared/session-types.js';
  */
 export const terminalSessionModule = {
 	type: SESSION_TYPE.TERMINAL,
-	component: TerminalPane,
+	component: TerminalPanel,
 	header: TerminalHeader,
 	prepareProps(session = {}) {
 		console.log('[terminal-module] Preparing props for session:', session);
