@@ -28,12 +28,12 @@ export class SessionState {
 
 		this.activeSessions = $derived.by(() => this.sessions.filter((s) => s.isActive));
 
-		this.claudeSessions = $derived.by(() =>
-			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.CLAUDE)
+		this.aiSessions = $derived.by(() =>
+			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.AI)
 		);
 
 		this.terminalSessions = $derived.by(() =>
-			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.PTY)
+			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.TERMINAL)
 		);
 
 		this.sessionCount = $derived(this.sessions.length);

@@ -616,7 +616,7 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s;
-		min-height: 48px;
+		align-self: stretch;
 		min-width: 48px;
 	}
 

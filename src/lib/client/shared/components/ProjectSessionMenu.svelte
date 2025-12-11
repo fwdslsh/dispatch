@@ -181,7 +181,7 @@
 	// Auto-set sessionType to a valid type when switching to create tab
 	$effect(() => {
 		if (currentTab === 'create' && sessionType === 'all') {
-			sessionType = 'claude';
+			sessionType = 'ai';
 		}
 	});
 
@@ -201,7 +201,7 @@
 	// Resume a previous session
 	async function resumeSession(session) {
 		try {
-			const sessionType = session.type || SESSION_TYPE.PTY;
+			const sessionType = session.type || SESSION_TYPE.TERMINAL;
 			// Call the session resume endpoint with proper parameters
 			const response = await fetch('/api/sessions', {
 				method: 'POST',
@@ -407,7 +407,7 @@
 							{#snippet icon()}
 								{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
 							{/snippet}
-							New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
+							New {sessionType === 'ai' ? 'AI' : 'Terminal'} Session
 						</Button>
 					</div>
 				{/if}

@@ -15,7 +15,7 @@
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 	// Props
-	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();
+	let { open = $bindable(false), initialType = SESSION_TYPE.AI, oncreated, onclose } = $props();
 
 	// ViewModel (business logic)
 	let viewModel = $state(null);
@@ -117,47 +117,23 @@
 
 			<div class="type-grid">
 				<TypeCard
-					title="Claude Code"
-					description="AI-powered coding assistant"
-					active={viewModel?.sessionType === SESSION_TYPE.CLAUDE}
+					title="AI Assistant"
+					description="AI-powered coding assistant (OpenCode SDK)"
+					active={viewModel?.sessionType === SESSION_TYPE.AI}
 					disabled={viewModel?.loading}
-					onclick={() => handleTypeSelect(SESSION_TYPE.CLAUDE)}
-					aria-label="Select Claude Code session type"
+					onclick={() => handleTypeSelect(SESSION_TYPE.AI)}
+					aria-label="Select AI Assistant session type"
 					role="button"
 					tabindex="0"
 				>
 					{#snippet icon()}<IconRobot size={32} />{/snippet}
-				</TypeCard>
-				<TypeCard
-					title="OpenCode"
-					description="OpenCode SDK session"
-					active={viewModel?.sessionType === SESSION_TYPE.OPENCODE}
-					disabled={viewModel?.loading}
-					onclick={() => handleTypeSelect(SESSION_TYPE.OPENCODE)}
-					aria-label="Select OpenCode session type"
-					role="button"
-					tabindex="0"
-				>
-					{#snippet icon()}<IconRobot size={32} />{/snippet}
-				</TypeCard>
-				<TypeCard
-					title="OpenCode TUI"
-					description="OpenCode terminal interface"
-					active={viewModel?.sessionType === SESSION_TYPE.OPENCODE_TUI}
-					disabled={viewModel?.loading}
-					onclick={() => handleTypeSelect(SESSION_TYPE.OPENCODE_TUI)}
-					aria-label="Select OpenCode TUI session type"
-					role="button"
-					tabindex="0"
-				>
-					{#snippet icon()}<IconTerminal2 size={32} />{/snippet}
 				</TypeCard>
 				<TypeCard
 					title="Terminal"
 					description="Direct shell access"
-					active={viewModel?.sessionType === SESSION_TYPE.PTY}
+					active={viewModel?.sessionType === SESSION_TYPE.TERMINAL}
 					disabled={viewModel?.loading}
-					onclick={() => handleTypeSelect(SESSION_TYPE.PTY)}
+					onclick={() => handleTypeSelect(SESSION_TYPE.TERMINAL)}
 					aria-label="Select Terminal session type"
 					role="button"
 					tabindex="0"

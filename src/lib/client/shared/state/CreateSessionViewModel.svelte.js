@@ -29,7 +29,7 @@ export class CreateSessionViewModel {
 		this.sessionApi = sessionApi;
 
 		// Form state
-		this.sessionType = $state(SESSION_TYPE.CLAUDE);
+		this.sessionType = $state(SESSION_TYPE.AI);
 		this.workspacePath = $state('');
 		this.sessionSettings = $state({});
 
@@ -93,7 +93,7 @@ export class CreateSessionViewModel {
 	 * Reset to initial state
 	 * @param {string} [sessionType] - Optional session type to reset to
 	 */
-	reset(sessionType = SESSION_TYPE.CLAUDE) {
+	reset(sessionType = SESSION_TYPE.AI) {
 		this.sessionType = sessionType;
 		this.workspacePath = '';
 		this.sessionSettings = {};
