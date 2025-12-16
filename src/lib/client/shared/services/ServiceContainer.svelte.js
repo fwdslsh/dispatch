@@ -99,6 +99,12 @@ class ServiceContainer {
 			return new CronService(socket);
 		});
 
+		this.registerFactory('webhookService', async () => {
+			const { WebhookService } = await import('./WebhookService.svelte.js');
+			const socket = await this.get('socket');
+			return new WebhookService(socket);
+		});
+
 		// ViewModels
 		this.registerFactory('sessionViewModel', async () => {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');

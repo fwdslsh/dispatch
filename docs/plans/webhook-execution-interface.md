@@ -13,11 +13,12 @@ Each webhook consists of:
 - **Optional workspace path** - Working directory for command execution
 
 When a matching request arrives, the system:
-1. Validates the webhook exists and is enabled
-2. Writes request details (headers, body, query params, method) to a temporary JSON file
-3. Executes the bash command with the temp file path available as `$WEBHOOK_REQUEST_FILE`
-4. Logs the execution result
-5. Returns the command output as the HTTP response
+1. Validates the request via existing API key authentication (Authorization: Bearer header)
+2. Validates the webhook exists and is enabled
+3. Writes request body and query params to a temporary JSON file
+4. Executes the bash command with the temp file path available as `$WEBHOOK_REQUEST_FILE`
+5. Logs the execution result
+6. Returns the command output as the HTTP response
 
 ---
 
@@ -40,7 +41,6 @@ CREATE TABLE IF NOT EXISTS webhooks (
     command TEXT NOT NULL,
     workspace_path TEXT,
     status TEXT NOT NULL DEFAULT 'active',  -- active, disabled
-    secret_token TEXT,  -- Optional authentication token
     last_triggered INTEGER,
     last_status TEXT,
     last_error TEXT,
@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS webhooks (
     updated_at INTEGER NOT NULL,
     created_by TEXT DEFAULT 'default'
 );
+-- Note: Authentication uses existing API key system via Authorization: Bearer header
 
 -- Webhook execution logs
 CREATE TABLE IF NOT EXISTS webhook_logs (
@@ -209,6 +210,12 @@ export async function DELETE(event) { return handleWebhook(event); }
 export async function PATCH(event) { return handleWebhook(event); }
 
 async function handleWebhook(event) {
+    // Authentication is handled by hooks.server.js middleware
+    // Requires valid API key via Authorization: Bearer header
+    if (!event.locals.auth?.authenticated) {
+        return json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { webhookExecutor } = event.locals.services;
     const uriPath = `/hooks/${event.params.path}`;
     const method = event.request.method;
@@ -219,27 +226,18 @@ async function handleWebhook(event) {
         return json({ error: 'Webhook not found' }, { status: 404 });
     }
 
-    // Optional: Validate secret token from header
-    if (webhook.secret_token) {
-        const providedToken = event.request.headers.get('X-Webhook-Token');
-        if (providedToken !== webhook.secret_token) {
-            return json({ error: 'Invalid token' }, { status: 401 });
-        }
-    }
-
-    // Build request object for temp file
+    // Build request data for temp file (body and query only)
     const requestData = {
-        method,
-        path: uriPath,
-        headers: Object.fromEntries(event.request.headers),
         query: Object.fromEntries(event.url.searchParams),
-        body: await event.request.text(),
-        clientIp: event.getClientAddress(),
-        timestamp: Date.now()
+        body: await event.request.text()
     };
 
     // Execute webhook
-    const result = await webhookExecutor.executeWebhook(webhook, requestData);
+    const result = await webhookExecutor.executeWebhook(webhook, requestData, {
+        clientIp: event.getClientAddress(),
+        method,
+        path: uriPath
+    });
 
     // Return response based on execution result
     return new Response(result.output || '', {
@@ -355,7 +353,6 @@ Modal form with fields:
 - HTTP Method dropdown (GET, POST, PUT, DELETE, PATCH)
 - Command (required, multi-line textarea)
 - Workspace Path (optional)
-- Secret Token (optional, with generate button)
 
 **File:** `src/routes/webhooks/WebhookLogViewer.svelte`
 
@@ -430,23 +427,15 @@ Add webhook-related commands.
 
 ## Request File Format
 
-When a webhook is triggered, the request details are written to a temp file as JSON:
+When a webhook is triggered, the request body and query params are written to a temp file as JSON:
 
 ```json
 {
-    "method": "POST",
-    "path": "/hooks/deploy-staging",
-    "headers": {
-        "content-type": "application/json",
-        "x-github-event": "push",
-        "x-webhook-token": "secret123"
-    },
     "query": {
-        "force": "true"
+        "force": "true",
+        "env": "staging"
     },
-    "body": "{\"ref\":\"refs/heads/main\",\"commits\":[...]}",
-    "clientIp": "192.168.1.100",
-    "timestamp": 1734307200000
+    "body": "{\"ref\":\"refs/heads/main\",\"commits\":[...]}"
 }
 ```
 
@@ -459,25 +448,32 @@ Example command usage:
 # Parse JSON body with jq
 cat $WEBHOOK_REQUEST_FILE | jq -r '.body' | jq -r '.ref'
 
-# Deploy script
-./deploy.sh --branch=$(cat $WEBHOOK_REQUEST_FILE | jq -r '.body' | jq -r '.ref')
+# Access query params
+cat $WEBHOOK_REQUEST_FILE | jq -r '.query.env'
+
+# Deploy script combining both
+./deploy.sh \
+    --branch=$(cat $WEBHOOK_REQUEST_FILE | jq -r '.body | fromjson | .ref') \
+    --env=$(cat $WEBHOOK_REQUEST_FILE | jq -r '.query.env')
 ```
+
+**Authentication:** All webhook requests require a valid API key via the `Authorization: Bearer <key>` header, using the existing API key system.
 
 ---
 
 ## Security Considerations
 
-1. **URI Namespace Isolation**: All webhooks must use `/hooks/` prefix to avoid conflicts with application routes
+1. **API Key Authentication**: All webhook requests require valid API key via `Authorization: Bearer <key>` header, using the existing auth system
 
-2. **Optional Token Authentication**: Webhooks can require a secret token via `X-Webhook-Token` header
+2. **URI Namespace Isolation**: All webhooks must use `/hooks/` prefix to avoid conflicts with application routes
 
 3. **Execution Isolation**: Commands run in specified workspace with same security model as cron jobs
 
 4. **Input Sanitization**: Request data is JSON-encoded to prevent injection when passed to commands
 
-5. **Rate Limiting** (future): Could add rate limiting per webhook to prevent abuse
+5. **Audit Logging**: All executions are logged with client IP, method, and request details
 
-6. **Audit Logging**: All executions are logged with client IP and request details
+6. **Rate Limiting** (future): Could add rate limiting per webhook to prevent abuse
 
 ---
 

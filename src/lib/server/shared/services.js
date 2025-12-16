@@ -34,6 +34,9 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 // Cron scheduler
 import { CronSchedulerService } from '../cron/CronSchedulerService.js';
 
+// Webhook executor
+import { WebhookExecutorService } from '../webhook/WebhookExecutorService.js';
+
 /**
  * Services object containing all initialized application services
  *
@@ -66,6 +69,7 @@ import { CronSchedulerService } from '../cron/CronSchedulerService.js';
  * @property {AIAdapter} aiAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
  * @property {CronSchedulerService} cronScheduler
+ * @property {WebhookExecutorService} webhookExecutor
  * @property {() => DatabaseManager} getDatabase
  */
 
@@ -157,6 +161,9 @@ export async function createServices(config = {}) {
 	// Layer 8: Cron scheduler (needs db, will get io instance later)
 	const cronScheduler = new CronSchedulerService(db, null);
 
+	// Layer 9: Webhook executor (needs db, will get io instance later)
+	const webhookExecutor = new WebhookExecutorService(db, null);
+
 	return {
 		// Core
 		config: configService,
@@ -197,6 +204,9 @@ export async function createServices(config = {}) {
 
 		// Cron scheduler
 		cronScheduler,
+
+		// Webhook executor
+		webhookExecutor,
 
 		// Convenience methods
 		getDatabase: () => db
@@ -257,6 +267,10 @@ export async function initializeServices(config = {}) {
 		// Initialize cron scheduler
 		await services.cronScheduler.init();
 		logger.info('SERVICES', 'Cron scheduler initialized');
+
+		// Initialize webhook executor
+		await services.webhookExecutor.init();
+		logger.info('SERVICES', 'Webhook executor initialized');
 
 		logger.info('SERVICES', 'Services initialized successfully');
 		logger.info('SERVICES', `SessionOrchestrator stats:`, services.sessionOrchestrator.getStats());

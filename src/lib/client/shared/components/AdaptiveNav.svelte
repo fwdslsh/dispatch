@@ -25,6 +25,7 @@
 	const navItems = [
 		{ id: 'workspace', label: 'Workspace', href: '/workspace', icon: IconFolder, shortcut: 'W' },
 		{ id: 'cron', label: 'Tasks', href: '/cron', icon: IconHistory, shortcut: 'T' },
+		{ id: 'webhooks', label: 'Webhooks', href: '/webhooks', icon: IconRobot, shortcut: 'H' },
 		{ id: 'settings', label: 'Settings', href: '/settings', icon: IconSettings, shortcut: 'S' }
 	];
 
