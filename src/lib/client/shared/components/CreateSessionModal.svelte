@@ -129,6 +129,18 @@
 					{#snippet icon()}<IconRobot size={32} />{/snippet}
 				</TypeCard>
 				<TypeCard
+					title="OpenCode"
+					description="OpenCode portal interface"
+					active={viewModel?.sessionType === SESSION_TYPE.OPENCODE}
+					disabled={viewModel?.loading}
+					onclick={() => handleTypeSelect(SESSION_TYPE.OPENCODE)}
+					aria-label="Select OpenCode tab type"
+					role="button"
+					tabindex="0"
+				>
+					{#snippet icon()}<IconRobot size={32} />{/snippet}
+				</TypeCard>
+				<TypeCard
 					title="Terminal"
 					description="Direct shell access"
 					active={viewModel?.sessionType === SESSION_TYPE.PTY}
@@ -234,7 +246,7 @@
 
 	@media (min-width: 1024px) {
 		.type-grid {
-			grid-template-columns: repeat(3, 1fr);
+			grid-template-columns: repeat(4, 1fr);
 		}
 	}
 
