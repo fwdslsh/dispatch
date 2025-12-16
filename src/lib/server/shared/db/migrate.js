@@ -688,5 +688,68 @@ export function createMigrationManager(database) {
 		)
 	);
 
+	// Migration 5: Webhook execution system
+	manager.registerMigration(
+		new Migration(
+			5,
+			'Webhook execution - webhooks and execution logs',
+			[
+				// Webhooks table for HTTP-triggered command execution
+				`CREATE TABLE IF NOT EXISTS webhooks (
+					id TEXT PRIMARY KEY,
+					name TEXT NOT NULL,
+					description TEXT,
+					uri_path TEXT NOT NULL,
+					http_method TEXT NOT NULL DEFAULT 'POST',
+					command TEXT NOT NULL,
+					workspace_path TEXT,
+					status TEXT NOT NULL DEFAULT 'active',
+					last_triggered INTEGER,
+					last_status TEXT,
+					last_error TEXT,
+					trigger_count INTEGER DEFAULT 0,
+					created_at INTEGER NOT NULL,
+					updated_at INTEGER NOT NULL,
+					created_by TEXT DEFAULT 'default'
+				)`,
+
+				// Webhook execution logs table for tracking trigger history
+				`CREATE TABLE IF NOT EXISTS webhook_logs (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					webhook_id TEXT NOT NULL,
+					request_method TEXT NOT NULL,
+					request_path TEXT NOT NULL,
+					request_body TEXT,
+					triggered_at INTEGER NOT NULL,
+					completed_at INTEGER,
+					status TEXT NOT NULL,
+					exit_code INTEGER,
+					output TEXT,
+					error TEXT,
+					duration_ms INTEGER,
+					client_ip TEXT,
+					FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
+				)`,
+
+				// Create indexes for webhooks
+				'CREATE UNIQUE INDEX IF NOT EXISTS ix_webhooks_uri_method ON webhooks(uri_path, http_method)',
+				'CREATE INDEX IF NOT EXISTS ix_webhooks_status ON webhooks(status)',
+
+				// Create indexes for webhook_logs
+				'CREATE INDEX IF NOT EXISTS ix_webhook_logs_webhook_id ON webhook_logs(webhook_id)',
+				'CREATE INDEX IF NOT EXISTS ix_webhook_logs_triggered_at ON webhook_logs(triggered_at)'
+			],
+			[
+				// Rollback: Drop indexes and tables in reverse order
+				'DROP INDEX IF EXISTS ix_webhook_logs_triggered_at',
+				'DROP INDEX IF EXISTS ix_webhook_logs_webhook_id',
+				'DROP INDEX IF EXISTS ix_webhooks_status',
+				'DROP INDEX IF EXISTS ix_webhooks_uri_method',
+				'DROP TABLE IF EXISTS webhook_logs',
+				'DROP TABLE IF EXISTS webhooks'
+			]
+		)
+	);
+
 	return manager;
 }

@@ -84,6 +84,18 @@
 			}
 		},
 		{
+			id: 'webhooks',
+			label: 'Go to Webhooks',
+			description: 'Manage webhook endpoints',
+			icon: IconRobot,
+			shortcut: '⌘3',
+			category: 'Navigation',
+			action: () => {
+				goto('/webhooks');
+				close();
+			}
+		},
+		{
 			id: 'settings',
 			label: 'Open Settings',
 			description: 'Configure application settings',
