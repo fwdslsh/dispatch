@@ -60,7 +60,7 @@ Attach to a session and receive event replay from a specific sequence number.
 
 ```javascript
 {
-  runId: 'pty_abc123',            // Session identifier
+  runId: 'terminal_abc123',       // Session identifier
   seq: 0,                         // Last seen sequence number (0 for full replay)
   clientId: 'client-abc123'       // Client identifier
 }
@@ -71,14 +71,14 @@ Attach to a session and receive event replay from a specific sequence number.
 ```javascript
 {
   success: true,
-  runId: 'pty_abc123',
-  kind: 'pty',                    // Session type: 'pty', 'claude', 'file-editor'
+  runId: 'terminal_abc123',
+  kind: 'terminal',               // Session type: 'terminal', 'ai', 'file-editor'
   status: 'running',              // 'starting', 'running', 'stopped', 'error'
   events: [                       // Event replay from seq onwards
     {
-      runId: 'pty_abc123',
+      runId: 'terminal_abc123',
       seq: 1,
-      channel: 'pty:stdout',
+      channel: 'terminal:output',
       type: 'chunk',
       payload: { data: '...' },
       ts: 1698765432100
@@ -103,7 +103,7 @@ Attach to a session and receive event replay from a specific sequence number.
 socket.emit(
 	'run:attach',
 	{
-		runId: 'pty_abc123',
+		runId: 'terminal_abc123',
 		seq: 0,
 		clientId: myClientId
 	},
@@ -121,7 +121,7 @@ socket.emit(
 socket.emit(
 	'run:attach',
 	{
-		runId: 'pty_abc123',
+		runId: 'terminal_abc123',
 		seq: lastSeenSeq, // Only get events after this
 		clientId: myClientId
 	},
@@ -139,7 +139,7 @@ Send input to a session (terminal keystrokes, Claude messages, etc.).
 
 ```javascript
 {
-  runId: 'pty_abc123',
+  runId: 'terminal_abc123',
   data: 'ls -la\n'                // String or Uint8Array
 }
 ```
@@ -164,13 +164,13 @@ socket.emit('run:input', {
 
 ### Client → Server: `run:resize`
 
-Resize terminal dimensions (PTY sessions only).
+Resize terminal dimensions (terminal sessions only).
 
 **Payload:**
 
 ```javascript
 {
-  runId: 'pty_abc123',
+  runId: 'terminal_abc123',
   cols: 120,                      // Terminal columns
   rows: 30                        // Terminal rows
 }
@@ -208,7 +208,7 @@ Terminate a session.
 
 ```javascript
 {
-	runId: 'pty_abc123';
+	runId: 'terminal_abc123';
 }
 ```
 
@@ -246,10 +246,10 @@ Real-time event emission for attached sessions.
 
 ```javascript
 {
-  runId: 'pty_abc123',
-  sessionId: 'pty_abc123',        // Alias for runId
+  runId: 'terminal_abc123',
+  sessionId: 'terminal_abc123',        // Alias for runId
   seq: 42,                        // Monotonic sequence number
-  channel: 'pty:stdout',          // Event channel
+  channel: 'terminal:stdout',          // Event channel
   type: 'chunk',                  // Event type
   payload: {                      // Event data (structure varies by channel)
     data: 'command output...'
@@ -260,11 +260,11 @@ Real-time event emission for attached sessions.
 
 **Channels by Session Type:**
 
-**PTY (Terminal) Channels:**
+**Terminal Channels:**
 
-- `pty:stdout` - Standard output
+- `terminal:stdout` - Standard output
   - `type: 'chunk'`, `payload: { data: string }`
-- `pty:stderr` - Standard error
+- `terminal:stderr` - Standard error
   - `type: 'chunk'`, `payload: { data: string }`
 - `system:status` - Session status changes
   - `type: 'json'`, `payload: { status: 'running'|'stopped'|'error' }`
@@ -293,7 +293,7 @@ socket.on('run:event', (event) => {
 
 	// Route by channel
 	switch (event.channel) {
-		case 'pty:stdout':
+		case 'terminal:stdout':
 			terminal.write(event.payload.data);
 			break;
 
@@ -586,13 +586,13 @@ Used by `/console` admin interface for monitoring.
 
 ```javascript
 // Server-side event recording
-await db.appendSessionEvent(runId, nextSeq, 'pty:stdout', 'chunk', { data: outputChunk });
+await db.appendSessionEvent(runId, nextSeq, 'terminal:stdout', 'chunk', { data: outputChunk });
 
 // Emit to connected clients
 io.to(`run:${runId}`).emit('run:event', {
 	runId,
 	seq: nextSeq,
-	channel: 'pty:stdout',
+	channel: 'terminal:stdout',
 	type: 'chunk',
 	payload: { data: outputChunk },
 	ts: Date.now()
