@@ -10,6 +10,7 @@
 
 import { terminalSessionModule } from '../../terminal/terminal.js';
 import { aiSessionModule } from '../../ai/ai.js';
+import { opencodeSessionModule } from '../../opencode/opencode.js';
 import { fileEditorSessionModule } from '../../file-editor/file-editor.js';
 import { registerSettingsSection } from '../../settings/registry/settings-registry.js';
 import { normalizeSessionType } from '$lib/shared/session-types.js';
@@ -68,4 +69,9 @@ export function getComponentForSessionType(type) {
 }
 
 // Register core session modules
-registerClientSessionModules(terminalSessionModule, aiSessionModule, fileEditorSessionModule);
+registerClientSessionModules(
+	terminalSessionModule,
+	aiSessionModule,
+	opencodeSessionModule,
+	fileEditorSessionModule
+);

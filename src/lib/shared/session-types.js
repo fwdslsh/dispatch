@@ -14,6 +14,8 @@
 export const SESSION_TYPE = {
 	/** AI agent sessions powered by OpenCode - PERSISTED */
 	AI: 'ai',
+	/** OpenCode sessions with portal UI - PERSISTED */
+	OPENCODE: 'opencode',
 	/** Terminal/PTY windows - EPHEMERAL (not persisted) */
 	TERMINAL: 'terminal',
 	/** File editor windows - EPHEMERAL (not persisted) */
@@ -25,15 +27,13 @@ export const SESSION_TYPE = {
 	/** @deprecated Use AI instead */
 	CLAUDE: 'ai',
 	/** @deprecated Use AI instead */
-	OPENCODE: 'ai',
-	/** @deprecated Use AI instead */
 	OPENCODE_TUI: 'ai'
 };
 
 /**
  * Canonical session types (excludes deprecated aliases)
  */
-export const CANONICAL_SESSION_TYPES = ['ai', 'terminal', 'file-editor'];
+export const CANONICAL_SESSION_TYPES = ['ai', 'opencode', 'terminal', 'file-editor'];
 
 /**
  * Ephemeral session types - these are NOT persisted to DB
@@ -43,9 +43,9 @@ export const EPHEMERAL_SESSION_TYPES = ['terminal', 'file-editor'];
 
 /**
  * Persistent session types - these ARE persisted to DB
- * Only OpenCode/AI sessions are persistent
+ * OpenCode/AI sessions are persistent
  */
-export const PERSISTENT_SESSION_TYPES = ['ai'];
+export const PERSISTENT_SESSION_TYPES = ['ai', 'opencode'];
 
 /**
  * Valid session types as an array (includes aliases for migration)
