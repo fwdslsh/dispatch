@@ -15,7 +15,7 @@
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 	// Props
-	let { open = $bindable(false), initialType = SESSION_TYPE.AI, oncreated, onclose } = $props();
+	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();
 
 	// ViewModel (business logic)
 	let viewModel = $state(null);
@@ -102,7 +102,7 @@
 
 <Modal
 	bind:open
-	title="Create New Session"
+	title="New Tab"
 	size="fullscreen"
 	closeOnBackdrop={true}
 	closeOnEscape={true}
@@ -111,18 +111,18 @@
 	class="create-session-modal"
 >
 	<div class="modal-content p-5 flex flex-col gap-4">
-		<!-- Session Type Selection -->
-		<FormSection label="Session Type">
+		<!-- Tab Type Selection -->
+		<FormSection label="Tab Type">
 			{#snippet icon()}<IconPlus size={18} />{/snippet}
 
 			<div class="type-grid">
 				<TypeCard
-					title="AI Assistant"
-					description="AI-powered coding assistant (OpenCode SDK)"
-					active={viewModel?.sessionType === SESSION_TYPE.AI}
+					title="AI Agent"
+					description="AI-powered coding assistant"
+					active={viewModel?.sessionType === SESSION_TYPE.CLAUDE}
 					disabled={viewModel?.loading}
-					onclick={() => handleTypeSelect(SESSION_TYPE.AI)}
-					aria-label="Select AI Assistant session type"
+					onclick={() => handleTypeSelect(SESSION_TYPE.CLAUDE)}
+					aria-label="Select AI Agent tab type"
 					role="button"
 					tabindex="0"
 				>
@@ -131,10 +131,10 @@
 				<TypeCard
 					title="Terminal"
 					description="Direct shell access"
-					active={viewModel?.sessionType === SESSION_TYPE.TERMINAL}
+					active={viewModel?.sessionType === SESSION_TYPE.PTY}
 					disabled={viewModel?.loading}
-					onclick={() => handleTypeSelect(SESSION_TYPE.TERMINAL)}
-					aria-label="Select Terminal session type"
+					onclick={() => handleTypeSelect(SESSION_TYPE.PTY)}
+					aria-label="Select Terminal tab type"
 					role="button"
 					tabindex="0"
 				>
@@ -146,7 +146,7 @@
 					active={viewModel?.sessionType === SESSION_TYPE.FILE_EDITOR}
 					disabled={viewModel?.loading}
 					onclick={() => handleTypeSelect(SESSION_TYPE.FILE_EDITOR)}
-					aria-label="Select File Editor session type"
+					aria-label="Select File Editor tab type"
 					role="button"
 					tabindex="0"
 				>
@@ -213,7 +213,7 @@
 					<IconPlus size={18} />
 				{/if}
 			{/snippet}
-			{viewModel?.loading ? 'Creating...' : 'Create Session'}
+			{viewModel?.loading ? 'Creating...' : 'Create'}
 		</Button>
 	{/snippet}
 </Modal>

@@ -120,7 +120,12 @@ export class WorkspaceViewModel {
 		this.workspaceViewMode = mode;
 		// Debug: Check derived values after setting
 		setTimeout(() => {
-			log.info('After mode change - isSingleSessionView:', this.isSingleSessionView, 'isWindowManagerView:', this.isWindowManagerView);
+			log.info(
+				'After mode change - isSingleSessionView:',
+				this.isSingleSessionView,
+				'isWindowManagerView:',
+				this.isWindowManagerView
+			);
 		}, 0);
 	}
 
@@ -451,7 +456,7 @@ export class WorkspaceViewModel {
 
 			// If this was a resume operation, add the session to window manager
 			if (detail?.shouldResume) {
-				const session = this.sessionViewModel.sessions.find(s => s.id === selectedId);
+				const session = this.sessionViewModel.sessions.find((s) => s.id === selectedId);
 				if (session && session.isActive) {
 					this.addSessionToPane(session);
 				}

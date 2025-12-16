@@ -54,9 +54,9 @@ export function isValidSessionType(type) {
 export function normalizeSessionType(type) {
 	// Map legacy types to canonical types
 	const legacyMap = {
-		'pty': 'terminal',
-		'claude': 'ai',
-		'opencode': 'ai',
+		pty: 'terminal',
+		claude: 'ai',
+		opencode: 'ai',
 		'opencode-tui': 'ai'
 	};
 	return legacyMap[type] || type;

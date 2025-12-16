@@ -1,7 +1,13 @@
 import { json } from '@sveltejs/kit';
 import { readFile, writeFile, stat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
-import { ApiError, BadRequestError, ForbiddenError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	ApiError,
+	BadRequestError,
+	ForbiddenError,
+	NotFoundError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {

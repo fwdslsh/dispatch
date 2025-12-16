@@ -29,7 +29,7 @@ export class CreateSessionViewModel {
 		this.sessionApi = sessionApi;
 
 		// Form state
-		this.sessionType = $state(SESSION_TYPE.AI);
+		this.sessionType = $state(SESSION_TYPE.CLAUDE);
 		this.workspacePath = $state('');
 		this.sessionSettings = $state({});
 
@@ -93,7 +93,7 @@ export class CreateSessionViewModel {
 	 * Reset to initial state
 	 * @param {string} [sessionType] - Optional session type to reset to
 	 */
-	reset(sessionType = SESSION_TYPE.AI) {
+	reset(sessionType = SESSION_TYPE.CLAUDE) {
 		this.sessionType = sessionType;
 		this.workspacePath = '';
 		this.sessionSettings = {};
@@ -158,7 +158,6 @@ export class CreateSessionViewModel {
 	 * @returns {Promise<Object|null>} Created session object or null on failure
 	 */
 	async createSession() {
-
 		// Validate before attempting creation
 		if (!this.validate()) {
 			console.error('[CreateSessionViewModel] Validation failed:', this.error);
@@ -175,7 +174,6 @@ export class CreateSessionViewModel {
 				workspacePath: this.workspacePath,
 				options: this.sessionSettings
 			});
-
 
 			// Return success data for the View to handle
 			return {

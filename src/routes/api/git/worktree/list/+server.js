@@ -2,7 +2,11 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { BadRequestError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	BadRequestError,
+	NotFoundError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Expand tilde (~) in paths
 function expandTilde(filepath) {

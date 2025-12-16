@@ -66,8 +66,8 @@
 					<IconButton
 						onclick={() => onNavigateSession('prev')}
 						disabled={desktopPrevDisabled}
-						aria-label="Previous session"
-						title="Previous session"
+						aria-label="Previous tab"
+						title="Previous tab"
 					>
 						<IconPlayerTrackPrev size={18} />
 					</IconButton>
@@ -81,15 +81,15 @@
 					<IconButton
 						onclick={() => onNavigateSession('next')}
 						disabled={desktopNextDisabled}
-						aria-label="Next session"
-						title="Next session"
+						aria-label="Next tab"
+						title="Next tab"
 					>
 						<IconPlayerTrackNext size={18} />
 					</IconButton>
 				</div>
 			{/if}
 
-			<IconButton onclick={onToggleSessionMenu} aria-label="Open sessions">
+			<IconButton onclick={onToggleSessionMenu} aria-label="Open tabs">
 				{#if sessionMenuOpen}
 					<IconCodeMinus size={18} />
 				{:else}

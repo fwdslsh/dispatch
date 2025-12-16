@@ -2,7 +2,12 @@ import { json } from '@sveltejs/kit';
 import { writeFile, stat, mkdir } from 'node:fs/promises';
 import { resolve, dirname, basename, join } from 'node:path';
 import { homedir } from 'node:os';
-import { ApiError, BadRequestError, ForbiddenError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	ApiError,
+	BadRequestError,
+	ForbiddenError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Get the base directory for file operations (can be configured via environment)
 function getBaseDirectory() {

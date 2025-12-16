@@ -129,7 +129,7 @@ export class SessionApiClient {
 				.map((s) => {
 					if (!s) return null;
 					const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
-					const type = s.type || s.kind || s.sessionType || s.kind_name || SESSION_TYPE.TERMINAL;
+					const type = s.type || s.kind || s.sessionType || s.kind_name || SESSION_TYPE.PTY;
 					const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
 					const isActive =
 						s.isActive === true ||
@@ -186,7 +186,13 @@ export class SessionApiClient {
 			// Validate session type
 			if (
 				!type ||
-				![SESSION_TYPE.TERMINAL, SESSION_TYPE.AI, SESSION_TYPE.FILE_EDITOR].includes(type)
+				![
+					SESSION_TYPE.PTY,
+					SESSION_TYPE.CLAUDE,
+					SESSION_TYPE.FILE_EDITOR,
+					SESSION_TYPE.OPENCODE,
+					SESSION_TYPE.OPENCODE_TUI
+				].includes(type)
 			) {
 				console.error('[SessionApiClient] Invalid session type:', type);
 				throw new Error(`Invalid session type: ${type}`);
@@ -203,7 +209,6 @@ export class SessionApiClient {
 				body.sessionId = sessionId;
 			}
 
-
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
 				method: 'POST',
 				headers: this.getHeaders(),
@@ -213,7 +218,6 @@ export class SessionApiClient {
 				console.error('[SessionApiClient] Network error:', fetchError);
 				throw new Error(`Network error: ${fetchError.message}`);
 			});
-
 
 			const raw = await this.handleResponse(response);
 			const id =
@@ -232,12 +236,16 @@ export class SessionApiClient {
 			// Get title based on session type
 			const getSessionTitle = (sessionType) => {
 				switch (sessionType) {
-					case SESSION_TYPE.AI:
-						return 'AI Assistant';
-					case SESSION_TYPE.TERMINAL:
+					case SESSION_TYPE.CLAUDE:
+						return 'Claude session';
+					case SESSION_TYPE.PTY:
 						return 'Terminal session';
 					case SESSION_TYPE.FILE_EDITOR:
 						return 'File Editor';
+					case SESSION_TYPE.OPENCODE:
+						return 'OpenCode session';
+					case SESSION_TYPE.OPENCODE_TUI:
+						return 'OpenCode TUI session';
 					default:
 						return `${sessionType} session`;
 				}
@@ -489,7 +497,9 @@ export class SessionApiClient {
 			return false;
 		}
 
-		if (![SESSION_TYPE.TERMINAL, SESSION_TYPE.AI, SESSION_TYPE.FILE_EDITOR].includes(options.type)) {
+		if (
+			![SESSION_TYPE.TERMINAL, SESSION_TYPE.AI, SESSION_TYPE.FILE_EDITOR].includes(options.type)
+		) {
 			return false;
 		}
 

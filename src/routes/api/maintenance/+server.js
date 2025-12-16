@@ -1,5 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { UnauthorizedError, BadRequestError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	UnauthorizedError,
+	BadRequestError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 /**
  * Maintenance API - Data cleanup operations based on user preferences

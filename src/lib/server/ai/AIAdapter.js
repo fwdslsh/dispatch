@@ -220,7 +220,9 @@ export class AIAdapter {
 							});
 
 							if (createResponse.error) {
-								throw new Error(`Failed to create session: ${JSON.stringify(createResponse.error)}`);
+								throw new Error(
+									`Failed to create session: ${JSON.stringify(createResponse.error)}`
+								);
 							}
 
 							activeSession = createResponse.data || createResponse;

@@ -32,14 +32,14 @@ export class WorkspaceLayoutService {
 
 			// Build pane configs from current active sessions
 			const paneConfigs = sessionsList
-				.filter(s => s.isActive)
+				.filter((s) => s.isActive)
 				.map((session, index) => ({
 					sessionId: session.id,
 					sessionType: session.sessionType || session.type, // Try both fields
 					paneConfig: {}, // Empty config - BwinHost manages internal state
 					paneOrder: index
 				}))
-				.filter(p => p.sessionType); // Filter out sessions without a type
+				.filter((p) => p.sessionType); // Filter out sessions without a type
 
 			log.info('Saving workspace layout', {
 				workspacePath,
@@ -63,7 +63,6 @@ export class WorkspaceLayoutService {
 			const result = await response.json();
 			log.info('Workspace layout saved successfully', result);
 			return result;
-
 		} catch (error) {
 			log.error('Failed to save workspace layout:', error);
 			throw error;
@@ -144,7 +143,6 @@ export class WorkspaceLayoutService {
 			});
 
 			return layout;
-
 		} catch (error) {
 			log.error('Failed to load workspace layout:', error);
 			// Return null instead of throwing - missing layout is not an error
@@ -179,7 +177,6 @@ export class WorkspaceLayoutService {
 			const result = await response.json();
 			log.info('Workspace layout cleared successfully');
 			return result;
-
 		} catch (error) {
 			log.error('Failed to clear workspace layout:', error);
 			throw error;

@@ -72,7 +72,10 @@
 	// Sync local viewMode with ViewModel changes
 	$effect(() => {
 		if (workspaceViewModel) {
-			console.log('[WorkspacePage] Syncing viewMode from ViewModel:', workspaceViewModel.workspaceViewMode);
+			console.log(
+				'[WorkspacePage] Syncing viewMode from ViewModel:',
+				workspaceViewModel.workspaceViewMode
+			);
 			viewMode = workspaceViewModel.workspaceViewMode;
 		}
 	});
@@ -195,10 +198,10 @@
 				class="session-sheet flex-col"
 				class:open={workspaceViewModel.sessionMenuOpen}
 				role="dialog"
-				aria-label="Sessions"
+				aria-label="Tabs"
 			>
 				<div class="flex-between p-3" style="border-bottom: 1px solid var(--primary-muted);">
-					<div class="modal-title" style="color: var(--primary); font-weight: 700;">Sessions</div>
+					<div class="modal-title" style="color: var(--primary); font-weight: 700;">Tabs</div>
 					<button
 						class="sheet-close"
 						onclick={() => (workspaceViewModel.sessionMenuOpen = false)}
@@ -285,7 +288,7 @@
 			hasActiveSessions={workspaceViewModel?.hasActiveSessions}
 			currentSessionIndex={workspaceViewModel?.currentSessionIndex}
 			totalSessions={workspaceViewModel?.totalSessions}
-			viewMode={viewMode}
+			{viewMode}
 		/>
 	{/snippet}
 

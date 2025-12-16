@@ -254,8 +254,8 @@ export class OAuthManager {
 				enabled: true,
 				clientId,
 				clientSecret: encryptionService.isAvailable()
-				? encryptionService.encrypt(clientSecret)
-				: clientSecret, // Encrypted at rest
+					? encryptionService.encrypt(clientSecret)
+					: clientSecret, // Encrypted at rest
 				redirectUri: redirectUri || this.getDefaultRedirectUri(provider),
 				updatedAt: Date.now()
 			};

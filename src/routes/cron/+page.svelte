@@ -243,60 +243,102 @@
 					<!-- Statistics -->
 					{#if cronService}
 						<div class="stats-grid">
-			<div class="stat-card">
-				<div class="stat-icon total">
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<rect x="3" y="3" width="7" height="7" stroke-width="2" stroke-linecap="round" />
-						<rect x="14" y="3" width="7" height="7" stroke-width="2" stroke-linecap="round" />
-						<rect x="3" y="14" width="7" height="7" stroke-width="2" stroke-linecap="round" />
-						<rect x="14" y="14" width="7" height="7" stroke-width="2" stroke-linecap="round" />
-					</svg>
-				</div>
-				<div class="stat-content">
-					<div class="stat-label">Total Tasks</div>
-					<div class="stat-value">{stats().total}</div>
-				</div>
-			</div>
+							<div class="stat-card">
+								<div class="stat-icon total">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+										<rect
+											x="3"
+											y="3"
+											width="7"
+											height="7"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+										<rect
+											x="14"
+											y="3"
+											width="7"
+											height="7"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+										<rect
+											x="3"
+											y="14"
+											width="7"
+											height="7"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+										<rect
+											x="14"
+											y="14"
+											width="7"
+											height="7"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+									</svg>
+								</div>
+								<div class="stat-content">
+									<div class="stat-label">Total Tasks</div>
+									<div class="stat-value">{stats().total}</div>
+								</div>
+							</div>
 
-			<div class="stat-card">
-				<div class="stat-icon active">
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<circle cx="12" cy="12" r="10" stroke-width="2" />
-						<path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" />
-					</svg>
-				</div>
-				<div class="stat-content">
-					<div class="stat-label">Active</div>
-					<div class="stat-value">{stats().active}</div>
-				</div>
-			</div>
+							<div class="stat-card">
+								<div class="stat-icon active">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+										<circle cx="12" cy="12" r="10" stroke-width="2" />
+										<path d="M12 6v6l4 2" stroke-width="2" stroke-linecap="round" />
+									</svg>
+								</div>
+								<div class="stat-content">
+									<div class="stat-label">Active</div>
+									<div class="stat-value">{stats().active}</div>
+								</div>
+							</div>
 
-			<div class="stat-card">
-				<div class="stat-icon paused">
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<rect x="6" y="4" width="4" height="16" stroke-width="2" stroke-linecap="round" />
-						<rect x="14" y="4" width="4" height="16" stroke-width="2" stroke-linecap="round" />
-					</svg>
-				</div>
-				<div class="stat-content">
-					<div class="stat-label">Paused</div>
-					<div class="stat-value">{stats().paused}</div>
-				</div>
-			</div>
+							<div class="stat-card">
+								<div class="stat-icon paused">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+										<rect
+											x="6"
+											y="4"
+											width="4"
+											height="16"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+										<rect
+											x="14"
+											y="4"
+											width="4"
+											height="16"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+									</svg>
+								</div>
+								<div class="stat-content">
+									<div class="stat-label">Paused</div>
+									<div class="stat-value">{stats().paused}</div>
+								</div>
+							</div>
 
-			<div class="stat-card">
-				<div class="stat-icon error">
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<circle cx="12" cy="12" r="10" stroke-width="2" />
-						<path d="M12 8v4m0 4h.01" stroke-width="2" stroke-linecap="round" />
-					</svg>
-				</div>
-				<div class="stat-content">
-					<div class="stat-label">Errors</div>
-					<div class="stat-value">{stats().error}</div>
-				</div>
-			</div>
-		</div>
+							<div class="stat-card">
+								<div class="stat-icon error">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+										<circle cx="12" cy="12" r="10" stroke-width="2" />
+										<path d="M12 8v4m0 4h.01" stroke-width="2" stroke-linecap="round" />
+									</svg>
+								</div>
+								<div class="stat-content">
+									<div class="stat-label">Errors</div>
+									<div class="stat-value">{stats().error}</div>
+								</div>
+							</div>
+						</div>
 					{/if}
 
 					<!-- Job list -->
@@ -328,24 +370,24 @@
 			</main>
 		</div>
 
-	<!-- Create/Edit Modal -->
-	{#if showCreateModal}
-		<CronJobForm
-			job={editingJob}
-			onSave={handleSaveJob}
-			onCancel={handleCloseModal}
-			cronService={cronService}
-		/>
-	{/if}
+		<!-- Create/Edit Modal -->
+		{#if showCreateModal}
+			<CronJobForm
+				job={editingJob}
+				onSave={handleSaveJob}
+				onCancel={handleCloseModal}
+				{cronService}
+			/>
+		{/if}
 
-	<!-- Log Viewer -->
-	{#if selectedJobForLogs}
-		<CronLogViewer
-			job={selectedJobForLogs}
-			logs={cronService?.logs || []}
-			onClose={handleCloseLogs}
-		/>
-	{/if}
+		<!-- Log Viewer -->
+		{#if selectedJobForLogs}
+			<CronLogViewer
+				job={selectedJobForLogs}
+				logs={cronService?.logs || []}
+				onClose={handleCloseLogs}
+			/>
+		{/if}
 	</div>
 
 	{#snippet footer()}
@@ -532,7 +574,6 @@
 		font-weight: 700;
 		color: var(--text-primary);
 	}
-
 
 	.jobs-grid {
 		display: grid;

@@ -40,8 +40,8 @@
 
 	<IconButton
 		onclick={handleClose}
-		title="Close session"
-		aria-label="Close session"
+		title="Close tab"
+		aria-label="Close tab"
 		variant="danger"
 		size="small"
 	>

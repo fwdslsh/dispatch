@@ -449,7 +449,7 @@ export class SessionViewModel {
 			log.info('Resuming session', sessionId);
 
 			const existingSession = this.appStateManager.sessions.getSession(sessionId);
-			const sessionType = existingSession?.sessionType || existingSession?.type || SESSION_TYPE.TERMINAL;
+			const sessionType = existingSession?.sessionType || existingSession?.type || SESSION_TYPE.PTY;
 			const resolvedWorkspace = existingSession?.workspacePath || workspacePath || '';
 
 			// Resume is handled via create with resume flag
@@ -660,7 +660,7 @@ export class SessionViewModel {
 		}
 
 		switch (sessionType) {
-			case SESSION_TYPE.AI: {
+			case SESSION_TYPE.CLAUDE: {
 				// Get raw values from settings service
 				const model = this.settingsService.get('claude.model', '');
 				const customSystemPrompt = this.settingsService.get('claude.customSystemPrompt', '');
@@ -721,7 +721,9 @@ export class SessionViewModel {
 				};
 
 				// Filter out undefined values to keep payload clean
-				return Object.fromEntries(Object.entries(cleanSettings).filter(([_, v]) => v !== undefined));
+				return Object.fromEntries(
+					Object.entries(cleanSettings).filter(([_, v]) => v !== undefined)
+				);
 			}
 
 			default:

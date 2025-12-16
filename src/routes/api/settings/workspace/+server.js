@@ -39,10 +39,7 @@ export async function POST({ request, locals }) {
 		// Validate environment variable names
 		for (const [key, value] of Object.entries(envVariables)) {
 			if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
-				throw new BadRequestError(
-					`Invalid environment variable name: ${key}`,
-					'INVALID_ENV_NAME'
-				);
+				throw new BadRequestError(`Invalid environment variable name: ${key}`, 'INVALID_ENV_NAME');
 			}
 			if (typeof value !== 'string') {
 				throw new BadRequestError(

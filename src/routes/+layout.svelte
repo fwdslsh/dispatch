@@ -222,7 +222,7 @@
 				/* eslint-disable svelte/no-navigation-without-resolve */
 				goto('/workspace', { replaceState: true });
 				/* eslint-enable svelte/no-navigation-without-resolve */
-		}
+			}
 		} catch (error) {
 			console.error('[Layout] ❌ Failed to check onboarding status:', error);
 			console.error('[Layout] ❌ Error stack:', error.stack);

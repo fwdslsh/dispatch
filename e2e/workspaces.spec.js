@@ -25,7 +25,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 	test('should create new workspace via API', async ({ request }) => {
 		const response = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -46,7 +46,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Create a workspace first
 		await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -58,7 +58,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// List workspaces
 		const response = await request.get(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -68,7 +68,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		expect(Array.isArray(workspaces)).toBe(true);
 		expect(workspaces.length).toBeGreaterThan(0);
 
-		const workspace = workspaces.find(w => w.name === 'list-test-workspace');
+		const workspace = workspaces.find((w) => w.name === 'list-test-workspace');
 		expect(workspace).toBeTruthy();
 	});
 
@@ -76,7 +76,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Create workspace
 		const createResponse = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -91,7 +91,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Get workspace details
 		const response = await request.get(`${BASE_URL}/api/workspaces/${workspaceId}`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -106,7 +106,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Create workspace
 		const createResponse = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -121,7 +121,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Delete workspace
 		const deleteResponse = await request.delete(`${BASE_URL}/api/workspaces/${workspaceId}`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -130,12 +130,12 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Verify workspace is deleted
 		const listResponse = await request.get(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
 		const workspaces = await listResponse.json();
-		const deletedWorkspace = workspaces.find(w => w.id === workspaceId);
+		const deletedWorkspace = workspaces.find((w) => w.id === workspaceId);
 		expect(deletedWorkspace).toBeFalsy();
 	});
 
@@ -143,7 +143,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Create workspace
 		const createResponse = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -158,7 +158,7 @@ test.describe('Workspace Management - CRUD Operations', () => {
 		// Update workspace
 		const updateResponse = await request.patch(`${BASE_URL}/api/workspaces/${workspaceId}`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -189,7 +189,9 @@ test.describe('Workspace Management - UI Operations', () => {
 
 	test('should show workspace selector/switcher in UI', async ({ page }) => {
 		// Look for workspace indicator or selector
-		const workspaceElement = page.locator('[data-testid="workspace-selector"], .workspace-selector, .workspace-name').first();
+		const workspaceElement = page
+			.locator('[data-testid="workspace-selector"], .workspace-selector, .workspace-name')
+			.first();
 
 		// Workspace UI should be visible
 		const isVisible = await workspaceElement.isVisible({ timeout: 5000 }).catch(() => false);
@@ -200,7 +202,7 @@ test.describe('Workspace Management - UI Operations', () => {
 		// Create multiple workspaces via API
 		await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: { name: 'ui-workspace-1', path: '/workspace/ui-1' }
@@ -208,7 +210,7 @@ test.describe('Workspace Management - UI Operations', () => {
 
 		await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: { name: 'ui-workspace-2', path: '/workspace/ui-2' }
@@ -219,7 +221,9 @@ test.describe('Workspace Management - UI Operations', () => {
 
 		// Workspaces might be in a dropdown, sidebar, or workspace switcher
 		// Try to find workspace list trigger
-		const workspaceTrigger = page.locator('button:has-text("Workspaces"), [aria-label*="Workspace"], .workspace-trigger').first();
+		const workspaceTrigger = page
+			.locator('button:has-text("Workspaces"), [aria-label*="Workspace"], .workspace-trigger')
+			.first();
 		if (await workspaceTrigger.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await workspaceTrigger.click();
 		}
@@ -229,8 +233,8 @@ test.describe('Workspace Management - UI Operations', () => {
 		const workspace2 = page.locator('text="ui-workspace-2"').first();
 
 		// At least check that workspace elements exist (they might be hidden in a menu)
-		const hasWorkspace1 = await workspace1.count() > 0;
-		const hasWorkspace2 = await workspace2.count() > 0;
+		const hasWorkspace1 = (await workspace1.count()) > 0;
+		const hasWorkspace2 = (await workspace2.count()) > 0;
 
 		// Both workspaces should exist in the DOM
 		expect(hasWorkspace1 || hasWorkspace2).toBe(true);
@@ -248,7 +252,7 @@ test.describe('Workspace Management - File Operations', () => {
 	test('should browse workspace files via API', async ({ request }) => {
 		const response = await request.get(`${BASE_URL}/api/browse?path=/workspace`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -262,7 +266,7 @@ test.describe('Workspace Management - File Operations', () => {
 		// First, check if /api/files endpoint exists
 		const response = await request.get(`${BASE_URL}/api/files?path=/workspace/README.md`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -273,7 +277,7 @@ test.describe('Workspace Management - File Operations', () => {
 	test('should write file to workspace via API', async ({ request }) => {
 		const response = await request.post(`${BASE_URL}/api/files`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -310,7 +314,7 @@ test.describe('Workspace Management - Settings', () => {
 
 		// Workspace settings section might exist
 		const workspaceSection = page.locator('text=/Workspace|Work Space/i').first();
-		const hasWorkspaceSettings = await workspaceSection.count() > 0;
+		const hasWorkspaceSettings = (await workspaceSection.count()) > 0;
 
 		// Just verify settings page loads
 		expect(await settingsPage.count()).toBeGreaterThan(0);
@@ -320,7 +324,7 @@ test.describe('Workspace Management - Settings', () => {
 		// Get workspace settings via API
 		const response = await request.get(`${BASE_URL}/api/settings?category=workspace`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -342,7 +346,7 @@ test.describe('Workspace Management - Session Association', () => {
 		// Create a workspace
 		const response = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -359,7 +363,7 @@ test.describe('Workspace Management - Session Association', () => {
 		// Create session with workspace path
 		const response = await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -382,7 +386,7 @@ test.describe('Workspace Management - Session Association', () => {
 		// Create sessions in workspace
 		await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -394,7 +398,7 @@ test.describe('Workspace Management - Session Association', () => {
 
 		await request.post(`${BASE_URL}/api/sessions`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -407,7 +411,7 @@ test.describe('Workspace Management - Session Association', () => {
 		// Get workspace details (might include session count)
 		const response = await request.get(`${BASE_URL}/api/workspaces/${workspaceId}`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 
@@ -434,12 +438,12 @@ test.describe('Workspace Management - Validation', () => {
 	test('should reject workspace with invalid path', async ({ request }) => {
 		const response = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
 				name: 'invalid-workspace',
-				path: '../../../etc/passwd'  // Path traversal attempt
+				path: '../../../etc/passwd' // Path traversal attempt
 			}
 		});
 
@@ -451,7 +455,7 @@ test.describe('Workspace Management - Validation', () => {
 		// Create first workspace
 		await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -463,7 +467,7 @@ test.describe('Workspace Management - Validation', () => {
 		// Try to create duplicate
 		const response = await request.post(`${BASE_URL}/api/workspaces`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -503,7 +507,7 @@ test.describe('Workspace Management - Git Integration', () => {
 		// Try to clone a repository via API
 		const response = await request.post(`${BASE_URL}/api/git/clone`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`,
+				Authorization: `Bearer ${apiKey}`,
 				'Content-Type': 'application/json'
 			},
 			data: {
@@ -519,7 +523,7 @@ test.describe('Workspace Management - Git Integration', () => {
 	test('should show git status for workspace', async ({ request }) => {
 		const response = await request.get(`${BASE_URL}/api/git/status?path=/workspace`, {
 			headers: {
-				'Authorization': `Bearer ${apiKey}`
+				Authorization: `Bearer ${apiKey}`
 			}
 		});
 

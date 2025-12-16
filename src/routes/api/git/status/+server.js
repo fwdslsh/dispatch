@@ -1,7 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { resolve } from 'node:path';
 import { execGit } from '$lib/server/shared/git-utils.js';
-import { BadRequestError, NotFoundError, handleApiError } from '$lib/server/shared/utils/api-errors.js';
+import {
+	BadRequestError,
+	NotFoundError,
+	handleApiError
+} from '$lib/server/shared/utils/api-errors.js';
 
 // Parse git status output
 function parseGitStatus(output) {

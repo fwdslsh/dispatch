@@ -8,7 +8,9 @@
  */
 export async function listCronJobs(db, status = null) {
 	if (status) {
-		return await db.all('SELECT * FROM cron_jobs WHERE status = ? ORDER BY created_at DESC', [status]);
+		return await db.all('SELECT * FROM cron_jobs WHERE status = ? ORDER BY created_at DESC', [
+			status
+		]);
 	}
 	return await db.all('SELECT * FROM cron_jobs ORDER BY created_at DESC');
 }
@@ -55,8 +57,17 @@ export async function updateCronJob(db, id, updates) {
 	const values = [];
 
 	const allowedFields = [
-		'name', 'description', 'cron_expression', 'command', 'workspace_path',
-		'status', 'last_run', 'last_status', 'last_error', 'next_run', 'run_count'
+		'name',
+		'description',
+		'cron_expression',
+		'command',
+		'workspace_path',
+		'status',
+		'last_run',
+		'last_status',
+		'last_error',
+		'next_run',
+		'run_count'
 	];
 
 	for (const [key, value] of Object.entries(updates)) {
@@ -73,10 +84,7 @@ export async function updateCronJob(db, id, updates) {
 	values.push(Date.now());
 	values.push(id);
 
-	await db.run(
-		`UPDATE cron_jobs SET ${fields.join(', ')} WHERE id = ?`,
-		values
-	);
+	await db.run(`UPDATE cron_jobs SET ${fields.join(', ')} WHERE id = ?`, values);
 
 	return await getCronJob(db, id);
 }
@@ -121,20 +129,17 @@ export async function updateCronLog(db, id, updates) {
 
 	values.push(id);
 
-	await db.run(
-		`UPDATE cron_logs SET ${fields.join(', ')} WHERE id = ?`,
-		values
-	);
+	await db.run(`UPDATE cron_logs SET ${fields.join(', ')} WHERE id = ?`, values);
 }
 
 /**
  * Get logs for a job
  */
 export async function getCronLogs(db, jobId, limit = 100) {
-	return await db.all(
-		'SELECT * FROM cron_logs WHERE job_id = ? ORDER BY started_at DESC LIMIT ?',
-		[jobId, limit]
-	);
+	return await db.all('SELECT * FROM cron_logs WHERE job_id = ? ORDER BY started_at DESC LIMIT ?', [
+		jobId,
+		limit
+	]);
 }
 
 /**

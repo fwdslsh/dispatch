@@ -222,7 +222,10 @@ export function createAuthenticationMiddleware(services, options = {}) {
 
 		if (!result.authenticated) {
 			if (required) {
-				logger.warn('SOCKET', `Authentication required for event ${event} from socket ${socket.id}`);
+				logger.warn(
+					'SOCKET',
+					`Authentication required for event ${event} from socket ${socket.id}`
+				);
 
 				// Send error response via callback
 				if (callback && typeof callback === 'function') {

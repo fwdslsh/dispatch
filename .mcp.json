@@ -11,17 +11,6 @@
 		"playwright-test": {
 			"command": "npx",
 			"args": ["playwright", "run-test-mcp-server"]
-		},
-		"voice-mcp": {
-			"command": "node",
-			"args": ["../converse/dist/converse.js"],
-			"env": {
-				"STT_API_URL": "http://192.168.1.195:9090/v1/audio/transcriptions",
-				"STT_API_KEY": "2c66f8a4717ffa8dccatd71fefe5f9ae67a86919f8d56c6b",
-				"TTS_API_URL": "http://192.168.1.195:9090/v1/audio/speech",
-				"TTS_API_KEY": "2c66f8a4717ffa8dccatd71fefe5f9ae67a86919f8d56c6b",
-				"TTS_VOICE": "voice-en-us-kathleen-low"
-			}
 		}
 	}
 }

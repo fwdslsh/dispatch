@@ -18,12 +18,16 @@ import {
  */
 function getSessionTitle(kind) {
 	switch (kind) {
-		case SESSION_TYPE.AI:
-			return 'AI Assistant';
-		case SESSION_TYPE.TERMINAL:
+		case SESSION_TYPE.CLAUDE:
+			return 'Claude Session';
+		case SESSION_TYPE.PTY:
 			return 'Terminal Session';
 		case SESSION_TYPE.FILE_EDITOR:
 			return 'File Editor Session';
+		case SESSION_TYPE.OPENCODE:
+			return 'OpenCode Session';
+		case SESSION_TYPE.OPENCODE_TUI:
+			return 'OpenCode TUI Session';
 		default:
 			return `${kind} Session`;
 	}
