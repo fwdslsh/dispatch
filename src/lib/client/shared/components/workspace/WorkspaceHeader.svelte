@@ -40,6 +40,13 @@
 			Cron Jobs
 		</a>
 		<a
+			href="/webhooks"
+			class="nav-link"
+			class:active={globalThis.location?.pathname === '/webhooks'}
+		>
+			Webhooks
+		</a>
+		<a
 			href="/settings"
 			class="nav-link"
 			class:active={globalThis.location?.pathname === '/settings'}
