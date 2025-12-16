@@ -26,11 +26,10 @@ export async function getWebhook(db, id) {
  * Get a webhook by URI path and HTTP method
  */
 export async function getWebhookByRoute(db, uriPath, httpMethod) {
-	return await db.get('SELECT * FROM webhooks WHERE uri_path = ? AND http_method = ? AND status = ?', [
-		uriPath,
-		httpMethod.toUpperCase(),
-		'active'
-	]);
+	return await db.get(
+		'SELECT * FROM webhooks WHERE uri_path = ? AND http_method = ? AND status = ?',
+		[uriPath, httpMethod.toUpperCase(), 'active']
+	);
 }
 
 /**

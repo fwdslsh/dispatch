@@ -35,7 +35,8 @@ export function validateUriPath(path) {
 	if (!/^\/hooks\/[a-zA-Z0-9\-_/]+$/.test(path)) {
 		return {
 			valid: false,
-			error: 'URI path contains invalid characters. Use only letters, numbers, hyphens, underscores, and forward slashes.'
+			error:
+				'URI path contains invalid characters. Use only letters, numbers, hyphens, underscores, and forward slashes.'
 		};
 	}
 

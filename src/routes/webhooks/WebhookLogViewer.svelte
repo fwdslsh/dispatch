@@ -21,12 +21,7 @@
 	}
 </script>
 
-<Modal
-	bind:open
-	title="Execution History: {webhook.name}"
-	size="large"
-	onclose={handleClose}
->
+<Modal bind:open title="Execution History: {webhook.name}" size="large" onclose={handleClose}>
 	<div class="log-viewer">
 		{#if logs.length === 0}
 			<div class="empty-logs">
@@ -50,7 +45,9 @@
 						<div class="log-header">
 							<span
 								class="log-method"
-								style="background: {getMethodStyle(log.requestMethod).bg}; color: {getMethodStyle(log.requestMethod).color};"
+								style="background: {getMethodStyle(log.requestMethod).bg}; color: {getMethodStyle(
+									log.requestMethod
+								).color};"
 							>
 								{log.requestMethod}
 							</span>

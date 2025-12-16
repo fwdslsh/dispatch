@@ -1,9 +1,19 @@
 /**
- * Session API - transitional implementation for UI compatibility
- * Fixed to provide isActive field for proper UI filtering
+ * Session API - OpenCode-first architecture
+ *
+ * v3.0 Architecture:
+ * - AI sessions: Persisted to DB, returned from database
+ * - Terminal/File windows: Ephemeral (in-memory), returned from SessionOrchestrator
+ *
+ * "Sessions" = AI sessions (persisted)
+ * "Windows" = Terminal and File Editor (ephemeral)
  */
 
-import { SESSION_TYPE, isValidSessionType } from '$lib/shared/session-types.js';
+import {
+	SESSION_TYPE,
+	isValidSessionType,
+	isEphemeralSessionType
+} from '$lib/shared/session-types.js';
 import {
 	BadRequestError,
 	NotFoundError,
@@ -18,29 +28,23 @@ import {
  */
 function getSessionTitle(kind) {
 	switch (kind) {
-		case SESSION_TYPE.CLAUDE:
-			return 'Claude Session';
-		case SESSION_TYPE.PTY:
-			return 'Terminal Session';
+		case SESSION_TYPE.AI:
+			return 'AI Session';
+		case SESSION_TYPE.TERMINAL:
+			return 'Terminal';
 		case SESSION_TYPE.FILE_EDITOR:
-			return 'File Editor Session';
-		case SESSION_TYPE.OPENCODE:
-			return 'OpenCode Session';
-		case SESSION_TYPE.OPENCODE_TUI:
-			return 'OpenCode TUI Session';
+			return 'File Editor';
 		default:
 			return `${kind} Session`;
 	}
 }
 
 export async function GET({ url, request: _request, locals }) {
-	// Require authentication
 	const includeAll = url.searchParams.get('include') === 'all';
+	const includeEphemeral = url.searchParams.get('ephemeral') !== 'false';
 
 	try {
-		console.log('[API DEBUG] Sessions GET request, includeAll:', includeAll);
-
-		// Query sessions with layout information joined
+		// Get persistent sessions from database (AI sessions only now)
 		const query = `
 			SELECT s.run_id, s.kind, s.status, s.created_at, s.updated_at, s.meta_json,
 			       wl.tile_id, wl.client_id
@@ -50,36 +54,51 @@ export async function GET({ url, request: _request, locals }) {
 		`;
 
 		const rows = await locals.services.database.all(query);
-		console.log('[API DEBUG] Found', rows.length, 'sessions in database');
 
-		// Transform to UI-compatible format with isActive field and tile information
-		const sessions = rows.map((row) => {
+		// Transform persistent sessions to UI format
+		const persistentSessions = rows.map((row) => {
 			const meta = JSON.parse(row.meta_json || '{}');
 			return {
 				id: row.run_id,
 				type: row.kind,
 				title: getSessionTitle(row.kind),
 				workspacePath: meta.cwd || meta.workspacePath || '',
-				isActive: row.status === 'running', // KEY FIX: Add isActive field
+				isActive: row.status === 'running',
+				isEphemeral: false,
 				createdAt: row.created_at,
 				lastActivity: row.updated_at,
-				inLayout: !!row.tile_id, // Fix: Set based on whether tile_id exists
-				tileId: row.tile_id, // Fix: Include tileId from database
+				inLayout: !!row.tile_id,
+				tileId: row.tile_id,
 				pinned: false
 			};
 		});
 
+		// Get ephemeral sessions from SessionOrchestrator
+		const ephemeralSessions = includeEphemeral
+			? locals.services.sessionOrchestrator.getEphemeralSessions().map((s) => ({
+					id: s.id,
+					type: s.kind,
+					title: getSessionTitle(s.kind),
+					workspacePath: s.cwd || '',
+					isActive: true,
+					isEphemeral: true,
+					createdAt: Date.now(),
+					lastActivity: Date.now(),
+					inLayout: false,
+					tileId: null,
+					pinned: false
+				}))
+			: [];
+
+		// Combine all sessions
+		let allSessions = [...persistentSessions, ...ephemeralSessions];
+
 		// Filter based on includeAll parameter
-		const filteredSessions = includeAll ? sessions : sessions.filter((s) => s.isActive);
+		if (!includeAll) {
+			allSessions = allSessions.filter((s) => s.isActive);
+		}
 
-		console.log(
-			'[API DEBUG] Returning',
-			filteredSessions.length,
-			'sessions, active:',
-			filteredSessions.filter((s) => s.isActive).length
-		);
-
-		return new Response(JSON.stringify({ sessions: filteredSessions }), {
+		return new Response(JSON.stringify({ sessions: allSessions }), {
 			headers: { 'content-type': 'application/json' }
 		});
 	} catch (err) {
@@ -88,15 +107,28 @@ export async function GET({ url, request: _request, locals }) {
 }
 
 export async function POST({ request, locals }) {
-	// Require authentication
 	const { kind, type, cwd, resume = false, sessionId, options = {} } = await request.json();
 
 	const sessionKind = kind ?? type;
 
 	try {
 		if (resume && sessionId) {
+			// Check if it's an ephemeral session (can't resume)
+			if (isEphemeralSessionType(sessionKind) || sessionId.match(/^(terminal|file-editor)_/)) {
+				return new Response(
+					JSON.stringify({
+						runId: sessionId,
+						id: sessionId,
+						success: false,
+						resumed: false,
+						reason: 'Ephemeral sessions cannot be resumed. Create a new window instead.'
+					}),
+					{ headers: { 'content-type': 'application/json' } }
+				);
+			}
+
 			try {
-				// Actually resume the session (restart the process)
+				// Resume persistent session
 				const resumeResult = await locals.services.sessionOrchestrator.resumeSession(sessionId);
 
 				return new Response(
@@ -109,9 +141,7 @@ export async function POST({ request, locals }) {
 						type: resumeResult.kind,
 						reason: resumeResult.reason
 					}),
-					{
-						headers: { 'content-type': 'application/json' }
-					}
+					{ headers: { 'content-type': 'application/json' } }
 				);
 			} catch (error) {
 				throw new NotFoundError(`Session not found: ${sessionId}`);
@@ -140,11 +170,12 @@ export async function POST({ request, locals }) {
 			console.warn('[Sessions API] Failed to load workspace settings:', error);
 		}
 
-		// Determine the working directory with user preference override
+		// Determine the working directory (cwd is the workspace)
 		const workingDirectory =
 			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
 
-		// Create session using SessionOrchestrator with workspace environment variables
+		// Create session using SessionOrchestrator
+		// Ephemeral sessions (terminal, file-editor) won't be persisted to DB
 		const session = await locals.services.sessionOrchestrator.createSession(sessionKind, {
 			workspacePath: workingDirectory,
 			metadata: {
@@ -159,13 +190,13 @@ export async function POST({ request, locals }) {
 		return new Response(
 			JSON.stringify({
 				runId: session.id,
+				id: session.id,
 				success: true,
 				kind: sessionKind,
-				type: sessionKind
+				type: sessionKind,
+				isEphemeral: session.isEphemeral || false
 			}),
-			{
-				headers: { 'content-type': 'application/json' }
-			}
+			{ headers: { 'content-type': 'application/json' } }
 		);
 	} catch (err) {
 		// Map specific error types to appropriate HTTP errors
@@ -199,7 +230,7 @@ export async function DELETE({ url, locals }) {
 			throw new BadRequestError('Missing runId parameter', 'MISSING_RUN_ID');
 		}
 
-		// Close session using SessionOrchestrator
+		// Close session using SessionOrchestrator (works for both ephemeral and persistent)
 		await locals.services.sessionOrchestrator.closeSession(runId);
 
 		return new Response(JSON.stringify({ success: true }));
