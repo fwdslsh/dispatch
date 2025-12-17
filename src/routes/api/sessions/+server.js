@@ -61,6 +61,7 @@ export async function GET({ url, request: _request, locals }) {
 			return {
 				id: row.run_id,
 				type: row.kind,
+				kind: row.kind,
 				title: getSessionTitle(row.kind),
 				workspacePath: meta.cwd || meta.workspacePath || '',
 				isActive: row.status === 'running',
@@ -69,7 +70,8 @@ export async function GET({ url, request: _request, locals }) {
 				lastActivity: row.updated_at,
 				inLayout: !!row.tile_id,
 				tileId: row.tile_id,
-				pinned: false
+				pinned: false,
+				metadata: meta.options || {}
 			};
 		});
 
@@ -173,12 +175,19 @@ export async function POST({ request, locals }) {
 		// Get OpenCode server settings for AI sessions
 		let aiOptions = {};
 		if (sessionKind === SESSION_TYPE.AI || sessionKind === SESSION_TYPE.OPENCODE) {
-			const serverStatus = locals.services.opencodeServerManager.getStatus();
-			if (serverStatus.running) {
-				aiOptions.baseUrl = serverStatus.url;
+			// Check if user specified a server URL in options/metadata
+			const userServerUrl = options?.serverUrl || options?.metadata?.serverUrl;
+			if (userServerUrl) {
+				aiOptions.baseUrl = userServerUrl;
 			} else {
-				// Use configured port even if server is not running
-				aiOptions.baseUrl = `http://${serverStatus.hostname}:${serverStatus.port}`;
+				// Fall back to local server manager
+				const serverStatus = locals.services.opencodeServerManager.getStatus();
+				if (serverStatus.running) {
+					aiOptions.baseUrl = serverStatus.url;
+				} else {
+					// Use configured port even if server is not running
+					aiOptions.baseUrl = `http://${serverStatus.hostname}:${serverStatus.port}`;
+				}
 			}
 		}
 

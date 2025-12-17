@@ -17,7 +17,7 @@
 	 */
 
 	// Props
-	let { sessionId, opencodeSessionId, workspacePath, provider, model } = $props();
+	let { sessionId, opencodeSessionId, workspacePath, provider, model, serverUrl } = $props();
 
 	// Browser-only RunSessionClient
 	let runSessionClient = $state(null);

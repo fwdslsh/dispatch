@@ -6,6 +6,7 @@
 	import WorkspaceHeader from '$lib/client/shared/components/workspace/WorkspaceHeader.svelte';
 	import StatusBar from '$lib/client/shared/components/StatusBar.svelte';
 	import OpenCodePane from '$lib/client/opencode/OpenCodePane.svelte';
+	import ServerSelector from '$lib/client/opencode/ServerSelector.svelte';
 	import IconPlus from '$lib/client/shared/components/Icons/IconPlus.svelte';
 	import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
 	import IconBolt from '$lib/client/shared/components/Icons/IconBolt.svelte';
@@ -29,9 +30,16 @@
 	let showDeleteDialog = $state(false);
 	let sessionToDelete = $state(null);
 
+	// Server selection state
+	let serverUrl = $state('http://localhost:4096');
+
 	// Form state
 	let provider = $state('anthropic');
 	let model = $state('claude-sonnet-4-5');
+
+	function handleServerChange(url) {
+		serverUrl = url;
+	}
 
 	async function loadSessions() {
 		try {
@@ -63,13 +71,19 @@
 			creating = true;
 			error = null;
 
+			const options = { provider, model };
+			// Include server URL
+			if (serverUrl) {
+				options.serverUrl = serverUrl;
+			}
+
 			const response = await fetch('/api/sessions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					type: 'opencode',
 					workspacePath: '/workspace',
-					metadata: { provider, model }
+					options
 				})
 			});
 			if (!response.ok) {
@@ -160,26 +174,19 @@
 			viewMode="window-manager"
 			onViewModeChange={() => {}}
 		>
-			{#snippet actions()}
-				<button
-					class="icon-button"
-					onclick={() => (showCreateDialog = true)}
-					title="New Session"
-					aria-label="Create new OpenCode session"
-					disabled={creating}
-				>
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<path d="M12 5v14m-7-7h14" stroke-width="2" stroke-linecap="round" />
-					</svg>
-				</button>
-			{/snippet}
-		</WorkspaceHeader>
+			</WorkspaceHeader>
 	{/snippet}
 
 	<div class="opencode-page main-content">
 		<div class="opencode-container">
 			<!-- Session Sidebar -->
 			<div class="opencode-nav" aria-label="Session list" role="navigation">
+				<!-- Server Connection -->
+				<div class="server-section">
+					<div class="section-label">Server</div>
+					<ServerSelector onServerChange={handleServerChange} />
+				</div>
+
 				<div class="nav-header">
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
 						<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -278,6 +285,7 @@
 							workspacePath={selectedSession.workspacePath || '/workspace'}
 							provider={selectedSession.metadata?.provider || 'anthropic'}
 							model={selectedSession.metadata?.model || 'claude-sonnet-4-5'}
+							serverUrl={selectedSession.metadata?.serverUrl || serverUrl}
 						/>
 					{/key}
 				{:else}
@@ -422,7 +430,7 @@
 
 	/* Left sidebar navigation - matching cron/webhooks */
 	.opencode-nav {
-		width: 240px;
+		width: 280px;
 		background: var(--bg-dark);
 		border: 1px solid var(--primary);
 		padding: var(--space-3) 0;
@@ -431,6 +439,23 @@
 		gap: var(--space-1);
 		flex-shrink: 0;
 		overflow: hidden;
+	}
+
+	/* Server connection section */
+	.server-section {
+		padding: var(--space-3) var(--space-4);
+		border-bottom: 1px solid var(--primary-dim);
+		margin-bottom: var(--space-2);
+	}
+
+	.section-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		margin-bottom: var(--space-2);
+		font-family: var(--font-mono);
 	}
 
 	.nav-header {
