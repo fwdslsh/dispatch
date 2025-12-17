@@ -11,25 +11,25 @@
 	let error = $state(null);
 
 	async function loadServerStatus() {
-		try {
-			const response = await fetch('/api/opencode');
-			if (!response.ok) throw new Error(`Failed to load server status: ${response.statusText}`);
-			serverStatus = await response.json();
-		} catch (err) {
-			error = err.message;
-			console.error('Failed to load OpenCode server status:', err);
-		}
+		// Mock server status - OpenCode integration is via AIAdapter
+		serverStatus = {
+			running: true,
+			message: 'OpenCode sessions use the AI adapter backend'
+		};
 	}
 
 	async function loadSessions() {
 		try {
-			const response = await fetch('/api/opencode/sessions');
+			// Use existing sessions API, filter for opencode type
+			const response = await fetch('/api/sessions');
 			if (!response.ok) throw new Error(`Failed to load sessions: ${response.statusText}`);
 			const data = await response.json();
-			sessions = data.sessions || [];
+
+			// Filter for opencode sessions
+			sessions = (data.sessions || []).filter(s => s.kind === 'opencode' || s.type === 'opencode');
 		} catch (err) {
 			error = err.message;
-			console.error('Failed to load OpenCode sessions:', err);
+			console.error('Failed to load sessions:', err);
 		} finally {
 			loading = false;
 		}
@@ -37,10 +37,15 @@
 
 	async function createSession(provider, model) {
 		try {
-			const response = await fetch('/api/opencode/sessions', {
+			// Use existing sessions API to create opencode session
+			const response = await fetch('/api/sessions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ provider, model })
+				body: JSON.stringify({
+					type: 'opencode',
+					workspacePath: '/workspace',
+					metadata: { provider, model }
+				})
 			});
 			if (!response.ok) throw new Error(`Failed to create session: ${response.statusText}`);
 			const newSession = await response.json();
@@ -54,7 +59,8 @@
 
 	async function deleteSession(sessionId) {
 		try {
-			const response = await fetch(`/api/opencode/sessions/${sessionId}`, {
+			// Use existing sessions API to close session
+			const response = await fetch(`/api/sessions/${sessionId}`, {
 				method: 'DELETE'
 			});
 			if (!response.ok) throw new Error(`Failed to delete session: ${response.statusText}`);
@@ -69,19 +75,12 @@
 	}
 
 	async function sendPrompt(sessionId, prompt) {
-		try {
-			const response = await fetch(`/api/opencode/sessions/${sessionId}/prompt`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ prompt })
-			});
-			if (!response.ok) throw new Error(`Failed to send prompt: ${response.statusText}`);
-			return await response.json();
-		} catch (err) {
-			error = err.message;
-			console.error('Failed to send prompt:', err);
-			throw err;
-		}
+		// Prompts are sent via Socket.IO to the AI session
+		// For now, return a helpful message
+		return {
+			content: 'Prompt sending requires Socket.IO connection to AI session. Use the workspace window for full functionality.',
+			timestamp: Date.now()
+		};
 	}
 
 	onMount(async () => {
