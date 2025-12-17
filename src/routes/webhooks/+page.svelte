@@ -110,7 +110,10 @@
 
 <svelte:head>
 	<title>Webhooks - Dispatch</title>
-	<meta name="description" content="Manage HTTP webhook endpoints that execute commands in Dispatch." />
+	<meta
+		name="description"
+		content="Manage HTTP webhook endpoints that execute commands in Dispatch."
+	/>
 </svelte:head>
 
 <Shell>
@@ -163,8 +166,16 @@
 					title="View all webhooks"
 				>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke-width="2" stroke-linecap="round" />
-						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke-width="2" stroke-linecap="round" />
+						<path
+							d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+							stroke-width="2"
+							stroke-linecap="round"
+						/>
+						<path
+							d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+							stroke-width="2"
+							stroke-linecap="round"
+						/>
 					</svg>
 					<span class="tab-label">All</span>
 					<span class="tab-count">({webhookService?.webhooks.length || 0})</span>
@@ -179,7 +190,12 @@
 				>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
 						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-width="2" stroke-linecap="round" />
-						<path d="M22 4L12 14.01l-3-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						<path
+							d="M22 4L12 14.01l-3-3"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 					<span class="tab-label">Active</span>
 					<span class="tab-count">({stats().active})</span>
@@ -215,7 +231,9 @@
 							<path d="M12 8v4m0 4h.01" stroke-width="2" stroke-linecap="round" />
 						</svg>
 						<p>{webhookService.error}</p>
-						<button class="btn-secondary" onclick={() => webhookService.loadWebhooks()}>Retry</button>
+						<button class="btn-secondary" onclick={() => webhookService.loadWebhooks()}
+							>Retry</button
+						>
 					</div>
 				{:else}
 					<!-- Statistics -->
@@ -224,8 +242,16 @@
 							<div class="stat-card">
 								<div class="stat-icon total">
 									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-										<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke-width="2" stroke-linecap="round" />
-										<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke-width="2" stroke-linecap="round" />
+										<path
+											d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+										<path
+											d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
 									</svg>
 								</div>
 								<div class="stat-content">
@@ -237,8 +263,17 @@
 							<div class="stat-card">
 								<div class="stat-icon active">
 									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-										<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-width="2" stroke-linecap="round" />
-										<path d="M22 4L12 14.01l-3-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+										<path
+											d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+										<path
+											d="M22 4L12 14.01l-3-3"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+										/>
 									</svg>
 								</div>
 								<div class="stat-content">
@@ -266,8 +301,16 @@
 					{#if filteredWebhooks().length === 0}
 						<div class="empty-state">
 							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-								<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke-width="2" stroke-linecap="round" />
-								<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke-width="2" stroke-linecap="round" />
+								<path
+									d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+									stroke-width="2"
+									stroke-linecap="round"
+								/>
+								<path
+									d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+									stroke-width="2"
+									stroke-linecap="round"
+								/>
 							</svg>
 							<h3>No webhooks found</h3>
 							<p>Create your first webhook to execute commands via HTTP requests</p>

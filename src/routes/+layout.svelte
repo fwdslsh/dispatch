@@ -205,10 +205,11 @@
 			const isOnSettingsPage = currentPath.startsWith('/settings');
 			const isOnLoginPage = currentPath === '/login'; // Only exempt explicit /login, not root /
 			const isOnApiDocsPage = currentPath === '/api-docs';
+			const isOnOpenCodePage = currentPath.startsWith('/opencode');
 			const shouldOnboard = !status.onboarding.isComplete;
 
-			// Don't redirect if user is on settings, login, or API docs page - allow access
-			if (isOnSettingsPage || isOnLoginPage || isOnApiDocsPage) {
+			// Don't redirect if user is on settings, login, API docs, or opencode page - allow access
+			if (isOnSettingsPage || isOnLoginPage || isOnApiDocsPage || isOnOpenCodePage) {
 				return;
 			}
 

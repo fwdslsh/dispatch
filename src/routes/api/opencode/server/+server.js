@@ -1,144 +1,79 @@
 /**
- * OpenCode Server Management API
- * Provides endpoints for controlling the OpenCode server
+ * OpenCode Server API
+ * Control the OpenCode server process (start, stop, status, configuration)
  */
 
 import { json } from '@sveltejs/kit';
-import { logger } from '$lib/server/shared/utils/logger.js';
-import {
-	UnauthorizedError,
-	BadRequestError,
-	handleApiError
-} from '$lib/server/shared/utils/api-errors.js';
+import { handleApiError, BadRequestError } from '$lib/server/shared/utils/api-errors.js';
 
 /**
- * GET /api/opencode/server
- * Get OpenCode server status
+ * GET /api/opencode/server - Get server status
  */
 export async function GET({ locals }) {
 	try {
-		// Auth must be handled in hooks only
-		if (!locals.auth?.authenticated) {
-			throw new UnauthorizedError('Authentication required');
-		}
-
-		const { opencodeServerManager } = locals.services;
-
-		const status = opencodeServerManager.getStatus();
-
-		return json({
-			success: true,
-			...status
-		});
+		const status = locals.services.opencodeServerManager.getStatus();
+		return json(status);
 	} catch (err) {
 		handleApiError(err, 'GET /api/opencode/server');
 	}
 }
 
 /**
- * POST /api/opencode/server/start
- * Start the OpenCode server
+ * POST /api/opencode/server - Control server (start/stop/restart)
  */
 export async function POST({ request, locals }) {
 	try {
-		if (!locals.auth?.authenticated) {
-			throw new UnauthorizedError('Authentication required');
+		const { action, hostname, port } = await request.json();
+
+		const manager = locals.services.opencodeServerManager;
+
+		switch (action) {
+			case 'start': {
+				const options = {};
+				if (hostname) options.hostname = hostname;
+				if (port) options.port = parseInt(port, 10);
+
+				await manager.start(options);
+				return json({ success: true, status: manager.getStatus() });
+			}
+
+			case 'stop': {
+				await manager.stop();
+				return json({ success: true, status: manager.getStatus() });
+			}
+
+			case 'restart': {
+				await manager.restart();
+				return json({ success: true, status: manager.getStatus() });
+			}
+
+			default:
+				throw new BadRequestError(`Invalid action: ${action}. Must be 'start', 'stop', or 'restart'`);
 		}
-
-		const { opencodeServerManager } = locals.services;
-
-		// Parse request body for optional configuration
-		const body = await request.json().catch(() => ({}));
-		const { hostname, port } = body;
-
-		logger.info('OPENCODE_API', 'Starting OpenCode server', { hostname, port });
-
-		await opencodeServerManager.start({ hostname, port });
-
-		const status = opencodeServerManager.getStatus();
-
-		return json({
-			success: true,
-			message: 'OpenCode server started successfully',
-			...status
-		});
 	} catch (err) {
-		handleApiError(err, 'POST /api/opencode/server/start');
+		handleApiError(err, 'POST /api/opencode/server');
 	}
 }
 
 /**
- * DELETE /api/opencode/server/stop
- * Stop the OpenCode server
- */
-export async function DELETE({ locals }) {
-	try {
-		if (!locals.auth?.authenticated) {
-			throw new UnauthorizedError('Authentication required');
-		}
-
-		const { opencodeServerManager } = locals.services;
-
-		logger.info('OPENCODE_API', 'Stopping OpenCode server');
-
-		await opencodeServerManager.stop();
-
-		return json({
-			success: true,
-			message: 'OpenCode server stopped successfully',
-			...opencodeServerManager.getStatus()
-		});
-	} catch (err) {
-		handleApiError(err, 'DELETE /api/opencode/server/stop');
-	}
-}
-
-/**
- * PUT /api/opencode/server
- * Update OpenCode server configuration
+ * PUT /api/opencode/server - Update server configuration
  */
 export async function PUT({ request, locals }) {
 	try {
-		if (!locals.auth?.authenticated) {
-			throw new UnauthorizedError('Authentication required');
-		}
+		const { hostname, port, enabled } = await request.json();
 
-		const { opencodeServerManager } = locals.services;
+		const config = {};
+		if (hostname !== undefined) config.hostname = hostname;
+		if (port !== undefined) config.port = parseInt(port, 10);
+		if (enabled !== undefined) config.enabled = enabled;
 
-		const body = await request.json();
-
-		if (!body.hostname && !body.port && body.enabled === undefined) {
-			throw new BadRequestError(
-				'At least one of hostname, port, or enabled must be provided',
-				'INVALID_CONFIG'
-			);
-		}
-
-		logger.info('OPENCODE_API', 'Updating OpenCode server config', body);
-
-		await opencodeServerManager.updateConfig(body);
+		await locals.services.opencodeServerManager.updateConfig(config);
 
 		return json({
 			success: true,
-			message: 'Configuration updated successfully',
-			...opencodeServerManager.getStatus()
+			status: locals.services.opencodeServerManager.getStatus()
 		});
 	} catch (err) {
-		handleApiError(err, 'PUT /api/opencode/server/config');
+		handleApiError(err, 'PUT /api/opencode/server');
 	}
-}
-
-/**
- * OPTIONS /api/opencode/server
- * Handle CORS preflight requests
- */
-export async function OPTIONS() {
-	return new Response(null, {
-		status: 200,
-		headers: {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, POST, DELETE, PUT, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-		}
-	});
 }

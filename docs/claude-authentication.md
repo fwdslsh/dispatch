@@ -45,7 +45,7 @@ _This section contains technical implementation details that most users can skip
 
 The authentication uses a WebSocket-driven flow where:
 
-- Server runs `claude setup-token` in a PTY process
+- Server runs `claude setup-token` in a terminal process
 - Client receives OAuth URL over WebSockets and opens it in new tab
 - User completes OAuth flow and receives authorization code
 - Client sends code back over WebSockets to complete authentication

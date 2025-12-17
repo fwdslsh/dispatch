@@ -38,7 +38,11 @@ function validateUriPath(path) {
 		return { valid: false, error: 'URI path must start with /hooks/' };
 	}
 	if (!/^\/hooks\/[a-zA-Z0-9\-_/]+$/.test(path)) {
-		return { valid: false, error: 'URI path contains invalid characters. Use only letters, numbers, hyphens, underscores, and forward slashes.' };
+		return {
+			valid: false,
+			error:
+				'URI path contains invalid characters. Use only letters, numbers, hyphens, underscores, and forward slashes.'
+		};
 	}
 	if (path.length < 8) {
 		return { valid: false, error: 'URI path is too short. Must be at least /hooks/x' };
@@ -53,7 +57,10 @@ function validateHttpMethod(method) {
 	const validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 	const upperMethod = method?.toUpperCase();
 	if (!validMethods.includes(upperMethod)) {
-		return { valid: false, error: `Invalid HTTP method. Must be one of: ${validMethods.join(', ')}` };
+		return {
+			valid: false,
+			error: `Invalid HTTP method. Must be one of: ${validMethods.join(', ')}`
+		};
 	}
 	return { valid: true, method: upperMethod };
 }
@@ -123,7 +130,9 @@ export class WebhookExecutorService {
 			methodValidation.method
 		);
 		if (exists) {
-			throw new Error(`A webhook already exists for ${methodValidation.method} ${webhookData.uriPath}`);
+			throw new Error(
+				`A webhook already exists for ${methodValidation.method} ${webhookData.uriPath}`
+			);
 		}
 
 		// Generate ID
@@ -147,7 +156,10 @@ export class WebhookExecutorService {
 		// Emit real-time update
 		this.emitUpdate('webhook:created', created);
 
-		logger.info('WEBHOOK', `Created webhook: ${webhook.name} (${webhook.id}) -> ${webhook.httpMethod} ${webhook.uriPath}`);
+		logger.info(
+			'WEBHOOK',
+			`Created webhook: ${webhook.name} (${webhook.id}) -> ${webhook.httpMethod} ${webhook.uriPath}`
+		);
 		return created;
 	}
 
@@ -265,7 +277,10 @@ export class WebhookExecutorService {
 				webhookId: webhook.id,
 				requestMethod: metadata.method || webhook.http_method,
 				requestPath: metadata.path || webhook.uri_path,
-				requestBody: typeof requestData.body === 'string' ? requestData.body : JSON.stringify(requestData.body),
+				requestBody:
+					typeof requestData.body === 'string'
+						? requestData.body
+						: JSON.stringify(requestData.body),
 				triggeredAt: startTime,
 				status: 'running',
 				clientIp: metadata.clientIp
@@ -343,7 +358,10 @@ export class WebhookExecutorService {
 				duration: durationMs
 			});
 
-			logger.info('WEBHOOK', `Webhook ${webhook.name} completed with status: ${status} (exit code: ${exitCode})`);
+			logger.info(
+				'WEBHOOK',
+				`Webhook ${webhook.name} completed with status: ${status} (exit code: ${exitCode})`
+			);
 
 			return {
 				logId,

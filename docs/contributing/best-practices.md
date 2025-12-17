@@ -105,7 +105,7 @@ src/
 │       │   └── services.js  # Service container
 │       ├── database/        # Database repositories
 │       ├── sessions/        # Session management
-│       ├── terminal/        # PTY adapter
+│       ├── terminal/        # Terminal adapter
 │       ├── claude/          # Claude adapter
 │       └── auth/            # Authentication services
 ├── routes/                  # SvelteKit routes

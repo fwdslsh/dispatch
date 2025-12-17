@@ -2,11 +2,7 @@
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
-	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
-	import IconCloudCheck from '$lib/client/shared/components/Icons/IconCloudCheck.svelte';
-	import IconCloudX from '$lib/client/shared/components/Icons/IconCloudX.svelte';
 	import AISettings from '$lib/client/ai/AISettings.svelte';
-	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 
@@ -21,17 +17,22 @@
 	 */
 
 	// Server state
-	let serverStatus = $state(null);
-	let serverLoading = $state(false);
-	let serverError = $state('');
-	let statusMessage = $state('');
-
-	// Server configuration
-	let serverConfig = $state({
+	let serverStatus = $state({
+		enabled: false,
+		running: false,
+		status: 'stopped',
+		hostname: 'localhost',
 		port: 4096,
-		autoStart: false
+		url: null,
+		error: null
 	});
-	let configSaving = $state(false);
+	let serverLoading = $state(true);
+	let serverActionLoading = $state(false);
+	let serverError = $state(null);
+
+	// Form state for server config
+	let configPort = $state(4096);
+	let configAutoStart = $state(false);
 
 	// Settings state
 	let settings = $state({});
@@ -39,16 +40,117 @@
 	let saving = $state(false);
 
 	onMount(async () => {
-		await checkServerStatus();
+		// Load server status
+		await loadServerStatus();
+
+		// Load AI settings
 		if (!settingsService.isLoaded) {
 			await settingsService.loadServerSettings();
 		}
 		updateSettingsFromService();
 	});
 
+	async function loadServerStatus() {
+		serverLoading = true;
+		serverError = null;
+		try {
+			const response = await fetch('/api/opencode/server');
+			if (!response.ok) {
+				throw new Error(`Failed to load server status: ${response.statusText}`);
+			}
+			serverStatus = await response.json();
+			configPort = serverStatus.port;
+			configAutoStart = serverStatus.enabled;
+		} catch (err) {
+			serverError = err.message;
+			log.error('Failed to load server status:', err);
+		} finally {
+			serverLoading = false;
+		}
+	}
+
+	async function startServer() {
+		serverActionLoading = true;
+		serverError = null;
+		try {
+			const response = await fetch('/api/opencode/server', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					action: 'start',
+					port: configPort
+				})
+			});
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(data.error || `Failed to start server: ${response.statusText}`);
+			}
+			const data = await response.json();
+			serverStatus = data.status;
+		} catch (err) {
+			serverError = err.message;
+			log.error('Failed to start server:', err);
+		} finally {
+			serverActionLoading = false;
+		}
+	}
+
+	async function stopServer() {
+		serverActionLoading = true;
+		serverError = null;
+		try {
+			const response = await fetch('/api/opencode/server', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'stop' })
+			});
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(data.error || `Failed to stop server: ${response.statusText}`);
+			}
+			const data = await response.json();
+			serverStatus = data.status;
+		} catch (err) {
+			serverError = err.message;
+			log.error('Failed to stop server:', err);
+		} finally {
+			serverActionLoading = false;
+		}
+	}
+
+	async function updateServerConfig() {
+		serverActionLoading = true;
+		serverError = null;
+		try {
+			const response = await fetch('/api/opencode/server', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					port: configPort,
+					enabled: configAutoStart
+				})
+			});
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(data.error || `Failed to update config: ${response.statusText}`);
+			}
+			const data = await response.json();
+			serverStatus = data.status;
+			saveStatus = 'Server configuration saved';
+			setTimeout(() => {
+				saveStatus = '';
+			}, 3000);
+		} catch (err) {
+			serverError = err.message;
+			log.error('Failed to update server config:', err);
+		} finally {
+			serverActionLoading = false;
+		}
+	}
+
 	function updateSettingsFromService() {
 		settings = {
-			baseUrl: settingsService.get('ai.baseUrl', 'http://localhost:4096'),
+			baseUrl: settingsService.get('ai.baseUrl', `http://localhost:${configPort}`),
 			model: settingsService.get('ai.model', 'claude-sonnet-4-20250514'),
 			provider: settingsService.get('ai.provider', 'anthropic'),
 			timeout: settingsService.get('ai.timeout', 60000),
@@ -62,6 +164,9 @@
 		saveStatus = '';
 
 		try {
+			// Update baseUrl to match server port
+			settings.baseUrl = `http://localhost:${configPort}`;
+
 			Object.entries(settings).forEach(([key, value]) => {
 				settingsService.setClientOverride(`ai.${key}`, value);
 			});
@@ -85,105 +190,16 @@
 		}, 3000);
 	}
 
-	async function checkServerStatus() {
-		try {
-			const response = await fetch('/api/opencode/server', {
-				headers: getAuthHeaders()
-			});
-			if (response.ok) {
-				serverStatus = await response.json();
-				if (serverStatus.port !== undefined) {
-					serverConfig.port = serverStatus.port;
-				}
-				if (serverStatus.enabled !== undefined) {
-					serverConfig.autoStart = serverStatus.enabled;
-				}
-			}
-		} catch (error) {
-			log.error('Failed to check server status:', error);
-		}
-	}
-
-	async function startServer() {
-		if (serverLoading) return;
-		serverLoading = true;
-		serverError = '';
-
-		try {
-			const response = await fetch('/api/opencode/server', {
-				method: 'POST',
-				headers: getAuthHeaders(),
-				body: JSON.stringify({})
-			});
-			if (response.ok) {
-				serverStatus = await response.json();
-				statusMessage = 'OpenCode server started';
-			} else {
-				const data = await response.json();
-				serverError = data.error || 'Failed to start server';
-			}
-		} catch (error) {
-			serverError = error.message || 'Failed to start server';
-		} finally {
-			serverLoading = false;
-			await checkServerStatus();
-		}
-	}
-
-	async function stopServer() {
-		if (serverLoading) return;
-		serverLoading = true;
-		serverError = '';
-
-		try {
-			const response = await fetch('/api/opencode/server', {
-				method: 'DELETE',
-				headers: getAuthHeaders()
-			});
-			if (response.ok) {
-				serverStatus = await response.json();
-				statusMessage = 'OpenCode server stopped';
-			} else {
-				const data = await response.json();
-				serverError = data.error || 'Failed to stop server';
-			}
-		} catch (error) {
-			serverError = error.message || 'Failed to stop server';
-		} finally {
-			serverLoading = false;
-			await checkServerStatus();
-		}
-	}
-
-	async function updateServerConfig() {
-		if (configSaving) return;
-		configSaving = true;
-		serverError = '';
-
-		try {
-			const response = await fetch('/api/opencode/server', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-				body: JSON.stringify({
-					port: serverConfig.port,
-					enabled: serverConfig.autoStart
-				})
-			});
-			if (response.ok) {
-				serverStatus = await response.json();
-				statusMessage = 'Configuration saved';
-				setTimeout(() => {
-					statusMessage = '';
-				}, 3000);
-			} else {
-				const data = await response.json();
-				serverError = data.error || 'Failed to update configuration';
-			}
-		} catch (error) {
-			serverError = error.message || 'Failed to update configuration';
-		} finally {
-			configSaving = false;
-			await checkServerStatus();
+	function getStatusColor(status) {
+		switch (status) {
+			case 'running':
+				return 'var(--color-success, #22c55e)';
+			case 'starting':
+				return 'var(--color-warning, #f59e0b)';
+			case 'error':
+				return 'var(--color-error, #ef4444)';
+			default:
+				return 'var(--text-muted)';
 		}
 	}
 </script>
@@ -197,93 +213,116 @@
 		</p>
 	</div>
 
-	<!-- OpenCode Server Management -->
+	<!-- OpenCode Server Controls -->
 	<h4>OPENCODE SERVER</h4>
-	<p class="subsection-description">Manage the OpenCode server that powers AI sessions.</p>
+	<p class="subsection-description">
+		Manage the OpenCode server that powers AI sessions.
+	</p>
 
-	{#if serverStatus}
-		{#if serverStatus.error && serverStatus.status === 'error'}
-			<div class="error-banner">
-				<ErrorDisplay message={serverStatus.error} />
-				<p class="help-text">Update the port and try again.</p>
-			</div>
-		{/if}
-
-		<div class="config-section">
-			<div class="form-group">
-				<label for="server-port">Server Port</label>
-				<input
-					id="server-port"
-					type="number"
-					bind:value={serverConfig.port}
-					min="1024"
-					max="65535"
-					disabled={(serverStatus.running && serverStatus.status === 'running') || configSaving}
-					class="port-input"
-				/>
-			</div>
-
-			<div class="form-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={serverConfig.autoStart} disabled={configSaving} />
-					<span>Auto-start when Dispatch loads</span>
-				</label>
-			</div>
-
-			<div class="config-actions">
-				<Button
-					onclick={updateServerConfig}
-					variant="primary"
-					size="small"
-					disabled={configSaving || (serverStatus.running && serverStatus.status === 'running')}
-					loading={configSaving}
-				>
-					Save Configuration
-				</Button>
-			</div>
+	{#if serverLoading}
+		<div class="loading-box">
+			<LoadingSpinner size="small" />
+			<span>Loading server status...</span>
 		</div>
-
-		{#if statusMessage}
-			<div class="status-message">{statusMessage}</div>
-		{/if}
-
+	{:else}
+		<!-- Server Status -->
 		<div class="server-controls">
 			<div class="server-status">
-				<div class="status-indicator" class:active={serverStatus.running}></div>
-				<span>
-					{serverStatus.running ? 'Running' : 'Stopped'}
-					{#if serverStatus.url}
-						- {serverStatus.url}{/if}
+				<span
+					class="status-indicator"
+					class:active={serverStatus.running}
+					style="background: {getStatusColor(serverStatus.status)}"
+				></span>
+				<span class="status-text">
+					{#if serverStatus.running}
+						Running at <a href={serverStatus.url} target="_blank" rel="noopener">{serverStatus.url}</a>
+					{:else if serverStatus.status === 'starting'}
+						Starting...
+					{:else if serverStatus.status === 'error'}
+						Error
+					{:else}
+						Stopped
+					{/if}
 				</span>
 			</div>
 			<div class="server-actions">
-				{#if !serverStatus.running}
+				{#if serverStatus.running}
+					<Button
+						onclick={stopServer}
+						variant="ghost"
+						size="small"
+						disabled={serverActionLoading}
+					>
+						{serverActionLoading ? 'Stopping...' : 'Stop Server'}
+					</Button>
+				{:else}
 					<Button
 						onclick={startServer}
 						variant="primary"
 						size="small"
-						disabled={serverLoading}
-						loading={serverLoading}
+						disabled={serverActionLoading}
 					>
-						Start Server
-					</Button>
-				{:else}
-					<Button
-						onclick={stopServer}
-						variant="danger"
-						size="small"
-						disabled={serverLoading}
-						loading={serverLoading}
-					>
-						Stop Server
+						{serverActionLoading ? 'Starting...' : 'Start Server'}
 					</Button>
 				{/if}
 			</div>
 		</div>
 
 		{#if serverError}
-			<ErrorDisplay message={serverError} />
+			<div class="error-banner">
+				<strong>Error:</strong> {serverError}
+			</div>
 		{/if}
+
+		{#if serverStatus.error}
+			<div class="error-banner">
+				<strong>Server Error:</strong> {serverStatus.error}
+			</div>
+		{/if}
+
+		<!-- Server Configuration -->
+		<div class="config-section">
+			<div class="form-group">
+				<label for="server-port">Server Port</label>
+				<input
+					id="server-port"
+					type="number"
+					class="port-input"
+					bind:value={configPort}
+					min="1024"
+					max="65535"
+					disabled={serverStatus.running || serverActionLoading}
+				/>
+				<p class="help-text">
+					Port for the OpenCode server (default: 4096). Restart required after changing.
+				</p>
+			</div>
+
+			<div class="form-group">
+				<label class="checkbox-label">
+					<input
+						type="checkbox"
+						bind:checked={configAutoStart}
+						disabled={serverActionLoading}
+					/>
+					<span>Auto-start server when Dispatch starts</span>
+				</label>
+				<p class="help-text">
+					When enabled, the OpenCode server will automatically start when Dispatch launches.
+				</p>
+			</div>
+
+			<div class="config-actions">
+				<Button
+					onclick={updateServerConfig}
+					variant="ghost"
+					size="small"
+					disabled={serverActionLoading}
+				>
+					{serverActionLoading ? 'Saving...' : 'Save Server Config'}
+				</Button>
+			</div>
+		</div>
 	{/if}
 
 	<!-- Session Defaults -->
@@ -331,6 +370,19 @@
 	.subsection-description {
 		margin: var(--space-2) 0;
 		color: var(--muted);
+		font-size: 0.875rem;
+	}
+
+	.loading-box {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-4);
+		background: var(--bg-panel);
+		border: 1px solid var(--surface-border);
+		border-radius: var(--radius);
+		color: var(--text-muted);
+		font-family: var(--font-mono);
 		font-size: 0.875rem;
 	}
 
@@ -417,6 +469,15 @@
 		font-size: 0.875rem;
 	}
 
+	.server-status a {
+		color: var(--primary);
+		text-decoration: none;
+	}
+
+	.server-status a:hover {
+		text-decoration: underline;
+	}
+
 	.status-indicator {
 		width: 10px;
 		height: 10px;
@@ -425,25 +486,18 @@
 	}
 
 	.status-indicator.active {
-		background: var(--primary);
-		box-shadow: 0 0 8px var(--primary-glow);
-	}
-
-	.status-message {
-		padding: var(--space-2) var(--space-3);
-		background: color-mix(in oklab, var(--primary) 10%, transparent);
-		border-radius: var(--radius);
-		font-family: var(--font-mono);
-		font-size: 0.875rem;
-		margin-bottom: var(--space-3);
+		box-shadow: 0 0 8px currentColor;
 	}
 
 	.error-banner {
-		background: var(--surface);
-		border: 1px solid var(--error);
+		background: color-mix(in oklab, var(--color-error, #ef4444) 10%, var(--surface));
+		border: 1px solid var(--color-error, #ef4444);
 		border-radius: var(--radius);
 		padding: var(--space-3);
 		margin-bottom: var(--space-3);
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+		color: var(--text);
 	}
 
 	.help-text {

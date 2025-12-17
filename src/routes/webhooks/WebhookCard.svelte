@@ -1,5 +1,9 @@
 <script>
-	import { formatRelativeTime, HTTP_METHOD_STYLES, getWebhookUrl } from '$lib/shared/webhook-utils.js';
+	import {
+		formatRelativeTime,
+		HTTP_METHOD_STYLES,
+		getWebhookUrl
+	} from '$lib/shared/webhook-utils.js';
 
 	let { webhook, onEdit, onEnable, onDisable, onDelete, onViewLogs } = $props();
 
@@ -27,7 +31,8 @@
 	<div class="webhook-header">
 		<div class="webhook-title">
 			<h3>{webhook.name}</h3>
-			<span class="status-badge {statusColors[webhook.status]}">{statusLabels[webhook.status]}</span>
+			<span class="status-badge {statusColors[webhook.status]}">{statusLabels[webhook.status]}</span
+			>
 		</div>
 		<div class="webhook-actions">
 			<button class="action-btn" title="Edit" onclick={onEdit}>
@@ -58,7 +63,12 @@
 				<button class="action-btn" title="Enable" onclick={onEnable}>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
 						<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-width="2" stroke-linecap="round" />
-						<path d="M22 4L12 14.01l-3-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						<path
+							d="M22 4L12 14.01l-3-3"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				</button>
 			{/if}
@@ -83,7 +93,9 @@
 	<div class="webhook-endpoint">
 		<span
 			class="http-method"
-			style="background: {getMethodStyle(webhook.httpMethod).bg}; color: {getMethodStyle(webhook.httpMethod).color};"
+			style="background: {getMethodStyle(webhook.httpMethod).bg}; color: {getMethodStyle(
+				webhook.httpMethod
+			).color};"
 		>
 			{webhook.httpMethod}
 		</span>

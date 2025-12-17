@@ -26,7 +26,7 @@ describe('Settings Page State Helpers', () => {
 		// Updated to match the actual registry-based implementation
 		// Sections are ordered by their 'order' property:
 		// - themes (10), home (20), workspace-env (30), keys (40),
-		//   authentication (50), tunnels (60), claude (70), data-management (90)
+		//   authentication (50), tunnels (60), ai (70), data-management (90)
 		const expectedOrder = [
 			'themes',
 			'home',
@@ -34,7 +34,7 @@ describe('Settings Page State Helpers', () => {
 			'keys',
 			'authentication',
 			'tunnels',
-			'claude',
+			'ai',
 			'data-management'
 		];
 
@@ -96,9 +96,9 @@ describe('Settings Page State Helpers', () => {
 	});
 
 	it('translates component load errors into actionable guidance', () => {
-		// Use 'claude' instead of 'claude-auth' to match actual section ID
-		const message = translateSettingsError({ type: 'component-load', sectionId: 'claude' });
-		expect(message).toContain('Claude');
+		// Use 'ai' section ID to match new architecture
+		const message = translateSettingsError({ type: 'component-load', sectionId: 'ai' });
+		expect(message.toLowerCase()).toContain('ai');
 		expect(message).toContain('refresh');
 	});
 

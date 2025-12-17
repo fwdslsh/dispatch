@@ -6,24 +6,24 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 **Dispatch** is a containerized web application providing interactive terminal sessions via browser. Built with SvelteKit, Socket.IO, and node-pty, it enables Claude Code sessions and shell access in isolated environments with web-based terminal access.
 
-## Architecture - Unified Session Management
+## Architecture - OpenCode-First Session Management
 
-The codebase uses a modern unified session architecture with event sourcing:
+The codebase uses an OpenCode-first architecture with ephemeral windows and persistent AI sessions:
 
-### Core Architecture Components
+### Core Architecture Components (v3.0)
 
-**RunSessionManager** (`src/lib/server/runtime/RunSessionManager.js`):
+**SessionOrchestrator** (`src/lib/server/sessions/SessionOrchestrator.js`):
 
-- Single source of truth for all session types via adapter pattern
-- Event-sourced history with monotonic sequence numbers for replay capability
-- Real-time event emission to Socket.IO clients
-- Supports session persistence and multi-client synchronization
+- Coordinates session lifecycle using repositories and adapters
+- Separates **ephemeral** (terminal, file-editor) from **persistent** (ai) sessions
+- Ephemeral sessions: In-memory only, no DB persistence, auto-generated IDs
+- Persistent AI sessions: Full event sourcing, database persistence, OpenCode-powered
 
 **Adapter Pattern** (organized by feature):
 
-- `src/lib/server/terminal/PtyAdapter.js` - Terminal sessions via node-pty
-- `src/lib/server/claude/ClaudeAdapter.js` - Claude Code sessions via @anthropic-ai/claude-code
-- `src/lib/server/file-editor/FileEditorAdapter.js` - File editing sessions
+- `src/lib/server/terminal/PtyAdapter.js` - Ephemeral terminal windows via node-pty
+- `src/lib/server/ai/AIAdapter.js` - Persistent AI sessions via OpenCode SDK
+- `src/lib/server/file-editor/FileEditorAdapter.js` - Ephemeral file editing windows
 - Clean abstraction for adding new session types via adapter interface
 
 **Socket.IO Events** (unified protocol):
@@ -476,7 +476,7 @@ http://localhost:3030/api-docs      # Production server
 await fetch('/api/sessions', {
 	method: 'POST',
 	body: JSON.stringify({
-		type: 'pty',
+		type: 'terminal',
 		workspacePath: '/workspace/my-project',
 		authKey: 'YOUR_KEY'
 	})

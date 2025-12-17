@@ -102,16 +102,16 @@ The Dispatch system stores server-side settings in SQLite database with the foll
 | --------- | ------- | ------------ | ------------- | ------------------ | ------------------------------ | ---------------------- |
 | **theme** | `retro` | **Database** | User Settings | UI theme selection | Data-theme attribute in layout | Yes - via settings API |
 
-### Claude Settings Category (`claude`)
+### AI Settings Category (`ai`)
 
 | Setting                    | Default                      | Location     | Category         | Description                         | Usage Location                 | Runtime Configurable   |
 | -------------------------- | ---------------------------- | ------------ | ---------------- | ----------------------------------- | ------------------------------ | ---------------------- |
-| **model**                  | `claude-3-5-sonnet-20241022` | **Database** | Session-Specific | Default Claude model                | ClaudeAdapter session creation | Yes - via settings API |
-| **permissionMode**         | `default`                    | **Database** | Session-Specific | Claude permission mode              | ClaudeAdapter session creation | Yes - via settings API |
-| **executable**             | `auto`                       | **Database** | Session-Specific | Claude executable path preference   | ClaudeAdapter session creation | Yes - via settings API |
-| **maxTurns**               | `null`                       | **Database** | Session-Specific | Maximum conversation turns          | ClaudeAdapter session creation | Yes - via settings API |
-| **includePartialMessages** | `false`                      | **Database** | Session-Specific | Include partial messages in context | ClaudeAdapter session creation | Yes - via settings API |
-| **continueConversation**   | `false`                      | **Database** | Session-Specific | Continue previous conversation      | ClaudeAdapter session creation | Yes - via settings API |
+| **model**                  | `claude-sonnet-4-20250514`   | **Database** | Session-Specific | Default AI model                    | AIAdapter session creation     | Yes - via settings API |
+| **provider**               | `anthropic`                  | **Database** | Session-Specific | AI provider (anthropic, openai)     | AIAdapter session creation     | Yes - via settings API |
+| **baseUrl**                | `http://localhost:4096`      | **Database** | Session-Specific | OpenCode server URL                 | AIAdapter session creation     | Yes - via settings API |
+| **maxTurns**               | `null`                       | **Database** | Session-Specific | Maximum conversation turns          | AIAdapter session creation     | Yes - via settings API |
+| **includePartialMessages** | `false`                      | **Database** | Session-Specific | Include partial messages in context | AIAdapter session creation     | Yes - via settings API |
+| **continueConversation**   | `false`                      | **Database** | Session-Specific | Continue previous conversation      | AIAdapter session creation     | Yes - via settings API |
 
 ## Configuration Files
 

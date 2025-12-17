@@ -47,6 +47,13 @@
 			Webhooks
 		</a>
 		<a
+			href="/opencode"
+			class="nav-link"
+			class:active={globalThis.location?.pathname === '/opencode'}
+		>
+			OpenCode
+		</a>
+		<a
 			href="/settings"
 			class="nav-link"
 			class:active={globalThis.location?.pathname === '/settings'}

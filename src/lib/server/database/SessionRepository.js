@@ -21,13 +21,14 @@ export class SessionRepository {
 	}
 
 	/**
-	 * Create new session
+	 * Create new persistent session
 	 * @param {Object} sessionData - Session creation data
-	 * @param {string} sessionData.kind - Session type (pty, claude, file-editor)
+	 * @param {string} sessionData.kind - Session type (ai) - only persistent sessions
 	 * @param {string} sessionData.workspacePath - Workspace path
 	 * @param {Object} [sessionData.metadata] - Additional metadata
 	 * @param {string} [sessionData.ownerUserId=null] - Owner user ID
 	 * @returns {Promise<Object>} Created session
+	 * @note Ephemeral sessions (terminal, file-editor) do not use the database
 	 */
 	async create(sessionData) {
 		const { kind, workspacePath, metadata = {}, ownerUserId = null } = sessionData;

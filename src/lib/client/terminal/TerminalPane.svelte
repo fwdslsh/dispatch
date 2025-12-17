@@ -249,7 +249,6 @@
 	}
 
 	.terminal-container :global(.xterm .xterm-screen) {
-		
 		height: 100% !important;
 	}
 

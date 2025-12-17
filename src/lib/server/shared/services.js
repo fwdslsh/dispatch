@@ -149,13 +149,13 @@ export async function createServices(config = {}) {
 	// Register canonical session types
 	adapterRegistry.register(SESSION_TYPE.TERMINAL, terminalAdapter);
 	adapterRegistry.register(SESSION_TYPE.AI, aiAdapter);
+	adapterRegistry.register(SESSION_TYPE.OPENCODE, aiAdapter); // OpenCode portal UI uses same adapter
 	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
 	// Register legacy aliases for backward compatibility (point to same adapters)
 	// These will be removed in a future version
 	adapterRegistry.register('pty', terminalAdapter);
 	adapterRegistry.register('claude', aiAdapter);
-	adapterRegistry.register('opencode', aiAdapter);
 	adapterRegistry.register('opencode-tui', aiAdapter);
 
 	// Layer 8: Cron scheduler (needs db, will get io instance later)

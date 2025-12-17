@@ -4,7 +4,7 @@ Dispatch now supports workspace-level environment variable management that appli
 
 ## Overview
 
-Workspace environment variables allow you to define environment variables that will be automatically available in all sessions (PTY, Claude, File Editor) within your workspace. This feature is particularly useful for setting common configuration values like `NODE_ENV`, `API_KEY`, or `DEBUG` flags that should be consistent across all your development sessions.
+Workspace environment variables allow you to define environment variables that will be automatically available in all sessions (Terminal, Claude, File Editor) within your workspace. This feature is particularly useful for setting common configuration values like `NODE_ENV`, `API_KEY`, or `DEBUG` flags that should be consistent across all your development sessions.
 
 ## Features
 
@@ -129,7 +129,7 @@ When creating any session type, the system:
 
 All session adapters support workspace environment variables:
 
-- **PTY Adapter**: Applied to terminal shell environment
+- **Terminal Adapter**: Applied to terminal shell environment
 - **Claude Adapter**: Applied to Claude Code execution environment
 - **File Editor Adapter**: Available for file operations (though not directly used)
 
