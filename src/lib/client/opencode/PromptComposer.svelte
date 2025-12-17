@@ -1,5 +1,5 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import EventViewer from './EventViewer.svelte';
 
 	/**
@@ -11,20 +11,19 @@
 	/**
 	 * @type {{
 	 *   session: OpenCodeSession,
+	 *   events: any[],
 	 *   onSendPrompt: (sessionId: string, prompt: string) => Promise<any>
 	 * }}
 	 */
-	let { session, onSendPrompt } = $props();
+	let { session, events = [], onSendPrompt } = $props();
 
 	let promptText = $state('');
 	let sending = $state(false);
 	let messages = $state([]);
-	let events = $state([]);
 	let showAutocomplete = $state(false);
 	let autocompleteOptions = $state([]);
 	let autocompletePosition = $state(0);
 	let textareaEl = $state(null);
-	let eventSource = $state(null);
 
 	// File autocomplete
 	let currentDirectory = $state(null);
@@ -128,39 +127,8 @@
 		}
 	}
 
-	function connectEventSource() {
-		if (eventSource) {
-			eventSource.close();
-		}
-
-		// Connect to SSE endpoint for real-time events
-		const url = `/api/opencode/events?sessionId=${session.id}`;
-		eventSource = new EventSource(url);
-
-		eventSource.onmessage = (event) => {
-			try {
-				const data = JSON.parse(event.data);
-				events = [...events, { ...data, timestamp: Date.now() }];
-			} catch (err) {
-				console.error('Failed to parse SSE event:', err);
-			}
-		};
-
-		eventSource.onerror = (err) => {
-			console.error('SSE connection error:', err);
-			eventSource.close();
-		};
-	}
-
 	onMount(() => {
 		loadFiles();
-		connectEventSource();
-	});
-
-	onDestroy(() => {
-		if (eventSource) {
-			eventSource.close();
-		}
 	});
 </script>
 

@@ -91,8 +91,9 @@ export function normalizeSessionType(type) {
 	const legacyMap = {
 		pty: 'terminal',
 		claude: 'ai',
-		opencode: 'ai',
 		'opencode-tui': 'ai'
+		// NOTE: 'opencode' is NOT in this map because it's a canonical type (SESSION_TYPE.OPENCODE)
+		// Only true legacy types should be normalized
 	};
 	return legacyMap[type] || type;
 }

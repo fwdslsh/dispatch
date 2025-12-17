@@ -170,6 +170,18 @@ export async function POST({ request, locals }) {
 			console.warn('[Sessions API] Failed to load workspace settings:', error);
 		}
 
+		// Get OpenCode server settings for AI sessions
+		let aiOptions = {};
+		if (sessionKind === SESSION_TYPE.AI || sessionKind === SESSION_TYPE.OPENCODE) {
+			const serverStatus = locals.services.opencodeServerManager.getStatus();
+			if (serverStatus.running) {
+				aiOptions.baseUrl = serverStatus.url;
+			} else {
+				// Use configured port even if server is not running
+				aiOptions.baseUrl = `http://${serverStatus.hostname}:${serverStatus.port}`;
+			}
+		}
+
 		// Determine the working directory (cwd is the workspace)
 		const workingDirectory =
 			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
@@ -182,6 +194,7 @@ export async function POST({ request, locals }) {
 				cwd: workingDirectory,
 				options: {
 					...options,
+					...aiOptions,
 					workspaceEnv: workspaceEnvVariables
 				}
 			}

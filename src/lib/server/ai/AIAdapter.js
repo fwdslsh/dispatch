@@ -171,8 +171,9 @@ export class AIAdapter {
 						logger.debug('AI_ADAPTER', 'Event received:', event.type);
 						emitEvent(event);
 
-						// Session completed
-						if (event.type === 'session.idle' || event.type === 'session.completed') {
+						// Only break on explicit session termination, not idle state
+						// session.idle means "ready for next message", not "session ended"
+						if (event.type === 'session.completed') {
 							logger.info('AI_ADAPTER', `Session ${sessionId} completed`);
 							break;
 						}

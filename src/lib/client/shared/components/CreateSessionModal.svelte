@@ -138,7 +138,7 @@
 					role="button"
 					tabindex="0"
 				>
-					{#snippet icon()}<IconRobot size={32} />{/snippet}
+					{#snippet icon()}<IconBolt size={32} />{/snippet}
 				</TypeCard>
 				<TypeCard
 					title="Terminal"

@@ -1,165 +1,692 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import PromptComposer from './PromptComposer.svelte';
+	import { browser } from '$app/environment';
+	import { OpenCodeViewModel } from './viewmodels/OpenCodeViewModel.svelte.js';
+	import ActivityStrip from '$lib/client/ai/components/ActivityStrip.svelte';
+	import ToolActivityCard from '$lib/client/ai/components/ToolActivityCard.svelte';
+	import IconMessage from '$lib/client/shared/components/Icons/IconMessage.svelte';
+	import IconLoader from '$lib/client/shared/components/Icons/IconLoader.svelte';
+	import IconSparkles from '$lib/client/shared/components/Icons/IconSparkles.svelte';
+	import IconBolt from '$lib/client/shared/components/Icons/IconBolt.svelte';
+	import IconX from '$lib/client/shared/components/Icons/IconX.svelte';
 
 	/**
-	 * @type {{
-	 *   sessionId: string,
-	 *   opencodeSessionId?: string,
-	 *   workspacePath?: string,
-	 *   provider?: string,
-	 *   model?: string
-	 * }}
+	 * OpenCodePane - OpenCode Chat Interface
+	 * Mobile-friendly chat interface for OpenCode sessions
+	 * Matches AIPanel design patterns
 	 */
+
+	// Props
 	let { sessionId, opencodeSessionId, workspacePath, provider, model } = $props();
 
-	let session = $state(null);
-	let loading = $state(true);
-	let error = $state(null);
+	// Browser-only RunSessionClient
+	let runSessionClient = $state(null);
 
-	async function loadSession() {
-		try {
-			loading = true;
-			error = null;
-
-			// Session is already created by workspace
-			// Just use the provided IDs and metadata
-			const id = opencodeSessionId || sessionId;
-			if (!id) {
-				throw new Error('No session ID provided');
-			}
-
-			session = {
-				id,
-				opencodeSessionId: id,
-				workspacePath: workspacePath || '/workspace',
-				provider: provider || 'anthropic',
-				model: model || 'claude-sonnet-4'
-			};
-		} catch (err) {
-			error = err.message;
-			console.error('Failed to load OpenCode session:', err);
-		} finally {
-			loading = false;
-		}
-	}
-
-	async function sendPrompt(sid, prompt) {
-		// Note: OpenCode sessions use the AI adapter which handles prompts
-		// For now, just return a mock response
-		// TODO: Implement actual prompt sending via Socket.IO or API
-		try {
-			return {
-				content: 'OpenCode session received prompt. Socket.IO integration coming soon.',
-				timestamp: Date.now()
-			};
-		} catch (err) {
-			console.error('Failed to send prompt:', err);
-			throw err;
-		}
-	}
-
-	onMount(() => {
-		loadSession();
+	// Create ViewModel
+	const viewModel = new OpenCodeViewModel({
+		sessionId,
+		opencodeSessionId
 	});
 
+	// Refs
+	let messagesContainer = $state(null);
+	let inputRef = $state(null);
+
+	// Auto-scroll when shouldScrollToBottom changes
+	$effect(() => {
+		if (viewModel.shouldScrollToBottom && messagesContainer) {
+			requestAnimationFrame(() => {
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+				viewModel.shouldScrollToBottom = false;
+			});
+		}
+	});
+
+	// Handle keyboard shortcuts
+	function handleKeydown(e) {
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			handleSubmit();
+		}
+	}
+
+	async function handleSubmit() {
+		const text = await viewModel.submitInput();
+		if (!text || !runSessionClient) return;
+
+		try {
+			const id = opencodeSessionId || sessionId;
+			await runSessionClient.sendInput(id, text);
+		} catch (err) {
+			console.error('[OpenCodePane] Failed to send input:', err);
+			viewModel.handleError({ message: err.message || 'Failed to send message' });
+		}
+	}
+
+	// Mobile detection
+	function checkMobile() {
+		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
+	}
+
+	function handleResize() {
+		viewModel.setMobile(checkMobile());
+	}
+
+	// Focus input on mobile tap
+	function focusInput() {
+		if (inputRef && viewModel.isMobile) {
+			inputRef.focus();
+		}
+	}
+
+	// Mount lifecycle
+	onMount(async () => {
+		console.log('[OpenCodePane] Mounting:', { sessionId, opencodeSessionId });
+
+		try {
+			// Import runSessionClient only in browser to avoid SSR issues
+			if (browser) {
+				const module = await import('$lib/client/shared/services/RunSessionClient.js');
+				runSessionClient = module.runSessionClient;
+			}
+
+			if (!runSessionClient) {
+				throw new Error('RunSessionClient not available');
+			}
+
+			// Ensure socket is authenticated
+			if (!runSessionClient.getStatus().authenticated) {
+				try {
+					await runSessionClient.authenticate();
+				} catch (e) {
+					console.warn('[OpenCodePane] Auth warning:', e?.message);
+				}
+			}
+
+			// Attach to run session
+			// Use afterSeq=-1 to get ALL events including seq=0 (full history replay)
+			const id = opencodeSessionId || sessionId;
+			const result = await runSessionClient.attachToRunSession(
+				id,
+				(event) => viewModel.handleRunEvent(event),
+				-1
+			);
+
+			viewModel.attach();
+			console.log('[OpenCodePane] Attached to session:', result);
+
+			// Mobile handling
+			if (typeof window !== 'undefined') {
+				viewModel.setMobile(checkMobile());
+				window.addEventListener('resize', handleResize);
+			}
+		} catch (error) {
+			console.error('[OpenCodePane] Mount error:', error);
+			viewModel.setConnectionError(`Failed to initialize: ${error.message}`);
+			viewModel.loading = false;
+		}
+	});
+
+	// Cleanup
 	onDestroy(() => {
-		// Cleanup if needed
+		if (runSessionClient && viewModel.isAttached && (opencodeSessionId || sessionId)) {
+			try {
+				runSessionClient.detachFromRunSession(opencodeSessionId || sessionId);
+			} catch (error) {
+				console.error('[OpenCodePane] Detach error:', error);
+			}
+		}
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('resize', handleResize);
+		}
 	});
 </script>
 
-<div class="opencode-pane">
-	{#if loading}
-		<div class="loading-state">
-			<div class="spinner"></div>
-			<p>Loading OpenCode session...</p>
+<div class="chat-pane" class:mobile={viewModel.isMobile}>
+	<!-- Header -->
+	<header class="chat-header">
+		<div class="ai-status {viewModel.status}">
+			<div class="ai-avatar">
+				{#if viewModel.loading}
+					<IconLoader size={18} />
+				{:else if viewModel.status === 'working'}
+					<IconSparkles size={18} />
+				{:else if viewModel.isWaitingForReply}
+					<IconSparkles size={18} />
+				{:else}
+					<IconBolt size={18} />
+				{/if}
+			</div>
+			<div class="ai-info">
+				<span class="ai-name">OpenCode</span>
+				{#if viewModel.loading}
+					<span class="ai-status-text">Connecting...</span>
+				{:else if viewModel.status === 'working'}
+					<span class="ai-status-text">Working...</span>
+				{:else if viewModel.isWaitingForReply}
+					<span class="ai-status-text">Thinking...</span>
+				{/if}
+			</div>
 		</div>
-	{:else if error}
-		<div class="error-state">
-			<h3>Failed to Load Session</h3>
-			<p class="error-message">{error}</p>
-			<button class="retry-btn" onclick={loadSession}>Retry</button>
+		<div class="chat-stats">
+			{#if viewModel.allActivities.length > 0}
+				<div class="stat-item tools">
+					<span class="stat-count">{viewModel.allActivities.length}</span>
+					<span>tools</span>
+				</div>
+			{/if}
+			<div class="stat-item">
+				<IconMessage size={14} />
+				<span>{viewModel.messages.filter((m) => m.role !== 'tool').length}</span>
+			</div>
 		</div>
-	{:else if session}
-		<PromptComposer {session} onSendPrompt={sendPrompt} />
-	{:else}
-		<div class="empty-state">
-			<p>No session available</p>
-		</div>
-	{/if}
+	</header>
+
+	<!-- Activity Strip (shows running tools) -->
+	<ActivityStrip
+		activities={viewModel.runningActivities}
+		isThinking={viewModel.isWaitingForReply && viewModel.runningActivities.length === 0}
+	/>
+
+	<!-- Messages -->
+	<div class="messages-area" bind:this={messagesContainer} onclick={focusInput}>
+		{#if viewModel.messages.length === 0 && !viewModel.loading}
+			<div class="empty-state">
+				<IconBolt size={48} />
+				<h3>OpenCode Assistant</h3>
+				<p>AI-powered coding assistant. Start a conversation to get help with your code.</p>
+				{#if viewModel.isMobile}
+					<p class="mobile-hint">Tap below to start typing</p>
+				{/if}
+			</div>
+		{:else}
+			<div class="messages-list">
+				{#each viewModel.messages as message (message.id)}
+					<!-- Tool Activity Card -->
+					{#if message.role === 'tool'}
+						<ToolActivityCard
+							tool={message.toolData?.tool?.toLowerCase() || 'unknown'}
+							status={message.toolData?.status || 'completed'}
+							title={message.toolData?.tool || 'Tool'}
+							summary={message.text}
+							filePath={message.toolData?.filePath}
+							command={message.toolData?.command}
+						/>
+						<!-- User Message -->
+					{:else if message.role === 'user'}
+						<div class="message user">
+							<div class="message-content">
+								<p>{message.text}</p>
+							</div>
+							<div class="message-avatar">
+								<span class="avatar-user">You</span>
+							</div>
+						</div>
+						<!-- Error Message -->
+					{:else if message.role === 'error'}
+						<div class="message error">
+							<div class="message-avatar">
+								<IconX size={14} />
+							</div>
+							<div class="message-content">
+								<p class="error-text">{message.text}</p>
+							</div>
+						</div>
+						<!-- Assistant Message -->
+					{:else}
+						<div class="message assistant" class:streaming={message.streaming}>
+							<div class="message-avatar">
+								<IconBolt size={16} />
+							</div>
+							<div class="message-content">
+								<p>{message.text}</p>
+								{#if message.streaming}
+									<span class="streaming-cursor"></span>
+								{/if}
+							</div>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+
+		{#if viewModel.isWaitingForReply && viewModel.runningActivities.length === 0}
+			<div class="thinking-indicator">
+				<IconLoader size={16} />
+				<span>OpenCode is thinking...</span>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Input Area -->
+	<div class="input-area">
+		<form class="input-form" onsubmit={handleSubmit}>
+			<textarea
+				bind:this={inputRef}
+				bind:value={viewModel.input}
+				onkeydown={handleKeydown}
+				placeholder={viewModel.isMobile
+					? 'Type your message...'
+					: 'Ask OpenCode to help with your code...'}
+				disabled={viewModel.loading || !viewModel.isAttached}
+				rows={viewModel.isMobile ? 1 : 2}
+			></textarea>
+			<button
+				type="submit"
+				disabled={!viewModel.canSubmit || viewModel.isWaitingForReply}
+				class:sending={viewModel.isWaitingForReply}
+			>
+				{#if viewModel.isWaitingForReply}
+					<IconLoader size={18} />
+				{:else}
+					<IconMessage size={18} />
+				{/if}
+				<span class="btn-text">Send</span>
+			</button>
+		</form>
+	</div>
 </div>
 
 <style>
-	.opencode-pane {
+	.chat-pane {
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		width: 100%;
-		background: var(--color-background);
-		color: var(--color-text);
+		background: var(--bg-panel, var(--bg));
 		overflow: hidden;
 	}
 
-	.loading-state,
-	.error-state,
+	/* Header */
+	.chat-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-3) var(--space-4);
+		border-bottom: 1px solid var(--surface-border);
+		background: var(--surface);
+		flex-shrink: 0;
+		min-height: 56px;
+	}
+
+	.ai-status {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+
+	.ai-avatar {
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius-full);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 20%, transparent),
+			color-mix(in oklab, var(--primary) 10%, transparent)
+		);
+		border: 2px solid color-mix(in oklab, var(--primary) 30%, transparent);
+		color: var(--primary);
+	}
+
+	.ai-status.thinking .ai-avatar,
+	.ai-status.working .ai-avatar {
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.7;
+			transform: scale(1.05);
+		}
+	}
+
+	.ai-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.ai-name {
+		font-weight: 600;
+		font-size: var(--font-size-2);
+		color: var(--text);
+	}
+
+	.ai-status-text {
+		font-size: var(--font-size-1);
+		color: var(--primary);
+	}
+
+	.chat-stats {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	.stat-item {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		padding: var(--space-1) var(--space-2);
+		background: var(--bg);
+		border-radius: var(--radius);
+		font-size: var(--font-size-1);
+		color: var(--text-muted);
+	}
+
+	.stat-item.tools {
+		background: color-mix(in oklab, var(--primary) 10%, var(--bg));
+		color: var(--primary);
+	}
+
+	.stat-count {
+		font-weight: 600;
+	}
+
+	/* Messages Area */
+	.messages-area {
+		flex: 1;
+		overflow-y: auto;
+		padding: var(--space-4);
+		-webkit-overflow-scrolling: touch;
+	}
+
 	.empty-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		height: 100%;
-		padding: 2rem;
+		gap: var(--space-3);
+		color: var(--text-muted);
 		text-align: center;
+		padding: var(--space-8);
 	}
 
-	.spinner {
-		width: 40px;
-		height: 40px;
-		border: 4px solid var(--color-border);
-		border-top-color: var(--color-primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-		margin-bottom: 1rem;
+	.empty-state h3 {
+		margin: 0;
+		font-family: var(--font-mono);
+		color: var(--text);
 	}
 
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
+	.empty-state p {
+		margin: 0;
+		max-width: 300px;
+	}
+
+	.mobile-hint {
+		color: var(--primary);
+		font-size: var(--font-size-1);
+	}
+
+	.messages-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	/* Messages */
+	.message {
+		display: flex;
+		gap: var(--space-3);
+		align-items: flex-start;
+	}
+
+	.message.user {
+		flex-direction: row-reverse;
+	}
+
+	.message-avatar {
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius-full);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		font-size: 10px;
+		font-weight: 600;
+	}
+
+	.message.user .message-avatar {
+		background: var(--primary);
+		color: var(--bg);
+	}
+
+	.message.assistant .message-avatar {
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		color: var(--primary);
+	}
+
+	.message.error .message-avatar {
+		background: var(--error);
+		color: white;
+		width: 28px;
+		height: 28px;
+	}
+
+	.avatar-user {
+		font-size: 10px;
+	}
+
+	.message-content {
+		flex: 1;
+		min-width: 0;
+		padding: var(--space-3);
+		border-radius: var(--radius);
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		max-width: 85%;
+	}
+
+	.message.user .message-content {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--bg);
+		max-width: 80%;
+	}
+
+	.message.error .message-content {
+		background: color-mix(in oklab, var(--error) 10%, transparent);
+		border-color: var(--error);
+	}
+
+	.message-content p {
+		margin: 0;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-2);
+		line-height: 1.6;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+
+	.message.streaming .message-content {
+		border-color: var(--primary-dim, var(--primary));
+	}
+
+	.streaming-cursor {
+		display: inline-block;
+		width: 6px;
+		height: 14px;
+		background: var(--primary);
+		animation: blink 1s step-end infinite;
+		margin-left: 2px;
+		vertical-align: text-bottom;
+	}
+
+	@keyframes blink {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0;
 		}
 	}
 
-	.loading-state p,
-	.empty-state p {
-		color: var(--color-text-muted);
-		margin: 0;
+	.error-text {
+		color: var(--error);
 	}
 
-	.error-state h3 {
-		color: var(--color-error, #c33);
-		margin: 0 0 0.5rem 0;
+	.thinking-indicator {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		color: var(--primary);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-2);
 	}
 
-	.error-message {
-		color: var(--color-text);
-		margin: 0 0 1rem 0;
-		padding: 1rem;
-		background: var(--color-error-bg, #fee);
-		border: 1px solid var(--color-error, #c33);
-		border-radius: 4px;
-		max-width: 400px;
+	/* Input Area */
+	.input-area {
+		flex-shrink: 0;
+		padding: var(--space-3) var(--space-4);
+		border-top: 1px solid var(--surface-border);
+		background: var(--surface);
+		padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
 	}
 
-	.retry-btn {
-		padding: 0.5rem 1.5rem;
-		background: var(--color-primary);
-		color: white;
+	.input-form {
+		display: flex;
+		gap: var(--space-2);
+		align-items: flex-end;
+	}
+
+	.input-form textarea {
+		flex: 1;
+		padding: var(--space-3);
+		background: var(--bg);
+		border: 1px solid var(--surface-border);
+		border-radius: var(--radius);
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-size: 16px;
+		resize: none;
+		min-height: 48px;
+		max-height: 120px;
+		line-height: 1.4;
+	}
+
+	.input-form textarea:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px
+			var(--primary-glow-15, color-mix(in oklab, var(--primary) 15%, transparent));
+	}
+
+	.input-form textarea:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.input-form button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+		background: var(--primary);
+		color: var(--bg);
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-2);
+		font-weight: 600;
 		cursor: pointer;
-		font-weight: 500;
+		transition: all 0.2s;
+		min-height: 48px;
+		min-width: 48px;
 	}
 
-	.retry-btn:hover {
-		opacity: 0.9;
+	.input-form button:hover:not(:disabled) {
+		background: var(--primary-bright, var(--primary));
+		transform: translateY(-1px);
+	}
+
+	.input-form button:active:not(:disabled) {
+		transform: translateY(0);
+	}
+
+	.input-form button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	.input-form button.sending {
+		background: color-mix(in oklab, var(--primary) 70%, var(--bg));
+	}
+
+	/* Mobile Styles */
+	.chat-pane.mobile .chat-header {
+		padding: var(--space-2) var(--space-3);
+		min-height: 52px;
+	}
+
+	.chat-pane.mobile .ai-avatar {
+		width: 32px;
+		height: 32px;
+	}
+
+	.chat-pane.mobile .messages-area {
+		padding: var(--space-3);
+	}
+
+	.chat-pane.mobile .message-content {
+		padding: var(--space-2) var(--space-3);
+		max-width: 90%;
+	}
+
+	.chat-pane.mobile .message.user .message-content {
+		max-width: 85%;
+	}
+
+	.chat-pane.mobile .input-area {
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.chat-pane.mobile .input-form textarea {
+		min-height: 44px;
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.chat-pane.mobile .btn-text {
+		display: none;
+	}
+
+	.chat-pane.mobile .input-form button {
+		padding: var(--space-2) var(--space-3);
+		min-width: 44px;
+	}
+
+	@media (max-width: 768px) {
+		.btn-text {
+			display: none;
+		}
+
+		.input-form button {
+			padding: var(--space-2) var(--space-3);
+		}
+	}
+
+	/* Reduced motion */
+	@media (prefers-reduced-motion: reduce) {
+		.ai-status.thinking .ai-avatar,
+		.ai-status.working .ai-avatar {
+			animation: none;
+		}
+
+		.streaming-cursor {
+			animation: none;
+			opacity: 1;
+		}
 	}
 </style>
