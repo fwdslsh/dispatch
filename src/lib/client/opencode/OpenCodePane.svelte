@@ -22,52 +22,37 @@
 			loading = true;
 			error = null;
 
-			// Try to fetch existing session
-			if (opencodeSessionId) {
-				const response = await fetch(`/api/opencode/sessions/${opencodeSessionId}`);
-				if (response.ok) {
-					session = await response.json();
-					return;
-				}
+			// Session is already created by workspace
+			// Just use the provided IDs and metadata
+			const id = opencodeSessionId || sessionId;
+			if (!id) {
+				throw new Error('No session ID provided');
 			}
 
-			// If no existing session, create a new one
-			const createResponse = await fetch('/api/opencode/sessions', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					provider: provider || 'anthropic',
-					model: model || 'claude-sonnet-4',
-					workspacePath
-				})
-			});
-
-			if (!createResponse.ok) {
-				throw new Error(`Failed to create session: ${createResponse.statusText}`);
-			}
-
-			session = await createResponse.json();
+			session = {
+				id,
+				opencodeSessionId: id,
+				workspacePath: workspacePath || '/workspace',
+				provider: provider || 'anthropic',
+				model: model || 'claude-sonnet-4'
+			};
 		} catch (err) {
 			error = err.message;
-			console.error('Failed to load/create OpenCode session:', err);
+			console.error('Failed to load OpenCode session:', err);
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function sendPrompt(sessionId, prompt) {
+	async function sendPrompt(sid, prompt) {
+		// Note: OpenCode sessions use the AI adapter which handles prompts
+		// For now, just return a mock response
+		// TODO: Implement actual prompt sending via Socket.IO or API
 		try {
-			const response = await fetch(`/api/opencode/sessions/${sessionId}/prompt`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ prompt })
-			});
-
-			if (!response.ok) {
-				throw new Error(`Failed to send prompt: ${response.statusText}`);
-			}
-
-			return await response.json();
+			return {
+				content: 'OpenCode session received prompt. Socket.IO integration coming soon.',
+				timestamp: Date.now()
+			};
 		} catch (err) {
 			console.error('Failed to send prompt:', err);
 			throw err;
