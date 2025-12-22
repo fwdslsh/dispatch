@@ -90,7 +90,7 @@ jobs:
           echo "docker run -d -p 3030:3030 -e TERMINAL_KEY=test fwdslsh/dispatch:${{ steps.version.outputs.rc_tag }}"
 
       - name: Add PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const rcTag = '${{ steps.version.outputs.rc_tag }}';
