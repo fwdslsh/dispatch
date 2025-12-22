@@ -62,7 +62,7 @@
 		"dispatch": "./bin/dispatch"
 	},
 	"dependencies": {
-		"@anthropic-ai/claude-code": "^2.0.70",
+		"@anthropic-ai/claude-code": "^2.0.75",
 		"@battlefieldduck/xterm-svelte": "^2.1.1",
 		"@floating-ui/dom": "^1.7.4",
 		"@sveltejs/adapter-node": "^5.3.3",
@@ -92,7 +92,7 @@
 		"svelte-virtual-list": "^3.0.1"
 	},
 	"optionalDependencies": {
-		"@opencode-ai/sdk": "^1.0.163"
+		"@opencode-ai/sdk": "^1.0.185"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.11.0",
