@@ -71,6 +71,7 @@
 		"@xterm/xterm": "^5.5.0",
 		"ansi_up": "^6.0.6",
 		"augmented-ui": "^2.0.0",
+		"bash-language-server": "^5.6.0",
 		"bcrypt": "^6.0.0",
 		"better-sqlite3": "^12.5.0",
 		"commander": "^14.0.2",
@@ -89,7 +90,8 @@
 		"socket.io-client": "^4.8.1",
 		"sqlite3": "^5.1.7",
 		"sv-window-manager": "^0.3.0",
-		"svelte-virtual-list": "^3.0.1"
+		"svelte-virtual-list": "^3.0.1",
+		"yaml-language-server": "^1.19.2"
 	},
 	"optionalDependencies": {
 		"@opencode-ai/sdk": "^1.0.163"
