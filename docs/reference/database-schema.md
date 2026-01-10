@@ -25,7 +25,7 @@ The central table for all run sessions (terminal, Claude, file editor).
 CREATE TABLE sessions (
     run_id TEXT PRIMARY KEY,
     owner_user_id TEXT,
-    kind TEXT NOT NULL,              -- Session type: 'pty', 'claude', 'file-editor'
+    kind TEXT NOT NULL,              -- Session type: 'terminal', 'ai', 'file-editor'
     status TEXT NOT NULL,            -- 'starting'|'running'|'stopped'|'error'
     created_at INTEGER NOT NULL,     -- Unix timestamp in milliseconds
     updated_at INTEGER NOT NULL,     -- Unix timestamp in milliseconds
@@ -40,7 +40,7 @@ CREATE TABLE sessions (
 
 **Field Details:**
 
-- `run_id`: Unique session identifier (e.g., `pty_abc123`, `claude_xyz789`)
+- `run_id`: Unique session identifier (e.g., `terminal_abc123`, `claude_xyz789`)
 - `owner_user_id`: User identifier (for future multi-user support, currently nullable)
 - `kind`: Session type constant from `SESSION_TYPE`
   - `pty` - Terminal session via node-pty
@@ -57,7 +57,7 @@ CREATE TABLE sessions (
 **Example meta_json structures:**
 
 ```json
-// PTY session
+// Terminal session
 {
   "workspacePath": "/workspace/my-project",
   "shell": "/bin/bash",
@@ -91,7 +91,7 @@ CREATE TABLE session_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id TEXT NOT NULL,
     seq INTEGER NOT NULL,            -- Monotonic sequence per run_id
-    channel TEXT NOT NULL,           -- Event channel: 'pty:stdout', 'claude:message', 'system:status'
+    channel TEXT NOT NULL,           -- Event channel: 'terminal:stdout', 'claude:message', 'system:status'
     type TEXT NOT NULL,              -- Event type: 'chunk', 'text', 'json', 'open', 'close'
     payload BLOB NOT NULL,           -- JSON or binary data
     ts INTEGER NOT NULL,             -- Unix timestamp in milliseconds
@@ -110,8 +110,8 @@ CREATE TABLE session_events (
 - `run_id`: Foreign key to sessions table
 - `seq`: Monotonically increasing sequence number per session (starts at 1)
 - `channel`: Event channel identifier
-  - `pty:stdout` - Terminal standard output
-  - `pty:stderr` - Terminal standard error
+  - `terminal:stdout` - Terminal standard output
+  - `terminal:stderr` - Terminal standard error
   - `claude:message` - Claude message events
   - `claude:error` - Claude error events
   - `system:status` - System status changes
@@ -224,7 +224,7 @@ Server-wide configuration settings organized by category.
 
 ```sql
 CREATE TABLE settings (
-    category TEXT PRIMARY KEY,         -- 'global', 'claude', 'terminal', 'workspace'
+    category TEXT PRIMARY KEY,         -- 'global', 'ai', 'terminal', 'workspace'
     settings_json TEXT NOT NULL,       -- JSON object containing all settings for category
     description TEXT,                  -- Human-readable category description
     created_at INTEGER NOT NULL,       -- Unix timestamp in milliseconds
@@ -366,7 +366,7 @@ GROUP BY status;
 ```sql
 SELECT run_id, seq, channel, type, payload, ts
 FROM session_events
-WHERE run_id = 'pty_abc123' AND seq > 100
+WHERE run_id = 'terminal_abc123' AND seq > 100
 ORDER BY seq ASC;
 ```
 
@@ -375,7 +375,7 @@ ORDER BY seq ASC;
 ```sql
 SELECT COALESCE(MAX(seq), 0) as maxSeq
 FROM session_events
-WHERE run_id = 'pty_abc123';
+WHERE run_id = 'terminal_abc123';
 -- Next seq = maxSeq + 1
 ```
 

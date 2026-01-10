@@ -440,7 +440,7 @@ export class SessionViewModel {
 	<div class="form-group">
 		<label for="session-type">Session Type</label>
 		<select id="session-type" bind:value={sessionType} disabled={viewModel.creating}>
-			<option value="pty">Terminal (PTY)</option>
+			<option value="terminal">Terminal (PTY)</option>
 			<option value="claude">Claude Code</option>
 			<option value="file-editor">File Editor</option>
 		</select>

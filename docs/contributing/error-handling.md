@@ -678,7 +678,7 @@ async resumeSession(sessionId, workspacePath) {
         log.info('Resuming session', sessionId);
 
         const existingSession = this.appStateManager.sessions.getSession(sessionId);
-        const sessionType = existingSession?.sessionType || SESSION_TYPE.PTY;
+        const sessionType = existingSession?.sessionType || SESSION_TYPE.TERMINAL;
         const resolvedWorkspace = existingSession?.workspacePath || workspacePath;
 
         const result = await this.sessionApi.create({

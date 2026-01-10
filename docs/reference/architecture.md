@@ -90,77 +90,81 @@ class SessionAdapter {
 }
 ```
 
-#### Terminal Adapter
+#### Terminal Adapter (Ephemeral)
 
 `src/lib/server/terminal/PtyAdapter.js`
 
 ```javascript
-class PtyAdapter extends SessionAdapter {
-	constructor(runSessionManager) {
-		super(runSessionManager);
-		this.terminals = new Map(); // runId -> pty instance
+class PtyAdapter {
+	constructor() {
+		this.terminals = new Map(); // sessionId -> pty instance
 	}
 
-	async create(runId, options) {
+	async create(options) {
+		const { cwd, onEvent, ...ptyOptions } = options;
 		const pty = spawn(options.shell || 'bash', [], {
 			name: 'xterm-color',
-			cols: options.cols || 80,
-			rows: options.rows || 24,
-			cwd: options.workspacePath
+			cols: ptyOptions.cols || 80,
+			rows: ptyOptions.rows || 24,
+			cwd: cwd || process.cwd()
 		});
 
-		// Forward pty output as events
+		// Forward pty output as events (ephemeral, no DB persistence)
 		pty.onData((data) => {
-			this.runSessionManager.recordEvent(runId, 'pty:output', { data });
+			onEvent({ channel: 'terminal:output', type: 'data', payload: { data } });
 		});
 
-		this.terminals.set(runId, pty);
-		return { status: 'created' };
-	}
-
-	async handleInput(runId, input) {
-		const pty = this.terminals.get(runId);
-		if (pty) {
-			pty.write(input);
-			// Record input for replay capability
-			await this.runSessionManager.recordEvent(runId, 'pty:input', { input });
-		}
+		return {
+			input: {
+				write: (data) => pty.write(data)
+			},
+			close: () => pty.kill()
+		};
 	}
 }
 ```
 
-#### Claude Adapter
+#### AI Adapter (Persistent)
 
-`src/lib/server/claude/ClaudeAdapter.js`
+`src/lib/server/ai/AIAdapter.js`
 
 ```javascript
-class ClaudeAdapter extends SessionAdapter {
-	constructor(runSessionManager) {
-		super(runSessionManager);
-		this.claudeInstances = new Map(); // runId -> claude instance
+class AIAdapter {
+	constructor() {
+		// Delegates to OpenCode server via HTTP API
 	}
 
-	async create(runId, options) {
-		const claude = new ClaudeCode({
-			workspaceRoot: options.workspacePath,
-			apiKey: process.env.ANTHROPIC_API_KEY
+	async create(options) {
+		const { cwd, baseUrl, model, provider, onEvent } = options;
+
+		// Create session via OpenCode API
+		const response = await fetch(`${baseUrl}/api/sessions`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ cwd, model, provider })
 		});
 
-		// Forward Claude events as Dispatch events
-		claude.on('output', (output) => {
-			this.runSessionManager.recordEvent(runId, 'claude:output', { output });
-		});
+		const { sessionId } = await response.json();
 
-		this.claudeInstances.set(runId, claude);
-		return { status: 'created' };
-	}
+		// Set up SSE stream for real-time events (persistent, recorded in DB)
+		const eventSource = new EventSource(`${baseUrl}/api/events/${sessionId}`);
+		eventSource.onmessage = (event) => {
+			const data = JSON.parse(event.data);
+			onEvent(data); // Recorded via EventRecorder
+		};
 
-	async handleInput(runId, input) {
-		const claude = this.claudeInstances.get(runId);
-		if (claude) {
-			await claude.sendMessage(input);
-			await this.runSessionManager.recordEvent(runId, 'claude:input', { input });
-		}
+		return {
+			sessionId,
+			input: {
+				write: async (prompt) => {
+					await fetch(`${baseUrl}/api/sessions/${sessionId}/prompt`, {
+						method: 'POST',
+						body: JSON.stringify({ prompt })
+					});
+				}
+			},
+			close: () => eventSource.close()
+		};
 	}
 }
 ```
@@ -374,7 +378,7 @@ export class RunSessionClient {
 	const { sessions, currentSession } = sessionViewModel;
 
 	// Event handling
-	terminalService.registerEventHandler('pty:output', (event) => {
+	terminalService.registerEventHandler('terminal:output', (event) => {
 		// Update terminal display
 		terminalElement.write(event.payload.data);
 	});
@@ -394,11 +398,11 @@ export class RunSessionClient {
 ### Core Tables
 
 ```sql
--- Session management
+-- Session management (v3.0: Only persistent AI sessions stored)
 CREATE TABLE sessions (
   id TEXT PRIMARY KEY,
   runId TEXT UNIQUE NOT NULL,
-  kind TEXT NOT NULL,           -- pty, claude, file-editor
+  kind TEXT NOT NULL,           -- ai (terminal and file-editor are ephemeral)
   status TEXT NOT NULL,         -- starting, running, stopped, error
   workspacePath TEXT,
   metadata TEXT,                -- JSON session options

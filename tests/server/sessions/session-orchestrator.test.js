@@ -14,8 +14,8 @@ describe('SessionOrchestrator', () => {
 				/** @type {any} */ ({
 					getAdapter: vi.fn(),
 					hasAdapter: vi.fn(),
-					getRegisteredTypes: vi.fn().mockReturnValue(['pty', 'claude', 'file-editor']),
-					getRegisteredKinds: vi.fn().mockReturnValue(['pty', 'claude', 'file-editor'])
+					getRegisteredTypes: vi.fn().mockReturnValue(['terminal', 'ai', 'file-editor']),
+					getRegisteredKinds: vi.fn().mockReturnValue(['terminal', 'ai', 'file-editor'])
 				})
 			);
 
@@ -59,12 +59,50 @@ describe('SessionOrchestrator', () => {
 	});
 
 	describe('createSession', () => {
-		it('should create a new session with valid adapter', async () => {
+		it('should create ephemeral terminal session without DB persistence', async () => {
 			// Arrange
-			const sessionType = 'pty';
+			const sessionType = 'terminal';
 			const options = {
 				workspacePath: '/test',
 				metadata: { shell: '/bin/bash' }
+			};
+			const mockProcess = {
+				input: { write: vi.fn() },
+				close: vi.fn()
+			};
+			const mockAdapter = {
+				create: vi.fn().mockResolvedValue(mockProcess)
+			};
+
+			mockAdapterRegistry.getAdapter.mockReturnValue(mockAdapter);
+
+			// Act
+			const session = await orchestrator.createSession(sessionType, options);
+
+			// Assert - ephemeral sessions generate their own IDs
+			expect(session.id).toMatch(/^terminal_\d+_[a-z0-9]+$/);
+			expect(session).toMatchObject({
+				kind: sessionType,
+				status: 'running',
+				isEphemeral: true
+			});
+
+			// Ephemeral sessions should NOT touch the database
+			expect(mockSessionRepository.create).not.toHaveBeenCalled();
+			expect(mockEventRecorder.startBuffering).not.toHaveBeenCalled();
+			expect(mockEventRecorder.flushBuffer).not.toHaveBeenCalled();
+			expect(mockSessionRepository.updateStatus).not.toHaveBeenCalled();
+
+			// But should create the adapter
+			expect(mockAdapter.create).toHaveBeenCalled();
+		});
+
+		it('should create persistent AI session with DB persistence', async () => {
+			// Arrange
+			const sessionType = 'ai';
+			const options = {
+				workspacePath: '/test',
+				metadata: { model: 'claude-sonnet-4' }
 			};
 			const mockProcess = {
 				input: { write: vi.fn() },
@@ -86,12 +124,14 @@ describe('SessionOrchestrator', () => {
 			// Act
 			const session = await orchestrator.createSession(sessionType, options);
 
-			// Assert
+			// Assert - persistent sessions use DB-generated IDs
 			expect(session).toMatchObject({
 				id: 'session-123',
 				kind: sessionType,
 				status: 'running'
 			});
+
+			// Persistent sessions SHOULD use the database and event recording
 			expect(mockSessionRepository.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					kind: sessionType,
@@ -105,7 +145,7 @@ describe('SessionOrchestrator', () => {
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'running');
 		});
 
-		it('should throw error when adapter not found', async () => {
+		it('should throw error when adapter not found for persistent session', async () => {
 			// Arrange
 			const error = new Error('Adapter not found for session type: unknown');
 			mockAdapterRegistry.getAdapter.mockImplementation(() => {
@@ -113,18 +153,18 @@ describe('SessionOrchestrator', () => {
 			});
 			mockSessionRepository.create.mockResolvedValue({
 				id: 'session-123',
-				kind: 'unknown'
+				kind: 'ai' // Use persistent session type
 			});
 
 			// Act & Assert
-			await expect(orchestrator.createSession('unknown', {})).rejects.toThrow('Adapter not found');
+			await expect(orchestrator.createSession('ai', {})).rejects.toThrow('Adapter not found');
 
-			// The error was thrown, cleanup should have occurred
+			// The error was thrown, cleanup should have occurred for persistent session
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith('session-123');
 		});
 
-		it('should handle adapter creation failure', async () => {
+		it('should handle adapter creation failure for persistent session', async () => {
 			// Arrange
 			const mockAdapter = {
 				create: vi.fn().mockRejectedValue(new Error('Creation failed'))
@@ -133,13 +173,14 @@ describe('SessionOrchestrator', () => {
 			mockAdapterRegistry.getAdapter.mockReturnValue(mockAdapter);
 			mockSessionRepository.create.mockResolvedValue({
 				id: 'session-123',
-				kind: 'pty',
+				kind: 'ai', // Use persistent session type
 				status: 'pending'
 			});
 
 			// Act & Assert
-			await expect(orchestrator.createSession('pty', {})).rejects.toThrow('Creation failed');
+			await expect(orchestrator.createSession('ai', {})).rejects.toThrow('Creation failed');
 
+			// For persistent sessions, DB status should be updated on error
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith('session-123');
 		});
@@ -239,12 +280,12 @@ describe('SessionOrchestrator', () => {
 	});
 
 	describe('resumeSession', () => {
-		it('should resume session from database', async () => {
+		it('should resume persistent AI session from database', async () => {
 			// Arrange
 			const sessionId = 'session-123';
 			const sessionData = {
 				id: sessionId,
-				kind: 'pty',
+				kind: 'ai', // Only persistent sessions can be resumed
 				status: 'stopped',
 				metadata: { workspacePath: '/test' }
 			};
@@ -266,7 +307,7 @@ describe('SessionOrchestrator', () => {
 			expect(result).toMatchObject({
 				sessionId: sessionId,
 				resumed: true,
-				kind: 'pty'
+				kind: 'ai'
 			});
 			expect(mockAdapter.create).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -346,7 +387,7 @@ describe('SessionOrchestrator', () => {
 			expect(stats).toMatchObject({
 				activeSessions: 2,
 				registeredAdapters: 3,
-				supportedKinds: expect.arrayContaining(['pty', 'claude', 'file-editor'])
+				supportedKinds: expect.arrayContaining(['terminal', 'ai', 'file-editor'])
 			});
 		});
 	});

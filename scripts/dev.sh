@@ -16,7 +16,6 @@ docker run -d --rm --name dispatch \
   -p 443:443 \
   -e DOMAIN=localhost \
   -e SSL_MODE=self-signed \
-  -e TERMINAL_KEY="${key:-}" \
   -e DISPATCH_CONFIG_DIR="/config" \
   -e DISPATCH_WORKSPACE_DIR="/workspace" \
   -e TRUST_PROXY=true \

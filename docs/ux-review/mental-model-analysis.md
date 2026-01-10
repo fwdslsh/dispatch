@@ -414,7 +414,7 @@ Dispatch
 | "Workspace" | "My whole project setup" | "Project" |
 | "Create Session" | "Start something" | "New Terminal" / "New AI" |
 | "Claude Session" | "Claude?" | "AI Agent" |
-| "PTY Session" | "What's PTY?" | "Terminal" |
+| "Terminal Session" | "What's PTY?" | "Terminal" |
 | "Pin to layout" | "Pin where?" | "Show" |
 | "inLayout sessions" | "???" | "Open tabs" |
 | "Run" | "Execute?" | (internal only) |

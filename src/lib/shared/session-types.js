@@ -1,19 +1,24 @@
 /**
  * Session type constants
- * Simplified to core types: Terminal and AI (powered by OpenCode)
+ * OpenCode-first architecture with ephemeral windows
  *
- * v2.0 Hard Fork: OpenCode-first architecture
- * - TERMINAL: Shell/PTY sessions
- * - AI: OpenCode-powered AI agent sessions (replaces claude, opencode, opencode-tui)
- * - FILE_EDITOR: File editing sessions (kept for direct file editing)
+ * v3.0 Architecture:
+ * - AI: OpenCode-powered AI agent sessions (the ONLY persisted session type)
+ * - TERMINAL: Ephemeral shell/PTY windows (not persisted)
+ * - FILE_EDITOR: Ephemeral file editing windows (not persisted)
+ *
+ * "Sessions" = OpenCode sessions only
+ * "Windows" = Terminal and File Editor (ephemeral, CWD-driven)
  */
 
 export const SESSION_TYPE = {
-	/** Terminal/PTY sessions */
-	TERMINAL: 'terminal',
-	/** AI agent sessions powered by OpenCode */
+	/** AI agent sessions powered by OpenCode - PERSISTED */
 	AI: 'ai',
-	/** File editor sessions */
+	/** OpenCode sessions with portal UI - PERSISTED */
+	OPENCODE: 'opencode',
+	/** Terminal/PTY windows - EPHEMERAL (not persisted) */
+	TERMINAL: 'terminal',
+	/** File editor windows - EPHEMERAL (not persisted) */
 	FILE_EDITOR: 'file-editor',
 
 	// Legacy aliases for migration compatibility (will be removed)
@@ -22,15 +27,25 @@ export const SESSION_TYPE = {
 	/** @deprecated Use AI instead */
 	CLAUDE: 'ai',
 	/** @deprecated Use AI instead */
-	OPENCODE: 'ai',
-	/** @deprecated Use AI instead */
 	OPENCODE_TUI: 'ai'
 };
 
 /**
  * Canonical session types (excludes deprecated aliases)
  */
-export const CANONICAL_SESSION_TYPES = ['terminal', 'ai', 'file-editor'];
+export const CANONICAL_SESSION_TYPES = ['ai', 'opencode', 'terminal', 'file-editor'];
+
+/**
+ * Ephemeral session types - these are NOT persisted to DB
+ * They exist only in memory and are lost when the process closes
+ */
+export const EPHEMERAL_SESSION_TYPES = ['terminal', 'file-editor'];
+
+/**
+ * Persistent session types - these ARE persisted to DB
+ * OpenCode/AI sessions are persistent
+ */
+export const PERSISTENT_SESSION_TYPES = ['ai', 'opencode'];
 
 /**
  * Valid session types as an array (includes aliases for migration)
@@ -47,6 +62,26 @@ export function isValidSessionType(type) {
 }
 
 /**
+ * Check if a session type is ephemeral (not persisted)
+ * @param {string} type
+ * @returns {boolean}
+ */
+export function isEphemeralSessionType(type) {
+	const normalized = normalizeSessionType(type);
+	return EPHEMERAL_SESSION_TYPES.includes(normalized);
+}
+
+/**
+ * Check if a session type is persistent (persisted to DB)
+ * @param {string} type
+ * @returns {boolean}
+ */
+export function isPersistentSessionType(type) {
+	const normalized = normalizeSessionType(type);
+	return PERSISTENT_SESSION_TYPES.includes(normalized);
+}
+
+/**
  * Normalize legacy session types to canonical types
  * @param {string} type - Session type (may be legacy)
  * @returns {string} - Canonical session type
@@ -56,8 +91,9 @@ export function normalizeSessionType(type) {
 	const legacyMap = {
 		pty: 'terminal',
 		claude: 'ai',
-		opencode: 'ai',
 		'opencode-tui': 'ai'
+		// NOTE: 'opencode' is NOT in this map because it's a canonical type (SESSION_TYPE.OPENCODE)
+		// Only true legacy types should be normalized
 	};
 	return legacyMap[type] || type;
 }

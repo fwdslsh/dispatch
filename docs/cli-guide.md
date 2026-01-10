@@ -285,7 +285,7 @@ dispatch config
 	// Custom tunnel subdomain (optional)
 	"ltSubdomain": null,
 
-	// PTY mode: 'shell' or 'claude'
+	// PTY mode: 'terminal' or 'ai'
 	"ptyMode": "shell",
 
 	// Volume mounts
