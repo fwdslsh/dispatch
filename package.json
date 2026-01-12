@@ -62,17 +62,17 @@
 		"dispatch": "./bin/dispatch"
 	},
 	"dependencies": {
-		"@anthropic-ai/claude-code": "^2.0.70",
-		"@battlefieldduck/xterm-svelte": "^2.1.1",
+		"@anthropic-ai/claude-code": "^2.1.5",
+		"@battlefieldduck/xterm-svelte": "^2.2.0",
 		"@floating-ui/dom": "^1.7.4",
 		"@sveltejs/adapter-node": "^5.3.3",
 		"@types/node-cron": "^3.0.11",
-		"@xterm/addon-fit": "^0.10.0",
-		"@xterm/xterm": "^5.5.0",
+		"@xterm/addon-fit": "^0.11.0",
+		"@xterm/xterm": "^6.0.0",
 		"ansi_up": "^6.0.6",
 		"augmented-ui": "^2.0.0",
 		"bcrypt": "^6.0.0",
-		"better-sqlite3": "^12.5.0",
+		"better-sqlite3": "^12.6.0",
 		"commander": "^14.0.2",
 		"cron-parser": "^5.4.0",
 		"express": "^5.2.1",
@@ -82,17 +82,17 @@
 		"marked": "^17.0.1",
 		"node-cron": "^4.2.1",
 		"node-forge": "^1.3.3",
-		"node-pty": "^1.0.0",
+		"node-pty": "^1.1.0",
 		"open": "^11.0.0",
 		"prismjs": "^1.30.0",
-		"socket.io": "^4.8.1",
-		"socket.io-client": "^4.8.1",
+		"socket.io": "^4.8.3",
+		"socket.io-client": "^4.8.3",
 		"sqlite3": "^5.1.7",
 		"sv-window-manager": "^0.3.0",
 		"svelte-virtual-list": "^3.0.1"
 	},
 	"optionalDependencies": {
-		"@opencode-ai/sdk": "^1.0.163"
+		"@opencode-ai/sdk": "^1.1.14"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.11.0",
